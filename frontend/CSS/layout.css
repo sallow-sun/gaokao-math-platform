@@ -1,0 +1,39 @@
+/* 页面容器与左右两栏 */
+.page-container {
+  width: max(75%,calc(100% - 140px));
+  max-width: 1150px;
+  min-width: 0;
+  margin-inline: auto;
+  padding: 22px 0 64px;
+}
+
+.page-container > article {
+  width: 100%;
+}
+
+.page-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.content-panel{
+  min-width: 0;
+}
+
+.sidebar {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.content-panel,
+.sidebar > section {
+  background: var(--card-bg);
+  border: 1px solid rgba(220, 223, 230, 0.92);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}

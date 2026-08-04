@@ -1,0 +1,280 @@
+/* ---------- 1. 全局基础样式 ---------- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #f4f6f8;
+  color: #263238;
+  font-family: Arial, "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+/* ---------- 2. 顶部导航栏 ---------- */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 0 5%;
+  background-color: #ffffff;
+  border-bottom: 1px solid #dfe3e8;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+header a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+header a:hover {
+  text-decoration: underline;
+}
+
+header img {
+  display: block;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #dbeafe;
+  object-fit: cover;
+}
+
+/* ---------- 3. 页面整体宽度 ---------- */
+main {
+  width: min(1180px, 92%);
+  margin: 28px auto;
+}
+
+.page-container {
+  width: calc(100% - 40px);
+  max-width: 1170px;
+  margin: 0 auto;
+  padding: 16px 0 60px;
+}
+
+/* 左侧是题目，右侧是信息卡片 */
+article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  align-items: start;
+}
+
+/* 所有内容区共用的卡片外观 */
+section {
+  padding: 20px;
+  background-color: #ffffff;
+  border: 1px solid #e1e5ea;
+  border-radius: 10px;
+  box-shadow: 0 3px 12px rgba(24, 39, 75, 0.05);
+}
+
+section h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+/* ---------- 4. 顶部题目信息栏 ---------- */
+.header-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border-top: 5px solid #ef4444;
+}
+
+.header-panel > div:first-child {
+  flex: 1;
+}
+
+.header-panel-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.header-panel-title span {
+  padding: 4px 9px;
+  background-color: #fff1f2;
+  color: #be123c;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+/* 下载量和收藏量：文字与数字上下排列 */
+.header-panel > div:nth-child(2),
+.header-panel > div:nth-child(3) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 58px;
+  font-size: 14px;
+}
+
+.header-panel > div:nth-child(2) span:last-child,
+.header-panel > div:nth-child(3) span:last-child {
+  font-weight: 700;
+}
+
+.header-panel > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- 5. 左侧题面栏 ---------- */
+.content-panel {
+  grid-column: 1;
+  grid-row: 2 / span 6;
+  min-height: 580px;
+  padding: 34px;
+  font-size: 18px;
+}
+
+.content-panel p {
+  margin: 0 0 26px;
+  font-size: 20px;
+}
+
+.content-panel > span {
+  display: block;
+  margin: 12px 0;
+  padding: 13px 16px;
+  border: 1px solid #d8dee6;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.content-panel > span:hover {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+}
+
+/* ---------- 6. 右侧卡片 ---------- */
+.information-panel,
+.answer-panel,
+.tag-panel,
+.discussion-panel,
+.collection-panel,
+.recommendation-panel {
+  grid-column: 2;
+}
+
+.information-panel p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.information-panel-title {
+  color: #687385;
+}
+
+.tag-panel > span,
+.discussion-panel > span,
+.collection-panel > span,
+.recommendation-panel > span {
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* ---------- 7. 按钮和链接 ---------- */
+button,
+.answer-panel a {
+  display: inline-block;
+  padding: 8px 13px;
+  color: #ffffff;
+  background-color: #2563eb;
+  border: 0;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover,
+.answer-panel a:hover {
+  background-color: #1d4ed8;
+}
+
+button:active,
+.answer-panel a:active {
+  transform: scale(0.98);
+}
+
+.header-panel-button {
+  white-space: nowrap;
+}
+
+.information-panel button {
+  width: 100%;
+}
+
+/* ---------- 8. 手机和平板适配 ---------- */
+@media (max-width: 760px) {
+  header {
+    padding: 12px 4%;
+  }
+
+  header h1 {
+    font-size: 17px;
+  }
+
+  main {
+    width: min(100% - 24px, 680px);
+    margin: 16px auto;
+  }
+
+  article {
+    display: block;
+  }
+
+  section {
+    margin-bottom: 14px;
+  }
+
+  .header-panel {
+    flex-wrap: wrap;
+  }
+
+  .header-panel > div:first-child {
+    flex-basis: 100%;
+  }
+
+  .header-panel > div:last-child {
+    flex-basis: 100%;
+  }
+
+  .content-panel {
+    min-height: 0;
+    padding: 22px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 15px;
+  }
+
+  .header-panel {
+    gap: 16px;
+  }
+
+  .header-panel-button {
+    flex: 1;
+  }
+}

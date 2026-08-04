@@ -1,0 +1,82 @@
+/* 选择整个顶部卡片；HTML 中对应 class="header-panel" 的元素。 */
+.header-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns:repeat(4,1fr);
+  align-items: center;
+  row-gap: 10px;
+
+  min-height: 0px;
+  margin-bottom: 18px;/* 卡片下方与下一块内容的外间距；0 表示没有间距。 */
+  padding: 16px 26px;/* 卡片内部留白：上下 16px、左右 26px；一个值表示四边相同，四个值依次是上右下左。 */
+  overflow: hidden;
+  
+  background:rgba(255, 255, 255, 0.95);
+  /* 1px 实线边框；可改 solid 为 dashed（虚线）或 none（无边框），最后的 0.88 是不透明度。 */
+  border: 1px solid rgba(220, 223, 230, 0.88);
+  /* 使用 --radius 变量设置圆角；也可直接写 0（直角）、6px、12px 或 50%（圆形/椭圆）。 */
+  border-radius: var(--radius);
+  /* 使用 --shadow 变量设置阴影；想去掉阴影可改为 none，想自行设置可写 0 2px 8px rgba(0,0,0,.08)。 */
+  box-shadow: var(--shadow);
+}
+
+.header-panel-title {
+  grid-column: 1/3;
+  grid-row: 1/2;
+
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+
+  align-items: center;
+  
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;/* 标题使用较粗字重；400 正常，700 更粗。 */
+}
+
+.header-panel-stats {
+  grid-column: 4;
+  grid-row: 1/2;
+  margin-left: auto;/*自动靠右*/
+
+  display: flex;
+  align-items: stretch;
+
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.header-panel-button {
+  grid-column: 4;
+  grid-row: 2;
+  margin-left: auto;
+
+  display: flex;
+  min-width: 72px;
+  flex-direction: row;/* 让按钮横向排列。 */
+  gap: 9px;/* 按钮之间相距 9px；数值越大越疏。 */
+}
+
+.header-panel-stats-item {
+  display: flex;
+  min-width: 72px;
+  padding: 0 20px;
+  flex-direction: column;/* 把内部文字从默认横排改为竖排*/
+  align-items: center;/* 水平居中内部文字*/
+  justify-content: center;/* 竖直居中内部文字*/
+  line-height: 1.35;/* 行高是字号的 1.35 倍*/
+}
+
+/*给第二项及以后加分隔线。 */
+.header-panel-stats-item + .header-panel-stats-item {
+  /* 添加左侧 2px 实线；去掉->改为 none，更明显->改粗或换颜色。 */
+  border-left: 1.5px solid var(--line);
+}
+
+/* 选择每个统计项中的最后一个 span，即统计数字。 */
+.header-panel-stats-item span:last-child {
+  margin-top: 4px;/* 数字与上方名称之间留 4px；*/
+  font-size: 14px;/* 数字字号；改大更醒目。 */
+  font-weight: 600;/* 数字使用较粗字重；400 正常，700 更粗。 */
+}

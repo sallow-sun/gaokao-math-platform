@@ -1,0 +1,91 @@
+/* 平板与手机适配：必须最后引入 */
+@media (max-width: 520px) {
+  .header-panel {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .header-panel-button {
+    grid-column: 1 / -1;
+    flex-direction: row;
+  }
+
+  .page-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+
+@media (max-width: 760px) {
+  body > header {
+    grid-template-columns: 1fr auto;
+    padding: 0 14px;
+  }
+
+  body > header h1 {
+    display: none;
+  }
+
+  .page-container {
+    width: calc(100% - 24px);
+    padding-top: 12px;
+  }
+
+  .header-panel {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .header-panel-stats {
+    width: 100%;
+  }
+
+  .header-panel-stats-item {
+    flex: 1;
+  }
+
+  .header-panel-button {
+    grid-column: auto;
+  }
+
+  .header-panel-button button {
+    flex: 1;
+  }
+
+  .page-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .content-panel {
+    min-height: auto;
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 430px) {
+  .header-panel-title h2 {
+    gap: 7px;
+    font-size: 18px;
+  }
+
+  .header-panel-title h2 span:first-child {
+    width: 100%;
+    font-size: 22px;
+  }
+
+  .header-panel-button {
+    flex-direction: column;
+  }
+
+  .content-panel {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
