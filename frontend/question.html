@@ -6,8 +6,8 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/header-panel.css">
-  <link rel="stylesheet" href="css/content.css">
-  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/content-panel.css">
+  <link rel="stylesheet" href="css/sidebar-panel.css">
   <link rel="stylesheet" href="css/responsive.css">
   <title>题目详情 - P10001</title><!--题目详情-题号-->
 </head>
@@ -26,7 +26,8 @@
     <article>
     <!--题目页面-->
 
-      <section class="header-panel">
+      <!--==================== header-panel(题头栏) ====================-->
+      <section class="header-panel" data-question-type="single">
         <div class="header-panel-title">
             <span class="header-panel-title-id">P10001</span>
             <span><span>2025年新高考Ⅰ卷</span><span>T1</span></span><span>单选</span>
@@ -60,61 +61,96 @@
       <!--题目栏颜色与题型保持一致。单选：红；多选：黄；填空：蓝；解答：绿；其他：白-->
 
       <div class="page-layout">
+
+        <!--==================== content-panel(题面栏) ====================-->
         <section class="content-panel">
-          <p>1.(1+5i)i 的虚部为()</p>
-          <span>A.-1</span>
-          <span>B. 0</span>
-          <span>C. 1</span>
-          <span>D. 6</span>
+          <div class="content-panel-question">
+            <pre>
+1.(1+5i)i 的虚部为( )
+A.-1    B. 0    C. 1    D. 6
+            </pre>
+          </div>
         </section>
         <!--正左，题面栏content-->
-        <!--此处的题目应该是直接从后台调出来，目前仅作展示-->
+        <!--此处的题目应该是直接从后台调出来，目前仅作展示。CSS只修改section和div-->
 
+        <!--==================== sidebar-panel(侧栏) ====================-->
         <aside class="sidebar">
           <section class="information-panel">
-            <p><span class="information-panel-title">题目编号</span>    <span>P10001</span></p>
-            <p><span class="information-panel-title">来源</span>    <span>2025新高考Ⅰ卷</span></p>
-            <p><span class="information-panel-title">上传者</span>  <span>user001</span></p>
-            <p><span class="information-panel-title">训练价值</span>    <span>RED</span></p>
-            <p><button>点击打卡</button></p>
-            <p><button>练习记录</button></p>
-            <p><button>收藏题目</button></p>
-            <p><button>题目反馈</button></p>
+            <p><span class="information-panel-title">题目编号</span>    
+              <span class="information-panel-content">P10001</span></p>
+            <p><span class="information-panel-title">来源</span>    
+              <span class="information-panel-content">2025新高考Ⅰ卷</span></p>
+            <p><span class="information-panel-title">上传者</span>  
+              <a href="" class="information-panel-content">user001</span></p><!--链接到用户主页-->
+            <p><span class="information-panel-title">训练价值</span>    
+              <span class="information-panel-content" id="information-panel-value" data-question-type="red">RED</span></p>
+            <p class="information-panel-actions">
+              <button class="information-panel-action">点击打卡</button>
+              <a href="" class="information-panel-action">练习记录</a>
+              <button class="information-panel-action">收藏题目</button>
+              <a href="" class="information-panel-action">题目反馈</a>
+            </p>
           </section>
           <!--正右从上往下第一个，题目信息栏information-->
 
           <section class="answer-panel">
-            <h2>答案解析</h2>
-            <a href="">进入题解区</a>
-            <button>显示答案</button>
+            <div class="sidebar-panel-header">
+              <h2>答案解析</h2>
+              <a href="" class="sidebar-panel-link">进入题解区</a>
+            </div>
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span>显示答案</span>
+            </button>
           </section>
           <!--正右从上往下第二个，题目解析栏answer-->
 
           <section class="tag-panel">
-            <h2>标签</h2>
-            <span>高考真题</span>
-            <button>显示题目标签</button>
+            <div class="sidebar-panel-header">
+              <h2>标签</h2>
+            </div>
+              <span>高考真题</span>
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span>显示题目标签</span>
+            </button>
           </section>
           <!--正右从上往下第三个，题目Tag栏tag-->
 
           <section class="discussion-panel">
-            <h2>题目讨论</h2>
-            <span>进入讨论版</span>
-            <button>查看讨论</button>
+            <div class="sidebar-panel-header">
+              <h2>题目讨论</h2>
+              <a href="" class="sidebar-panel-link">进入讨论版</a>
+            </div>
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span>查看讨论</span>
+            </button>
           </section>
           <!--正右从上往下第四个，题目讨论栏discussion-->
 
           <section class="collection-panel">
-            <h2>本题收录于</h2>
-            <span>官方题单-集合</span>
-            <button>查看收录情况</button>
+            <div class="sidebar-panel-header">
+              <h2>本题收录于</h2>
+            </div>
+              <span>官方题单-集合</span>
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span>查看收录情况</span>
+            </button>
           </section>
           <!--正右从上往下第五个，题目收录栏collection-->
           
           <section class="recommendation-panel">
-          <h2>推荐题目</h2>
+            <div class="sidebar-panel-header">
+              <h2>推荐题目</h2>
+            </div>
           <span>P10002 2024年新高考Ⅰ卷T1</span>
-          <button>查看推荐</button>
+          <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span>查看推荐</span>
+            </button>
           </section>
           <!--正右从上往下第六个，题目推荐栏recommendation-->
         </aside>

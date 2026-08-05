@@ -94,6 +94,10 @@ a:focus-visible {
 
 /* > 表示直接子元素，这里只选中 body 下面第一层的 header */
 body > header {
+  position: sticky; /* 滚动页面时，功能栏到达窗口顶部后会停留在那里；若改成 static 就会随页面滚走 */
+  top: 0; /* sticky 生效时贴住浏览器窗口顶部；可改成 8px 留出顶部空隙 */
+  z-index: 1000; /* 让功能栏盖在题目卡片和侧栏之上；数值只需高于页面其他区域即可 */
+
   display: flex; /* 横向排列导航栏内容 */
   column-gap: 24px;                              /* 调整文字之间的距离 */
   justify-content: start;                        /* 整体靠左排列 */
@@ -124,7 +128,7 @@ body > header {
 }
 
 #header-user {
-  margin-left: auto;
+  margin-left: auto;/*自动居右*/
 }
 
 /* 头像图片 */

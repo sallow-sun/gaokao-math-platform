@@ -1,0 +1,185 @@
+/* ==================== 右侧信息、答案、标签和推荐栏 ==================== */
+.information-panel, .answer-panel,
+.tag-panel, .discussion-panel,
+.collection-panel, .recommendation-panel {
+  padding: 16px 20px 12px 20px;
+}
+
+/* ==================== 每栏小标题 ==================== */
+.sidebar h2 {
+  position: relative;
+  width: fit-content;/* h2 宽度等于文字宽度 */
+  margin: 0 0;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #ebeef5;
+  font-size: 15px;
+  font-weight: 600;
+  color:black
+}
+
+.sidebar h2::after {/* 标题下划线*/
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--primary);
+  content: "";
+}
+
+/* ==================== information-panel ==================== */
+.information-panel p {
+  display: flex; /* 布局方式；可切换 block/flex/grid 等 */
+  align-items: center; /* 垂直对齐方式；常用于 flex 布局 */
+  justify-content: space-between; /* 水平排列方式；调整内容分布 */
+  gap: 10px; /* 子元素间距；调整排列距离 */
+  margin: 3px; /* 外边距；调整元素与其他元素的距离 */
+  padding: 2px 0; /* 内边距；调整元素内部留白大小 */
+}
+
+.information-panel-title {
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.information-panel-content {
+  color: var(--text-main);
+  text-align: right;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+/* information-panel-value颜色 */
+/* HTML 写法：<data-question-type="red"> */
+#information-panel-value[data-question-type="red"] {
+  color:rgba(218, 68, 66, 1); /* 红 */
+}
+
+#information-panel-value[data-question-type="yellow"] {
+  color: rgba(218, 166, 32, 1); /* 黄 */
+}
+
+#information-panel-value[data-question-type="blue"] {
+  color: rgba(55, 132, 191, 1); /* 蓝 */
+}
+
+#information-panel-value[data-question-type="green"] {
+  color: rgba(61, 148, 88, 1); /* 绿 */
+}
+
+.information-panel-actions {
+  display: flex; /* 让操作项按照从左到右的顺序排列 */
+  flex-wrap: wrap; /* 当前行放不下完整操作项时，将整个操作项移到下一行 */
+  justify-content: flex-start; /* 每一行都从左侧开始排列 */
+  gap: 10px 18px; /* 第一项控制行距，第二项控制同一行的项目间距 */
+  margin-top: 18px; /* 保留操作区与上方题目信息的距离 */
+}
+
+.information-panel-action {
+  box-sizing: border-box; /* 统一 button 与 a 的盒模型 */
+  appearance: none; /* 清除 button 的浏览器默认外观 */
+
+  display: inline-flex; /* 让每个操作项按自身文字宽度参与横向排列 */
+  flex: 0 0 auto; /* 禁止操作项被压窄，避免中文逐字向下堆叠 */
+  align-items: center; /* 让文字在操作项内垂直居中 */
+  justify-content: center; /* 让文字在操作项内水平居中 */
+  width: auto; /* 宽度由文字内容决定，不再强制占满一列 */
+  min-width: max-content; /* 至少容纳完整文字，空间不足时由父元素整体换行 */
+  min-height: 0; /* 取消旧版按钮的固定高度 */
+  margin: 0; /* 清除 button 与 a 可能存在的默认外边距 */
+  padding: 0; /* 使用洛谷式文字操作项，不保留方框内边距 */
+  writing-mode: horizontal-tb; /* 强制使用从左到右的正常横排方向 */
+  text-orientation: mixed; /* 恢复正常文字方向，防止字符竖直显示 */
+  white-space: nowrap; /* 禁止单个操作项内部拆字换行 */
+  word-break: keep-all; /* 中文词组保持在同一行 */
+
+  color: var(--primary); /* 统一 button 与 a 的文字颜色 */
+  background: transparent; /* 清除 button 的默认背景 */
+  border: 0; /* 清除 button 的默认边框 */
+  border-radius: 0; /* 清除旧版操作项的圆角 */
+  font-family: inherit; /* 统一 button 与 a 的字体 */
+  font-size: 14px; /* 统一 button 与 a 的字号 */
+  font-weight: 600; /* 统一 button 与 a 的字重 */
+  line-height: 1.2; /* 统一文字行高 */
+  text-align: left; /* 保证每项文字从左向右阅读 */
+  text-decoration: none; /* 去掉 a 的默认下划线 */
+
+  cursor: pointer; /* 鼠标经过时显示可点击手型 */
+  transition: color 0.2s; /* 平滑切换悬停颜色 */
+}
+
+.information-panel-action:hover {
+  color: var(--primary-dark); /* 鼠标悬停时统一加深文字颜色 */
+  text-decoration: none; /* 悬停时仍不显示链接下划线 */
+}
+
+.information-panel-action:focus-visible {
+  outline: 2px solid var(--primary); /* 为键盘操作保留清晰的焦点提示 */
+  outline-offset: 3px; /* 让焦点框与文字之间保留一点距离 */
+}
+
+/* ==================== sidebar-panel-header&link&toggle ==================== */
+.sidebar-panel-header {
+  display: flex; /* 让标题和“进入讨论版”位于同一行 */
+  align-items: center; 
+  justify-content: space-between; /* 标题靠左，入口链接靠右 */
+  gap: 20px; /* 窗口变窄时仍保留基本间距 */
+}
+
+/*“进入讨论版”部分*/
+.sidebar-panel-link {
+  flex: 0 0 auto; /* 不让入口链接被压缩 */
+  color: var(--primary); /* 使用蓝色强调可跳转入口 */
+  font-size: 13px;
+  line-height: 1.5; /* 修改：与左侧标题对齐 */
+  text-decoration: none; /* 移除链接默认下划线 */
+  white-space: nowrap; /* 保证“进入讨论版”保持一行 */
+}
+
+.sidebar-panel-link:hover {
+  color: var(--primary-dark); /* 修改：鼠标经过时加深链接颜色 */
+  text-decoration: none; /* 修改：悬停时仍不显示下划线 */
+}
+
+/*“查看讨论”部分*/
+.sidebar-panel-toggle {
+  appearance: none; /* 清除浏览器的默认按钮样式 */
+  display: flex; /* 让箭头与文字横向排列 */
+  align-items: center;
+  justify-content: center; /* 将“查看讨论”整体放在卡片中间 */
+  gap: 9px; /* 控制箭头与文字之间的距离 */
+  width: 100%; /* 占满卡片宽度，便于整体居中和点击 */
+  padding: 0; 
+  margin-top: 5px;
+  color: var(--text-muted); /* 使用浅灰文字 */
+  background: transparent; /* 移除按钮默认背景 */
+  border: 0; /* 移除按钮默认边框 */
+  font-family: inherit; /* 按钮字体与页面保持一致 */
+  font-size: 12px; /* 设置查看入口字号 */
+  line-height: 1.2; 
+  cursor: pointer; /* 提示此区域可以点击 */
+}
+
+.sidebar-panel-arrow {
+  width: 7px; /* 设置 V 形箭头宽度 */
+  height: 7px; /* 设置 V 形箭头高度 */
+  border-right: 1.5px solid currentColor; /* 绘制箭头右侧笔画 */
+  border-bottom: 1.5px solid currentColor; /* 绘制箭头下侧笔画 */
+  transform: translateY(-3px) rotate(45deg); /* 将边框旋转为向下箭头 */
+  transition: transform 0.2s; /* 为展开状态预留平滑动画 */
+}
+
+.sidebar-panel-toggle[aria-expanded="true"] .discussion-panel-arrow {
+  transform: translateY(3px) rotate(225deg); /* 展开时让箭头指向上方 */
+}
+
+.sidebar-panel-toggle:hover {
+  color: var(--text-main); /* 鼠标经过时加深文字与箭头 */
+}
+
+.sidebar-panel-toggle:focus-visible {
+  outline: 2px solid var(--primary); /* 保留键盘操作的焦点提示 */
+  outline-offset: 2px; /* 让焦点框与文字保持距离 */
+}
+
