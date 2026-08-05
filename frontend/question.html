@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="css/content-panel.css">
   <link rel="stylesheet" href="css/sidebar-panel.css">
   <link rel="stylesheet" href="css/responsive.css">
+  <!-- 新增：使用独立 JavaScript 控制侧栏内容的展开与收起 -->
+  <script src="js/sidebar-panel.js" defer></script>
   <title>题目详情 - P10001</title><!--题目详情-题号-->
 </head>
 
@@ -99,9 +101,18 @@ A.-1    B. 0    C. 1    D. 6
               <h2>答案解析</h2>
               <a href="" class="sidebar-panel-link">进入题解区</a>
             </div>
-            <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+
+            <!-- 新增：答案解析的展开内容区；默认隐藏，后续可直接替换为数据库内容 -->
+            <div id="answer-panel-content" class="sidebar-panel-content" hidden>
+              <p class="sidebar-panel-empty">暂无答案解析</p>
+            </div>
+
+            <!-- 修改：补充内容关联和两种状态文案，供通用展开脚本读取 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="answer-panel-content" data-collapsed-text="显示答案"
+              data-expanded-text="收起答案">
               <span class="sidebar-panel-arrow" aria-hidden="true"></span>
-              <span>显示答案</span>
+              <span class="sidebar-panel-toggle-text">显示答案</span>
             </button>
           </section>
           <!--正右从上往下第二个，题目解析栏answer-->
@@ -110,10 +121,18 @@ A.-1    B. 0    C. 1    D. 6
             <div class="sidebar-panel-header">
               <h2>标签</h2>
             </div>
-              <span>高考真题</span>
-            <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+
+            <!-- 修改：将原有标签放入受控内容区，避免收起后仍然显示 -->
+            <div id="tag-panel-content" class="sidebar-panel-content" hidden>
+              <span class="sidebar-panel-item sidebar-panel-tag">高考真题</span>
+            </div>
+
+            <!-- 修改：补充内容关联和两种状态文案，供通用展开脚本读取 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="tag-panel-content" data-collapsed-text="显示题目标签"
+              data-expanded-text="收起题目标签">
               <span class="sidebar-panel-arrow" aria-hidden="true"></span>
-              <span>显示题目标签</span>
+              <span class="sidebar-panel-toggle-text">显示题目标签</span>
             </button>
           </section>
           <!--正右从上往下第三个，题目Tag栏tag-->
@@ -123,9 +142,18 @@ A.-1    B. 0    C. 1    D. 6
               <h2>题目讨论</h2>
               <a href="" class="sidebar-panel-link">进入讨论版</a>
             </div>
-            <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+
+            <!-- 修改：套用通用展开内容样式；保留原类名以兼容后续讨论区代码 -->
+            <div id="discussion-panel-content" class="sidebar-panel-content discussion-panel-content" hidden>
+              <p class="sidebar-panel-empty discussion-panel-empty">暂无讨论</p>
+            </div>
+
+            <!-- 修改：用 aria-controls 将按钮与讨论内容关联，并提供展开、收起文案 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="discussion-panel-content" data-collapsed-text="查看讨论"
+              data-expanded-text="收起讨论">
               <span class="sidebar-panel-arrow" aria-hidden="true"></span>
-              <span>查看讨论</span>
+              <span class="sidebar-panel-toggle-text">查看讨论</span>
             </button>
           </section>
           <!--正右从上往下第四个，题目讨论栏discussion-->
@@ -134,10 +162,18 @@ A.-1    B. 0    C. 1    D. 6
             <div class="sidebar-panel-header">
               <h2>本题收录于</h2>
             </div>
-              <span>官方题单-集合</span>
-            <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+
+            <!-- 修改：将原有收录信息放入受控内容区，收起时不占据卡片空间 -->
+            <div id="collection-panel-content" class="sidebar-panel-content" hidden>
+              <span class="sidebar-panel-item">官方题单-集合</span>
+            </div>
+
+            <!-- 修改：补充内容关联和两种状态文案，供通用展开脚本读取 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="collection-panel-content" data-collapsed-text="查看收录情况"
+              data-expanded-text="收起收录情况">
               <span class="sidebar-panel-arrow" aria-hidden="true"></span>
-              <span>查看收录情况</span>
+              <span class="sidebar-panel-toggle-text">查看收录情况</span>
             </button>
           </section>
           <!--正右从上往下第五个，题目收录栏collection-->
@@ -146,10 +182,18 @@ A.-1    B. 0    C. 1    D. 6
             <div class="sidebar-panel-header">
               <h2>推荐题目</h2>
             </div>
-          <span>P10002 2024年新高考Ⅰ卷T1</span>
-          <button type="button" class="sidebar-panel-toggle" aria-expanded="false">
+
+            <!-- 修改：将原有推荐题目放入受控内容区，收起时不占据卡片空间 -->
+            <div id="recommendation-panel-content" class="sidebar-panel-content" hidden>
+              <span class="sidebar-panel-item">P10002 2024年新高考Ⅰ卷T1</span>
+            </div>
+
+            <!-- 修改：补充内容关联和两种状态文案，供通用展开脚本读取 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="recommendation-panel-content" data-collapsed-text="查看推荐"
+              data-expanded-text="收起推荐">
               <span class="sidebar-panel-arrow" aria-hidden="true"></span>
-              <span>查看推荐</span>
+              <span class="sidebar-panel-toggle-text">查看推荐</span>
             </button>
           </section>
           <!--正右从上往下第六个，题目推荐栏recommendation-->

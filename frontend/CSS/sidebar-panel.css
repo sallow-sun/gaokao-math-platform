@@ -142,23 +142,25 @@
   text-decoration: none; /* 修改：悬停时仍不显示下划线 */
 }
 
-/*“查看讨论”部分*/
+/* ==================== 通用展开/收起按钮 ==================== */
 .sidebar-panel-toggle {
   appearance: none; /* 清除浏览器的默认按钮样式 */
   display: flex; /* 让箭头与文字横向排列 */
   align-items: center;
-  justify-content: center; /* 将“查看讨论”整体放在卡片中间 */
+  justify-content: center; /* 将展开入口整体放在卡片中间 */
   gap: 9px; /* 控制箭头与文字之间的距离 */
   width: 100%; /* 占满卡片宽度，便于整体居中和点击 */
-  padding: 0; 
-  margin-top: 5px;
-  color: var(--text-muted); /* 使用浅灰文字 */
+  padding: 6px 8px 2px; /* 修改：扩大点击区域，同时保持洛谷式紧凑外观 */
+  margin-top: 7px; /* 修改：统一所有展开按钮与上方内容的距离 */
+  color: var(--text-muted); /* 使用浅灰文字，弱化次要操作 */
   background: transparent; /* 移除按钮默认背景 */
   border: 0; /* 移除按钮默认边框 */
+  border-radius: 3px; /* 新增：为悬停浅色背景保留轻微圆角 */
   font-family: inherit; /* 按钮字体与页面保持一致 */
   font-size: 12px; /* 设置查看入口字号 */
-  line-height: 1.2; 
+  line-height: 1.2;
   cursor: pointer; /* 提示此区域可以点击 */
+  transition: color 0.18s ease, background-color 0.18s ease; /* 新增：平滑显示悬停反馈 */
 }
 
 .sidebar-panel-arrow {
@@ -170,12 +172,18 @@
   transition: transform 0.2s; /* 为展开状态预留平滑动画 */
 }
 
-.sidebar-panel-toggle[aria-expanded="true"] .discussion-panel-arrow {
-  transform: translateY(3px) rotate(225deg); /* 展开时让箭头指向上方 */
+.sidebar-panel-toggle[aria-expanded="true"] .sidebar-panel-arrow {
+  transform: translateY(3px) rotate(225deg); /* 修改：所有内容展开时箭头统一指向上方 */
 }
 
 .sidebar-panel-toggle:hover {
   color: var(--text-main); /* 鼠标经过时加深文字与箭头 */
+  background: rgba(69, 128, 167, 0.07); /* 修改：覆盖全局按钮背景，使用接近洛谷的轻量反馈 */
+  box-shadow: none; /* 修改：展开入口不使用普通按钮的悬停阴影 */
+}
+
+.sidebar-panel-toggle:active {
+  transform: none; /* 新增：覆盖全局按钮下移效果，避免整行展开入口跳动 */
 }
 
 .sidebar-panel-toggle:focus-visible {
@@ -183,3 +191,70 @@
   outline-offset: 2px; /* 让焦点框与文字保持距离 */
 }
 
+/* ==================== 新增：所有侧栏卡片共用的展开内容区域 ==================== */
+.sidebar-panel-content {
+  margin-top: 10px; /* 让展开内容与标题行保持距离 */
+  padding: 12px 0 5px; /* 为展开内容保留紧凑的上下留白 */
+  color: var(--text-secondary); /* 使用次要文字颜色，接近洛谷侧栏的信息层级 */
+  border-top: 1px solid var(--line); /* 使用细分隔线区分标题行与展开内容 */
+  font-size: 13px; /* 展开内容字号略小于卡片标题 */
+  line-height: 1.7; /* 增加行高，便于显示多行答案或讨论 */
+  overflow-wrap: anywhere; /* 避免长链接或连续字符撑宽侧栏 */
+  animation: sidebar-panel-expand 0.18s ease-out; /* 展开时添加轻微的淡入下移动画 */
+}
+
+.sidebar-panel-content[hidden] {
+  display: none; /* hidden 存在时强制隐藏内容，避免其他样式意外覆盖 */
+}
+
+/* 新增：收录信息与推荐题目使用统一的浅灰列表项 */
+.sidebar-panel-item {
+  display: block; /* 让每条内容单独占据一行 */
+  min-width: 0; /* 允许长内容在侧栏内正常收缩 */
+  padding: 7px 10px; /* 为列表项增加紧凑留白 */
+  color: var(--text-secondary); /* 使用次要文字颜色 */
+  background: #f5f7fa; /* 使用浅灰底区分展开内容 */
+  border-left: 2px solid var(--primary); /* 使用主题色标识内容层级 */
+  border-radius: 2px; /* 使用接近洛谷的轻微圆角 */
+  line-height: 1.55; /* 保证多行内容易读 */
+}
+
+/* 新增：标签项使用洛谷常见的高亮标签外观 */
+.sidebar-panel-tag {
+  display: inline-flex; /* 让标签宽度随文字内容收缩 */
+  width: fit-content; /* 标签不占满整行 */
+  padding: 2px 8px; /* 使用紧凑的标签内边距 */
+  color: #fff; /* 深色标签背景上使用白色文字 */
+  background: #f39c12; /* 使用橙色突出题目标签 */
+  border-left: 0; /* 标签本身不再显示列表项左边线 */
+  border-radius: 2px; /* 保持简洁的小圆角 */
+  line-height: 1.5; /* 让标签文字垂直居中 */
+}
+
+/* 新增：所有暂无内容状态共用居中灰色提示 */
+.sidebar-panel-empty {
+  margin: 0; /* 清除段落默认外边距，保证空状态位置稳定 */
+  padding: 8px 0; /* 为提示文字保留适当上下留白 */
+  color: var(--text-muted); /* 使用浅灰色表示当前为空状态 */
+  text-align: center; /* 参照洛谷侧栏，将提示文字放在卡片中间 */
+}
+
+/* 新增：所有展开区域共用同一个入场动画 */
+@keyframes sidebar-panel-expand {
+  from {
+    opacity: 0; /* 动画开始时内容透明 */
+    transform: translateY(-4px); /* 动画开始时内容略微靠上 */
+  }
+
+  to {
+    opacity: 1; /* 动画结束时内容完全显示 */
+    transform: translateY(0); /* 动画结束时内容回到正常位置 */
+  }
+}
+
+/* 新增：用户关闭动画时，不播放展开区域的入场动画 */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-panel-content {
+    animation: none; /* 尊重系统的“减少动态效果”设置 */
+  }
+}
