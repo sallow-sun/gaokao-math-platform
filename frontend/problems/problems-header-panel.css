@@ -1,0 +1,167 @@
+/* ==================== 网站顶部导航 ==================== */
+
+/* 只选中 body 下第一层 header，避免影响预览卡片自己的 header。 */
+body > header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  min-height: 54px;
+  padding: 0 max(20px, calc((100vw - var(--content-width)) / 2));
+  column-gap: 22px;
+  color: #fff;
+  background: rgba(40, 51, 59, 0.92);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 9px rgba(23, 31, 37, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+#header-return,
+#header-location {
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+#header-return:hover {
+  color: #fff;
+}
+
+/* 使用浅色竖线分隔返回入口和当前位置。 */
+#header-location {
+  padding-left: 22px;
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+#header-user {
+  margin-left: auto;
+}
+
+#header-userimg {
+  display: block;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ==================== 页面标题、视图切换与批量工具 ==================== */
+
+.bank-header {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) max-content max-content;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(216, 221, 227, 0.94);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: var(--shadow);
+}
+
+.bank-header-title {
+  min-width: 0;
+}
+
+.bank-header-title h1 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.bank-header-title p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bank-header-view-switch,
+.bank-header-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* 视图切换使用相连按钮组，减少工具区的视觉噪声。 */
+.bank-header-view-switch-button {
+  position: relative;
+  min-width: 82px;
+  border-radius: 0;
+}
+
+.bank-header-view-switch-button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.bank-header-view-switch-button:last-child {
+  margin-left: -1px;
+  border-radius: 0 4px 4px 0;
+}
+
+.bank-header-tools {
+  gap: 7px;
+}
+
+/* 没有脚本状态时默认强调列表模式；脚本加入状态后强调当前按钮。 */
+.bank-header-view-switch:not(:has(.bank-header-view-switch-button.is-active)):not(:has(.bank-header-view-switch-button[aria-pressed="true"]))
+  .bank-header-view-switch-button:first-child,
+.bank-header-view-switch-button.is-active,
+.bank-header-view-switch-button[aria-pressed="true"],
+.bank-header-tool-button[aria-pressed="true"] {
+  z-index: 1;
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.bank-header-view-switch:not(:has(.bank-header-view-switch-button.is-active)):not(:has(.bank-header-view-switch-button[aria-pressed="true"]))
+  .bank-header-view-switch-button:first-child:hover,
+.bank-header-view-switch-button.is-active:hover,
+.bank-header-view-switch-button[aria-pressed="true"]:hover,
+.bank-header-tool-button[aria-pressed="true"]:hover {
+  color: #fff;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+/* 批量工具栏显示时占满标题面板底部，形成轻量提示条。 */
+.bank-batch-selection-toolbar:not([hidden]) {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 18px;
+  margin: 2px -18px -14px;
+  padding: 10px 18px;
+  background: rgba(237, 247, 253, 0.9);
+  border-top: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+.bank-batch-selection-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bank-batch-selection-count {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+#selected-problem-count {
+  color: var(--primary);
+  font-size: 15px;
+}
+
+#batch-selection-clear {
+  margin-left: auto;
+}
+

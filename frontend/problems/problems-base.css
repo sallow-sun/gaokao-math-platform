@@ -1,0 +1,149 @@
+/* ==================== 全局变量与基础样式 ==================== */
+
+/* :root 用于集中保存题库页面会重复使用的颜色、圆角和尺寸。 */
+:root {
+  --page-bg: #e9edf1; /* 背景图未加载时使用的浅灰蓝色。 */
+  --surface: rgba(255, 255, 255, 0.95); /* 主要面板使用的半透明白色。 */
+  --surface-strong: #fff; /* 需要保持清晰的题目行使用纯白色。 */
+  --surface-soft: #f7f8fa; /* 表头、卡片题头等次级区域的浅灰色。 */
+  --text-main: #3f3f3f; /* 页面主要文字颜色。 */
+  --text-secondary: #666; /* 年份、题型等次要信息颜色。 */
+  --text-muted: #999; /* 提示文字和未完成状态颜色。 */
+  --line: #e6e8eb; /* 普通分隔线颜色。 */
+  --line-strong: #d8dde3; /* 输入框和面板外边框颜色。 */
+  --primary: #3498db; /* 参照 Luogu 使用清爽的蓝色作为主色。 */
+  --primary-dark: #2586c4; /* 主色按钮悬停时使用的深蓝色。 */
+  --primary-soft: #edf7fd; /* 选中或悬停时使用的浅蓝色背景。 */
+  --success: #52c41a; /* 已完成状态使用的绿色。 */
+  --tag: #18b8b1; /* 知识点标签使用的青绿色。 */
+  --value-red: #f45164; /* RED 训练价值标签颜色。 */
+  --value-yellow: #f5a623; /* YELLOW 训练价值标签颜色。 */
+  --value-blue: #3498db; /* BLUE 训练价值标签颜色。 */
+  --value-green: #52b91f; /* GREEN 训练价值标签颜色。 */
+  --shadow: 0 2px 12px rgba(39, 52, 64, 0.12); /* 面板使用的轻微阴影。 */
+  --radius: 6px; /* 主要面板使用的小圆角。 */
+  --content-width: 1240px; /* 题库主体在宽屏上的最大宽度。 */
+}
+
+/* 星号选中所有元素，使宽高计算包含内边距和边框。 */
+* {
+  box-sizing: border-box;
+}
+
+/* 告诉浏览器本页面使用浅色界面。 */
+html {
+  color-scheme: light;
+}
+
+/* 页面最外层使用竖直弹性布局，使版权栏在内容较少时仍位于底部。 */
+body {
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  flex-direction: column;
+  color: var(--text-main);
+  background-color: var(--page-bg);
+  background-image:
+    linear-gradient(rgba(232, 238, 242, 0.14), rgba(232, 238, 242, 0.14)),
+    url("./img/background.jpg"); /* 保留原项目的背景图片路径。 */
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* JavaScript 通过 hidden 属性控制视图和批量工具的显隐。 */
+[hidden] {
+  display: none !important;
+}
+
+/* 所有链接默认使用主题蓝色，并去掉浏览器下划线。 */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+a:hover {
+  color: var(--primary-dark);
+}
+
+/* 按钮使用接近 Luogu 的紧凑白底描边样式。 */
+button {
+  min-height: 34px;
+  padding: 5px 14px;
+  color: var(--text-secondary);
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: color 0.16s ease, background-color 0.16s ease,
+    border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+button:not(:disabled):hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: #8bc7eb;
+}
+
+button:disabled {
+  color: #b8bdc4;
+  background: #f4f5f6;
+  cursor: not-allowed;
+}
+
+/* 输入框和下拉框统一使用白底、浅灰边框。 */
+input,
+select {
+  color: var(--text-main);
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  font: inherit;
+}
+
+input[type="search"],
+select {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+input[type="search"]::placeholder {
+  color: #adb2b8;
+}
+
+/* 复选框保留浏览器原生外观，并将选中颜色改成主题色。 */
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* 键盘操作时显示清晰但不过分突出的焦点轮廓。 */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(52, 152, 219, 0.24);
+  outline-offset: 2px;
+}
+
+input[type="search"]:focus,
+select:focus {
+  border-color: #7fc2e9;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.09);
+}
+

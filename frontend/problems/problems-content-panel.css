@@ -1,0 +1,387 @@
+/* ==================== 两种结果视图共用元素 ==================== */
+
+.bank-result-problem-select {
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 32px;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* JavaScript 删除 hidden 后，将单题选择框显示为弹性容器。 */
+.bank-result-problem-select:not([hidden]) {
+  display: inline-flex;
+}
+
+/* 被选中的题目使用浅蓝底和左侧强调线。 */
+.bank-result-problem-panel-view-item:has(.bank-result-problem-select-checkbox:checked),
+.bank-result-problem-panel-view-card:has(.bank-result-problem-select-checkbox:checked),
+.bank-result-problem-panel-view-item.is-selected,
+.bank-result-problem-panel-view-card.is-selected {
+  background: #eef8fe;
+  box-shadow: inset 3px 0 var(--primary);
+}
+
+/* 筛选结果为空时由 data-empty 显示统一提示，不额外改动 HTML 结构。 */
+.bank-result-problem-panel-view[data-empty="true"]::after {
+  display: block;
+  padding: 38px 20px;
+  color: var(--text-muted);
+  background: var(--surface-strong);
+  text-align: center;
+  content: "没有符合当前条件的题目";
+}
+
+/* 知识点统一使用 Luogu 式高对比度小标签。 */
+.bank-result-problem-panel-view-item-tags span,
+.bank-result-problem-panel-view-card-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 9px;
+  color: #fff;
+  background: var(--tag);
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+/* 训练价值由 data-question-value 控制背景色。 */
+.bank-result-problem-panel-view-item-value span,
+.bank-result-problem-panel-view-card-value span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  min-height: 25px;
+  padding: 2px 8px;
+  color: #fff;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+[data-question-value="red"] span {
+  background: var(--value-red);
+}
+
+[data-question-value="yellow"] span {
+  background: var(--value-yellow);
+}
+
+[data-question-value="blue"] span {
+  background: var(--value-blue);
+}
+
+[data-question-value="green"] span {
+  background: var(--value-green);
+}
+
+/* 列表与预览题头中的段落清除浏览器默认外边距。 */
+.bank-result-problem-panel-view-item-summary p,
+.bank-result-problem-panel-view-card-header p {
+  margin: 0;
+}
+
+/* 共用题目信息字段的文字层级。 */
+.bank-result-problem-panel-view-item-summary a,
+.bank-result-problem-panel-view-card-header a {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.bank-result-problem-panel-view-item-summary a span,
+.bank-result-problem-panel-view-card-header a span {
+  min-width: 0;
+}
+
+/* 第一项题号使用较深文字，第三项来源作为列表主信息使用蓝色。 */
+.bank-result-problem-panel-view-item-summary a span:first-child,
+.bank-result-problem-panel-view-card-header a span:first-child {
+  color: #4d4d4d;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.bank-result-problem-panel-view-item-summary a span:nth-child(3),
+.bank-result-problem-panel-view-card-header a span:nth-child(3) {
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ==================== Luogu 风格紧凑列表模式 ==================== */
+
+/* 所有题目行放进同一个白色面板，不再为每道题添加独立卡片。 */
+#list-view:not([hidden]) {
+  display: block;
+  overflow: hidden;
+  background: var(--surface-strong);
+  border: 1px solid rgba(216, 221, 227, 0.96);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* 新增：列表标题栏使用 Luogu 常见的浅灰蓝底色，并与题目行保持相同列宽。 */
+.bank-result-problem-list-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 18px;
+  color: #4c5359;
+  background: linear-gradient(180deg, #f7fafc 0%, #edf3f6 100%);
+  border-bottom: 1px solid var(--line-strong);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* 批量模式开启后显示该占位列，使标题与复选框列仍然对齐。 */
+.bank-result-problem-list-heading-select {
+  display: none;
+  flex: 0 0 30px;
+  width: 30px;
+}
+
+body.is-batch-selecting .bank-result-problem-list-heading-select {
+  display: block;
+}
+
+.bank-result-problem-list-heading-status {
+  flex: 0 0 28px;
+  width: 28px;
+  text-align: center;
+}
+
+.bank-result-problem-list-heading-summary {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  grid-template-columns: 88px 58px minmax(130px, 1fr) 92px;
+  align-items: center;
+  gap: 12px;
+}
+
+.bank-result-problem-list-heading-tags {
+  flex: 0 0 116px;
+  text-align: center;
+}
+
+.bank-result-problem-list-heading-value {
+  display: flex;
+  flex: 0 0 72px;
+  justify-content: center;
+}
+
+/* 可排序列使用上下双箭头；JavaScript 会为当前方向写入 data-sort-direction。 */
+.bank-result-problem-list-sort {
+  position: relative;
+  min-height: 0;
+  padding: 0 16px 0 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  white-space: nowrap;
+}
+
+.bank-result-problem-list-sort:not(:disabled):hover {
+  color: var(--primary);
+  background: transparent;
+  border-color: transparent;
+}
+
+.bank-result-problem-list-sort::before,
+.bank-result-problem-list-sort::after {
+  position: absolute;
+  right: 2px;
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  content: "";
+}
+
+.bank-result-problem-list-sort::before {
+  top: 2px;
+  border-bottom: 5px solid #b8bec4;
+}
+
+.bank-result-problem-list-sort::after {
+  bottom: 2px;
+  border-top: 5px solid #b8bec4;
+}
+
+.bank-result-problem-list-sort[data-sort-direction="ascending"]::before {
+  border-bottom-color: var(--primary);
+}
+
+.bank-result-problem-list-sort[data-sort-direction="descending"]::after {
+  border-top-color: var(--primary);
+}
+
+.bank-result-problem-panel-view-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.bank-result-problem-panel-view-item:last-child {
+  border-bottom: 0;
+}
+
+.bank-result-problem-panel-view-item:hover {
+  background: #f6fbfe;
+}
+
+.bank-result-problem-panel-view-item-status {
+  flex: 0 0 28px;
+  width: 28px;
+  color: var(--text-muted);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+}
+
+/* 已完成题目通过 is-complete 类显示绿色状态，避免依赖题目所在行数。 */
+.bank-result-problem-panel-view-item.is-complete .bank-result-problem-panel-view-item-status {
+  color: var(--success);
+}
+
+.bank-result-problem-panel-view-item-summary {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* 将题号、年份、来源和题型排成稳定的表格式四列。 */
+.bank-result-problem-panel-view-item-summary a {
+  display: grid;
+  grid-template-columns: 88px 58px minmax(130px, 1fr) 92px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bank-result-problem-panel-view-item-summary a:hover span:nth-child(3) {
+  color: var(--primary-dark);
+}
+
+.bank-result-problem-panel-view-item-tags {
+  display: flex;
+  flex: 0 0 116px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+
+.bank-result-problem-panel-view-item-value {
+  display: flex;
+  flex: 0 0 72px;
+  justify-content: center;
+}
+
+/* ==================== Demo 风格题面预览模式 ==================== */
+
+#preview-view:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bank-result-problem-panel-view-card {
+  overflow: hidden;
+  background: var(--surface-strong);
+  border: 1px solid rgba(216, 221, 227, 0.96);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.bank-result-problem-panel-view-card:hover {
+  border-color: #c6dce9;
+  box-shadow: 0 3px 14px rgba(39, 52, 64, 0.15);
+}
+
+.bank-result-problem-panel-view-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 18px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.bank-result-problem-panel-view-card-header p {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bank-result-problem-panel-view-card-header a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 13px;
+}
+
+.bank-result-problem-panel-view-card-tags {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.bank-result-problem-panel-view-card-value {
+  display: flex;
+  flex: 0 0 66px;
+  justify-content: flex-end;
+}
+
+.bank-result-problem-panel-view-card-content {
+  min-height: 126px;
+  padding: 24px 28px;
+  color: #333;
+  font-size: 17px;
+  line-height: 1.9;
+}
+
+.bank-result-problem-panel-view-card-content pre {
+  max-width: 100%;
+  margin: 0;
+  overflow-x: auto;
+  color: inherit;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bank-result-problem-panel-view-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  min-height: 50px;
+  padding: 8px 18px;
+  background: #fbfbfc;
+  border-top: 1px solid var(--line);
+}
+
+.bank-result-problem-panel-view-card-footer a {
+  font-size: 14px;
+  font-weight: 500;
+}
