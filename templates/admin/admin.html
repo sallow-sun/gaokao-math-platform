@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="admin-csrf-token"
+        content="{{ admin_csrf_token }}"
+    >
+
+    <title>管理后台 - 数海</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='admin/css/admin.css') }}"
+    >
+
+    <script
+        src="{{ url_for('static', filename='admin/js/admin.js') }}"
+        defer
+    ></script>
+</head>
+
+<body>
+    <header class="site-header">
+        <a href="{{ url_for('problems_page') }}">
+            ← 返回题库
+        </a>
+
+        <span>管理后台</span>
+
+        <a
+            class="header-user"
+            href="{{ url_for('user_page', user_id=current_user.id) }}"
+        >
+            {% if current_user.avatar %}
+            <img
+                src="{{ url_for('static', filename=current_user.avatar) }}"
+                alt="{{ current_user.username }}的头像"
+            >
+            {% else %}
+            <span class="avatar-fallback">
+                {{ current_user.username[0] }}
+            </span>
+            {% endif %}
+        </a>
+    </header>
+
+    <main class="admin-page">
+        <section class="admin-title">
+            <div>
+                <h1>管理后台</h1>
+                <p>管理用户状态和题库内容</p>
+            </div>
+
+            <span class="admin-name">
+                管理员 · {{ current_user.username }}
+            </span>
+        </section>
+
+        <section class="admin-statistics">
+            <article>
+                <span>用户总数</span>
+                <strong id="user-total">0</strong>
+            </article>
+
+            <article>
+                <span>正常用户</span>
+                <strong id="active-total">0</strong>
+            </article>
+
+            <article>
+                <span>已封禁</span>
+                <strong id="banned-total">0</strong>
+            </article>
+
+            <article>
+                <span>题目总数</span>
+                <strong id="question-total">0</strong>
+            </article>
+        </section>
+
+        <nav class="admin-tabs">
+            <button
+                type="button"
+                class="admin-tab active"
+                data-target="users-panel"
+            >
+                用户管理
+            </button>
+
+            <button
+                type="button"
+                class="admin-tab"
+                data-target="questions-panel"
+            >
+                题目管理
+            </button>
+        </nav>
+
+        <section id="users-panel" class="admin-panel">
+            <header class="panel-header">
+                <div>
+                    <h2>用户管理</h2>
+                    <p>查看用户并修改封禁状态</p>
+                </div>
+
+                <input
+                    id="user-search"
+                    type="search"
+                    placeholder="搜索用户名、UID或邮箱"
+                >
+            </header>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户</th>
+                            <th>联系方式</th>
+                            <th>注册时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="users-body">
+                        <tr>
+                            <td colspan="6" class="empty">
+                                正在读取用户……
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section
+            id="questions-panel"
+            class="admin-panel"
+            hidden
+        >
+            <div class="question-layout">
+                <form id="question-form" class="question-form">
+                    <header class="panel-header">
+                        <div>
+                            <h2 id="form-title">上传题目</h2>
+                            <p>题目编号和题面不能为空</p>
+                        </div>
+
+                        <button
+                            id="cancel-edit"
+                            type="button"
+                            hidden
+                        >
+                            取消编辑
+                        </button>
+                    </header>
+
+                    <div class="form-body">
+                        <input id="question-id" type="hidden">
+
+                        <div class="form-grid">
+                            <label>
+                                题目编号
+                                <input
+                                    name="problem_number"
+                                    required
+                                    placeholder="P10001"
+                                >
+                            </label>
+
+                            <label>
+                                年份
+                                <input
+                                    name="year"
+                                    placeholder="2026"
+                                >
+                            </label>
+
+                            <label>
+                                地区
+                                <input
+                                    name="region"
+                                    placeholder="全国"
+                                >
+                            </label>
+
+                            <label>
+                                来源
+                                <input
+                                    name="source"
+                                    placeholder="新高考Ⅰ卷"
+                                >
+                            </label>
+
+                            <label>
+                                题型
+                                <select name="question_type">
+                                    <option value="">请选择</option>
+                                    <option>单项选择题</option>
+                                    <option>多项选择题</option>
+                                    <option>填空题</option>
+                                    <option>解答题</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                难度
+                                <select name="difficulty">
+                                    <option value="">请选择</option>
+                                    <option>基础</option>
+                                    <option>典型</option>
+                                    <option>重点</option>
+                                    <option>挑战</option>
+                                </select>
+                            </label>
+
+                            <label class="full-width">
+                                标签
+                                <input
+                                    name="tags"
+                                    placeholder="函数, 导数"
+                                >
+                            </label>
+
+                            <label class="full-width">
+                                题面
+                                <textarea
+                                    name="content"
+                                    rows="7"
+                                    required
+                                ></textarea>
+                            </label>
+
+                            <label class="full-width">
+                                题解
+                                <textarea
+                                    name="solution"
+                                    rows="6"
+                                ></textarea>
+                            </label>
+
+                            <label class="full-width">
+                                最终答案
+                                <textarea
+                                    name="answer"
+                                    rows="3"
+                                ></textarea>
+                            </label>
+                        </div>
+
+                        <div class="form-actions">
+                            <p id="question-feedback"></p>
+
+                            <button
+                                id="question-submit"
+                                type="submit"
+                                class="primary-button"
+                            >
+                                上传题目
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <section class="question-list-panel">
+                    <header class="panel-header">
+                        <div>
+                            <h2>已有题目</h2>
+                            <p>点击编辑载入题目信息</p>
+                        </div>
+
+                        <input
+                            id="question-search"
+                            type="search"
+                            placeholder="搜索题号或标签"
+                        >
+                    </header>
+
+                    <div id="questions-list" class="questions-list">
+                        <p class="empty">正在读取题目……</p>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

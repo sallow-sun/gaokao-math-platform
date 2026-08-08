@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="数海用户个人主页">
+  <title>{{ user.username }}的个人主页 - 数海 MathSea</title>
+
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='userpage/css/user.css') }}"
+  >
+  <script
+    src="{{ url_for('static', filename='userpage/js/user.js') }}"
+    defer
+  ></script>
+</head>
+
+<body>
+  <header class="site-header">
+    <a class="site-header-return" href="{{ url_for('problems_page') }}">← 返回题库</a>
+    <span class="site-header-location">个人主页</span>
+    <a class="site-header-user"
+      href="{{ url_for('user_page', user_id=session['user_id']) }}"
+      aria-label="进入我的个人主页">
+      <span class="site-header-avatar" aria-hidden="true">{{ user.username[0] }}</span>
+    </a>
+  </header>
+
+  <main class="user-page">
+    <section class="user-hero" aria-labelledby="user-name">
+      <div class="user-avatar" aria-hidden="true">{{ user.username[0] }}</div>
+
+      <div class="user-identity">
+        <div class="user-name-row">
+          <h1 id="user-name">{{ user.username }}</h1>
+          <span class="user-role">数海用户</span>
+        </div>
+        <p class="user-uid">#{{ user.id }} · {{ user.uid }}</p>
+        <p class="user-since">
+          自 {{ user.created_at.strftime('%Y年%m月%d日') if user.created_at and user.created_at.strftime else user.created_at }} 起加入数海
+        </p>
+      </div>
+
+      <a class="user-primary-link" href="{{ url_for('problems_page') }}">继续刷题</a>
+    </section>
+
+    <section class="user-stats" aria-label="学习统计">
+      <article class="user-stat-item">
+        <strong>{{ stats.solved|default(0, true) }}</strong>
+        <span>已完成题目</span>
+      </article>
+      <article class="user-stat-item">
+        <strong>{{ stats.uploaded|default(0, true) }}</strong>
+        <span>上传题目</span>
+      </article>
+      <article class="user-stat-item">
+        <strong>{{ stats.collections|default(0, true) }}</strong>
+        <span>收藏题目</span>
+      </article>
+      <article class="user-stat-item">
+        <strong>{{ stats.streak_days|default(0, true) }}</strong>
+        <span>连续学习天数</span>
+      </article>
+    </section>
+
+    <div class="user-layout">
+      <section class="user-panel user-information" aria-labelledby="information-title">
+        <header class="user-panel-header">
+          <div>
+            {% if is_owner %}
+            <h2 id="information-title">账户资料</h2>
+            <p>你的基本账户信息</p>
+            {% else %}
+            <h2 id="information-title">用户资料</h2>
+            <p>该用户公开展示的信息</p>
+            {% endif %}
+          </div>
+        </header>
+
+        <dl class="user-information-list">
+          <div>
+            <dt>用户名</dt>
+            <dd>{{ user.username }}</dd>
+          </div>
+          <div>
+            <dt>用户 UID</dt>
+            <dd>{{ user.uid }}</dd>
+          </div>
+          {% if is_owner %}
+          <div>
+            <dt>邮箱</dt>
+            <dd>{{ user.email }}</dd>
+          </div>
+          <div>
+            <dt>手机号码</dt>
+            <dd>{{ user.phone or '未绑定' }}</dd>
+          </div>
+          {% endif %}
+          <div>
+            <dt>注册时间</dt>
+            <dd>{{ user.created_at }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <aside class="user-panel user-shortcuts" aria-labelledby="shortcuts-title">
+        <header class="user-panel-header">
+          <div>
+            <h2 id="shortcuts-title">快捷入口</h2>
+            <p>继续你的学习进度</p>
+          </div>
+        </header>
+
+        <nav class="user-shortcut-list" aria-label="个人中心快捷入口">
+          <a href="{{ url_for('problems_page') }}">
+            <span class="user-shortcut-icon" aria-hidden="true">题</span>
+            <span><strong>进入题库</strong><small>浏览和筛选题目</small></span>
+            <span aria-hidden="true">›</span>
+          </a>
+          <a href="#recent-activity">
+            <span class="user-shortcut-icon" aria-hidden="true">记</span>
+            <span><strong>最近记录</strong><small>查看近期学习动态</small></span>
+            <span aria-hidden="true">›</span>
+          </a>
+        </nav>
+
+        {% if is_owner %}
+        <button id="logout-button" class="user-logout-button" type="button">退出登录</button>
+        <p id="logout-feedback" class="user-feedback" role="status" aria-live="polite"></p>
+        {% endif %}
+      </aside>
+    </div>
+
+    <section id="recent-activity" class="user-panel user-activity" aria-labelledby="activity-title">
+      <header class="user-panel-header">
+        <div>
+          <h2 id="activity-title">最近记录</h2>
+          <p>最近完成或浏览的题目</p>
+        </div>
+        <a href="{{ url_for('problems_page') }}">查看题库</a>
+      </header>
+
+      {% if recent_records %}
+      <div class="user-activity-list">
+        {% for record in recent_records %}
+        <article class="user-activity-item">
+          <span class="user-activity-status{% if record.result == '通过' %} is-complete{% endif %}"
+            aria-hidden="true">{% if record.result == '通过' %}✓{% else %}○{% endif %}</span>
+          <div>
+            <h3>{{ record.problem_number }} · {{ record.title }}</h3>
+            <p>{{ record.result }} · {{ record.updated_at }}</p>
+          </div>
+          {% if record.tags %}<span class="user-activity-tag">{{ record.tags }}</span>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="user-empty-state">
+        <span aria-hidden="true">∑</span>
+        <h3>还没有学习记录</h3>
+        <p>从题库选择一道题目，开始你的第一次练习。</p>
+        <a href="{{ url_for('problems_page') }}">前往题库</a>
+      </div>
+      {% endif %}
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>数海 MathSea · 在思考中抵达更远的地方</p>
+  </footer>
+</body>
+</html>

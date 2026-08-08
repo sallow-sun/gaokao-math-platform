@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/base.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/layout.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/header-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/content-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/sidebar-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/responsive.css') }}"
+  >
+  <!-- 新增：使用独立 JavaScript 控制侧栏内容的展开与收起 -->
+   <script
+    src="{{ url_for('static', filename='question/js/sidebar-panel.js') }}"
+   ></script>
+  <title>题目详情 - P10001</title><!--题目详情-题号-->
+</head>
+
+<!--所有class名均为小写-->
+
+<body>
+  <header>
+    <a id="header-return" href="index.html">← 返回</a><!--返回按钮-->
+    <span id="header-location">题库/P10001</span><!--目前所在的位置-->
+    <a id="header-user" href=""><img id="header-userimg" src="./img/background.jpg" alt="user-img"></a><!--用户头像-->
+  </header>
+  <!--最上方功能栏，显示返回按钮，位置，用户头像-->
+
+  <main class="page-container">
+    <article>
+    <!--题目页面-->
+
+      <!--==================== header-panel(题头栏) ====================-->
+      <section class="header-panel" data-question-type="single">
+        <div class="header-panel-title">
+            <span class="header-panel-title-id">P10001</span>
+            <span><span>2025年新高考Ⅰ卷</span><span>T1</span></span><span>单选</span>
+        </div>
+        <div class="header-panel-stats">
+          <div class="header-panel-stats-item">
+              <span>浏览</span>
+              <span>1.3M</span>
+          </div>
+          <div class="header-panel-stats-item">
+              <span>通过</span>
+              <span>73.7k</span>
+          </div>
+          <div class="header-panel-stats-item">
+              <span>下载</span>
+              <span>20.0k</span>
+          </div>
+          <div class="header-panel-stats-item">
+              <span>收藏</span>
+              <span>10.0k</span>
+          </div>
+        </div>
+        <div class="header-panel-button">
+            <button>加入题单</button>
+            <!--点击后弹窗，选择要加入的题单-->
+            <button>下载题目</button>
+            <!--点击后弹窗，选择下载为latex/以图片保存/以PPT保存-->
+        </div>
+      </section>
+      <!--正上方，题目名称栏header-->
+      <!--题目栏颜色与题型保持一致。单选：红；多选：黄；填空：蓝；解答：绿；其他：白-->
+
+      <div class="page-layout">
+
+        <!--==================== content-panel(题面栏) ====================-->
+        <section class="content-panel">
+          <div class="content-panel-question">
+            <pre>
+1.(1+5i)i 的虚部为( )
+A.-1    B. 0    C. 1    D. 6
+            </pre>
+          </div>
+        </section>
+        <!--正左，题面栏content-->
+        <!--此处的题目应该是直接从后台调出来，目前仅作展示。CSS只修改section和div-->
+
+        <!--==================== sidebar-panel(侧栏) ====================-->
+        <aside class="sidebar">
+          <section class="information-panel">
+            <p><span class="information-panel-title">题目编号</span>    
+              <span class="information-panel-content">P10001</span></p>
+            <p><span class="information-panel-title">来源</span>    
+              <span class="information-panel-content">2025新高考Ⅰ卷</span></p>
+            <p><span class="information-panel-title">上传者</span>  
+              <a href="" class="information-panel-content">user001</a></p><!--链接到用户主页-->
+            <p><span class="information-panel-title">训练价值</span>    
+              <span class="information-panel-content" id="information-panel-value" data-question-type="red">RED</span></p>
+            <p class="information-panel-actions">
+              <button class="information-panel-action">点击打卡</button>
+              <a href="" class="information-panel-action">练习记录</a>
+              <button class="information-panel-action">收藏题目</button>
+              <a href="" class="information-panel-action">题目反馈</a>
+            </p>
+          </section>
+          <!--正右从上往下第一个，题目信息栏information-->
+
+          <section class="answer-panel">
+            <div class="sidebar-panel-header">
+              <h2>答案解析</h2>
+              <a href="" class="sidebar-panel-link">进入题解区</a>
+            </div>
+
+            <!-- 新增：答案解析的展开内容区；默认隐藏，后续可直接替换为数据库内容 -->
+            <div id="answer-panel-content" class="sidebar-panel-content" hidden>
+              <p class="sidebar-panel-empty">暂无答案解析</p>
+            </div>
+
+            <!-- 修改：补充内容关联和两种状态文案，供通用展开脚本读取 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="answer-panel-content" data-collapsed-text="显示答案"
+              data-expanded-text="收起答案">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span class="sidebar-panel-toggle-text">显示答案</span>
+            </button>
+          </section>
+          <!--正右从上往下第二个，题目解析栏answer-->
+
+          <section class="tag-panel">
+            <div class="sidebar-panel-header">
+              <h2>标签</h2>
+            </div>
+
+            <!-- 修改：将原有标签放入受控内容区，避免收起后仍然显示 -->
+            <div id="tag-panel-content" class="sidebar-panel-content" hidden>
+              <span class="sidebar-panel-item sidebar-panel-tag">高考真题</span>
+            </div>
+
+            <!-- 修改：补充内容关联和两种状态文案，供通用展开脚本读取 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="tag-panel-content" data-collapsed-text="显示题目标签"
+              data-expanded-text="收起题目标签">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span class="sidebar-panel-toggle-text">显示题目标签</span>
+            </button>
+          </section>
+          <!--正右从上往下第三个，题目Tag栏tag-->
+
+          <section class="discussion-panel">
+            <div class="sidebar-panel-header">
+              <h2>题目讨论</h2>
+              <a href="" class="sidebar-panel-link">进入讨论版</a>
+            </div>
+
+            <!-- 修改：套用通用展开内容样式；保留原类名以兼容后续讨论区代码 -->
+            <div id="discussion-panel-content" class="sidebar-panel-content discussion-panel-content" hidden>
+              <p class="sidebar-panel-empty discussion-panel-empty">暂无讨论</p>
+            </div>
+
+            <!-- 修改：用 aria-controls 将按钮与讨论内容关联，并提供展开、收起文案 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="discussion-panel-content" data-collapsed-text="查看讨论"
+              data-expanded-text="收起讨论">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span class="sidebar-panel-toggle-text">查看讨论</span>
+            </button>
+          </section>
+          <!--正右从上往下第四个，题目讨论栏discussion-->
+
+          <section class="collection-panel">
+            <div class="sidebar-panel-header">
+              <h2>本题收录于</h2>
+            </div>
+
+            <!-- 修改：将原有收录信息放入受控内容区，收起时不占据卡片空间 -->
+            <div id="collection-panel-content" class="sidebar-panel-content" hidden>
+              <span class="sidebar-panel-item">官方题单-集合</span>
+            </div>
+
+            <!-- 修改：补充内容关联和两种状态文案，供通用展开脚本读取 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="collection-panel-content" data-collapsed-text="查看收录情况"
+              data-expanded-text="收起收录情况">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span class="sidebar-panel-toggle-text">查看收录情况</span>
+            </button>
+          </section>
+          <!--正右从上往下第五个，题目收录栏collection-->
+          
+          <section class="recommendation-panel">
+            <div class="sidebar-panel-header">
+              <h2>推荐题目</h2>
+            </div>
+
+            <!-- 修改：将原有推荐题目放入受控内容区，收起时不占据卡片空间 -->
+            <div id="recommendation-panel-content" class="sidebar-panel-content" hidden>
+              <span class="sidebar-panel-item">P10002 2024年新高考Ⅰ卷T1</span>
+            </div>
+
+            <!-- 修改：补充内容关联和两种状态文案，供通用展开脚本读取 -->
+            <button type="button" class="sidebar-panel-toggle" aria-expanded="false"
+              aria-controls="recommendation-panel-content" data-collapsed-text="查看推荐"
+              data-expanded-text="收起推荐">
+              <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+              <span class="sidebar-panel-toggle-text">查看推荐</span>
+            </button>
+          </section>
+          <!--正右从上往下第六个，题目推荐栏recommendation-->
+        </aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

@@ -1,0 +1,145 @@
+/* ==================== 整个header-panel卡片 ==================== */
+.header-panel {
+  /* “其他题型”默认使用白色；下面不同 data-question-type 会覆盖这三个变量。 */
+  --type-stroke: rgba(255, 255, 255, 0.96);
+  --type-wash: rgba(255, 255, 255, 0.72);
+  --type-text: var(--text-main);
+
+  position: relative;
+  isolation: isolate; /* 让手绘色块在文字后方 */
+  container-type: inline-size; /* 允许标题按照卡片宽度缩放 */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  row-gap: 10px;
+  column-gap: clamp(10px, 2vw, 28px); /* 屏幕变窄时，标题与stats的距离缩小*/
+
+  min-height: 0px;
+  margin-bottom: 18px;/* 卡片下方与下一块内容的外间距；0 表示没有间距。 */
+  padding: 16px 26px;/* 卡片内部留白：上下 16px、左右 26px；一个值表示四边相同，四个值依次是上右下左。 */
+  overflow: hidden;
+  
+  
+  background:rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(220, 223, 230, 0.88);/* 1px 实线边框；dashed（虚线）none（无边框），0.88不透明度。*/
+  border-radius: var(--radius);/* 设置圆角； 0（直角）、6px、12px 或 50%（圆形/椭圆）。 */
+  box-shadow: var(--shadow);/* 设置阴影；去掉阴影 none，想自行设置可写 0 2px 8px rgba(0,0,0,.08)。 */
+}
+
+/* ==================== header-panel卡片按题型变颜色 ==================== */
+/* HTML 写法：<section class="header-panel" data-question-type="single"> */
+.header-panel[data-question-type="single"] {
+  --type-stroke: rgba(218, 68, 66, 0.68); /* 单选：红 */
+  --type-wash: rgba(236, 91, 88, 0.18);
+  --type-text: #b43b3b;
+}
+
+.header-panel[data-question-type="multiple"] {
+  --type-stroke: rgba(218, 166, 32, 0.72); /* 多选：黄 */
+  --type-wash: rgba(244, 197, 72, 0.22);
+  --type-text: #936d00;
+}
+
+.header-panel[data-question-type="blank"] {
+  --type-stroke: rgba(55, 132, 191, 0.66); /* 填空：蓝 */
+  --type-wash: rgba(91, 155, 213, 0.19);
+  --type-text: #2d70a8;
+}
+
+.header-panel[data-question-type="solution"] {
+  --type-stroke: rgba(61, 148, 88, 0.66); /* 解答：绿 */
+  --type-wash: rgba(98, 173, 120, 0.19);
+  --type-text: #347c4c;
+}
+
+/* 三条不规则、半透明的横向笔触；不会整块覆盖白色卡片。 */
+.header-panel::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(96deg, transparent 0 3%, var(--type-wash) 9% 67%, transparent 75%) left 18% / 62% 11px no-repeat,
+    linear-gradient(91deg, transparent 0 5%, var(--type-wash) 11% 74%, transparent 82%) left 49% / 48% 8px no-repeat,
+    linear-gradient(98deg, transparent 0 2%, var(--type-wash) 8% 62%, transparent 72%) left 82% / 38% 6px no-repeat;
+  content: "";
+  opacity: 0.95;
+  transform: rotate(-0.35deg) scale(1.02);
+}
+
+/* 把卡片真实内容放在手绘笔触上方，保证文字和按钮始终清楚。 */
+.header-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==================== 标题 ==================== */
+.header-panel-title {
+  grid-column: 1/3;
+  grid-row: 1/2;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap; /* 题号、试卷名、T1、题型强制保持在同一排。 */
+  align-items: center;
+  gap: clamp(3px, 0.7vw, 10px); /* 卡片越窄，四段文字之间的空隙越小。 */
+  min-width: 0; /* 允许标题列缩小，否则长文字会反过来撑宽整张卡片。 */
+  margin: 0; /* 清除标题外边距。 */  
+  color: var(--text-main);
+
+  font-size: 17px;
+  font-weight: 600;/* 标题使用较粗字重；400 正常，700 更粗。 */
+}
+
+.header-panel-title > span {
+  flex: 0 0 auto; /* 每一段文字自身不被压扁，也不单独换行。 */
+}
+
+/* ==================== stats ==================== */
+.header-panel-stats {
+  grid-column: 4;
+  grid-row: 1/2;
+  margin-left: auto;/*自动靠右*/
+
+  display: flex;
+  align-items: stretch;
+
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.header-panel-stats-item {
+  display: flex;
+  min-width: 72px;
+  padding: 0 20px;
+  flex-direction: column;/* 把内部文字从默认横排改为竖排*/
+  align-items: center;/* 水平居中内部文字*/
+  justify-content: center;/* 竖直居中内部文字*/
+  line-height: 1.35;/* 行高是字号的 1.35 倍*/
+}
+
+/*给第二项及以后加分隔线。 */
+.header-panel-stats-item + .header-panel-stats-item {
+  border-left: 1.5px solid var(--line);/* 添加左侧 1.5px 实线；去掉->改为 none，更明显->改粗或换颜色。 */
+}
+
+/* 选择每个统计项中的最后一个 span，即统计数字。 */
+.header-panel-stats-item span:last-child {
+  margin-top: 4px;/* 数字与上方名称之间留 4px；*/
+  font-size: 14px;/* 数字字号；改大更醒目。 */
+  font-weight: 600;/* 数字使用较粗字重；400 正常，700 更粗。 */
+}
+
+/* ==================== button ==================== */
+.header-panel-button {
+  grid-column: 4;
+  grid-row: 2;
+  margin-left: auto;
+
+  display: flex;
+  min-width: 72px;
+  flex-direction: row;/* 让按钮横向排列。 */
+  gap: 9px;/* 按钮之间相距 9px；数值越大越疏。 */
+}
+
+

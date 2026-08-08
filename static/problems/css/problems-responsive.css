@@ -1,0 +1,318 @@
+/* ==================== 中等屏幕适配 ==================== */
+
+@media (max-width: 1100px) {
+  .bank-filter-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  #bank-filter-panel-title {
+    margin-top: 0;
+  }
+
+  .bank-filter-panel-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .bank-filter-panel-item:first-child {
+    grid-column: span 2;
+  }
+
+  .bank-filter-panel-actions {
+    align-self: end;
+  }
+
+  .bank-result-problem-list-heading-summary,
+  .bank-result-problem-panel-view-item-summary a {
+    grid-template-columns: 80px 52px minmax(120px, 1fr) 78px;
+    gap: 9px;
+  }
+}
+
+/* ==================== 平板适配 ==================== */
+
+@media (max-width: 780px) {
+  body > header {
+    min-height: 50px;
+    padding: 0 14px;
+    column-gap: 14px;
+  }
+
+  #header-location {
+    padding-left: 14px;
+  }
+
+  body > main {
+    width: calc(100% - 24px);
+    padding-top: 12px;
+  }
+
+  .bank-header {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .bank-header-title {
+    grid-column: 1 / -1;
+  }
+
+  .bank-header-view-switch {
+    justify-content: flex-start;
+  }
+
+  .bank-batch-selection-toolbar:not([hidden]) {
+    margin-right: -14px;
+    margin-bottom: -14px;
+    margin-left: -14px;
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .bank-filter-panel,
+  .bank-result-toolbar-panel {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .bank-filter-panel-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bank-filter-panel-item:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .bank-filter-panel-actions {
+    display: grid;
+    grid-column: 1 / -1; /* 平板宽度下让按钮组横跨两列，避免只挤在左半边。 */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-self: end; /* 保持 Luogu 式筛选操作靠右排列。 */
+  }
+
+  /* 平板端题目行改为两列信息卡，因此隐藏只适用于桌面表格的标题栏。 */
+  .bank-result-problem-list-heading {
+    display: none;
+  }
+
+  .bank-result-problem-panel-view-item {
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 11px 14px;
+  }
+
+  .bank-result-problem-panel-view-item-summary {
+    flex: 1 1 calc(100% - 92px);
+  }
+
+  .bank-result-problem-panel-view-item-summary a {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 4px 10px;
+  }
+
+  .bank-result-problem-panel-view-item-tags {
+    flex-basis: auto;
+    margin-left: auto;
+  }
+
+  .bank-result-problem-panel-view-item-value {
+    flex-basis: auto;
+  }
+
+  .bank-result-problem-panel-view-card-header {
+    flex-wrap: wrap;
+    padding: 11px 14px;
+  }
+
+  .bank-result-problem-panel-view-card-header p {
+    flex-basis: calc(100% - 46px);
+  }
+
+  .bank-result-problem-panel-view-card-tags {
+    margin-left: auto;
+  }
+
+  .bank-result-problem-panel-view-card-content {
+    min-height: 108px;
+    padding: 21px 20px;
+    font-size: 16px;
+  }
+}
+
+/* ==================== 手机适配 ==================== */
+
+@media (max-width: 560px) {
+  body > main {
+    width: calc(100% - 16px);
+    padding-bottom: 38px;
+  }
+
+  .bank-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bank-header-title h1 {
+    font-size: 19px;
+  }
+
+  .bank-header-view-switch,
+  .bank-header-tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .bank-header-view-switch-button,
+  .bank-header-tool-button {
+    width: 100%;
+  }
+
+  .bank-header-tools {
+    gap: 7px;
+  }
+
+  .bank-filter-panel-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bank-filter-panel-item:first-child,
+  .bank-filter-panel-actions {
+    grid-column: 1;
+  }
+
+  .bank-filter-panel-actions {
+    justify-self: stretch; /* 手机端让两个筛选按钮完整占据可用宽度。 */
+  }
+
+  .bank-result-toolbar-panel {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  .bank-result-toolbar-panel > label {
+    width: 100%;
+  }
+
+  #sort-order {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .bank-batch-selection-toolbar:not([hidden]) {
+    flex-wrap: wrap;
+    gap: 8px 13px;
+  }
+
+  #batch-selection-clear {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .bank-result-problem-panel-view-item-summary {
+    flex-basis: calc(100% - 86px);
+  }
+
+  .bank-result-problem-panel-view-item-tags {
+    margin-left: auto;
+  }
+
+  .bank-result-problem-panel-view-card-header p {
+    flex-basis: calc(100% - 42px);
+  }
+
+  .bank-result-problem-panel-view-card-content {
+    padding: 18px 16px;
+  }
+
+  .bank-result-problem-panel-view-card-footer {
+    justify-content: space-between;
+  }
+
+  .bank-pagination {
+    gap: 5px;
+  }
+}
+
+/* 极窄屏幕把卡片底部操作改为竖排，避免按钮和链接互相挤压。 */
+@media (max-width: 390px) {
+  #header-location {
+    display: none;
+  }
+
+  .bank-header-view-switch,
+  .bank-header-tools {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bank-header-view-switch-button:first-child,
+  .bank-header-view-switch-button:last-child {
+    margin-left: 0;
+    border-radius: 4px;
+  }
+
+  .bank-result-problem-panel-view-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* 用户开启“减少动态效果”时，将所有过渡压缩到几乎不可见。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==================== 打印适配 ==================== */
+
+/* 批量打印时只保留选中的预览卡片，页面交互区和普通列表不参与打印。 */
+@media print {
+  body {
+    display: block;
+    color: #000;
+    background: #fff;
+  }
+
+  body > header,
+  .bank-header,
+  .bank-filter-panel,
+  .bank-result-toolbar-panel,
+  #list-view,
+  .bank-pagination,
+  .site-footer {
+    display: none !important;
+  }
+
+  body > main {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  body.is-printing-selection #preview-view {
+    display: flex !important;
+  }
+
+  body.is-printing-selection .bank-result-problem-panel-view-card {
+    display: none !important;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  body.is-printing-selection .bank-result-problem-panel-view-card.is-selected-for-print {
+    display: block !important;
+  }
+
+  .bank-result-problem-panel-view-card-footer,
+  .bank-result-problem-select,
+  .bank-operation-feedback {
+    display: none !important;
+  }
+}

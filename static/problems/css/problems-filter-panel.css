@@ -1,0 +1,105 @@
+/* ==================== 共用筛选区 ==================== */
+
+.bank-filter-panel {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  padding: 16px 18px 18px;
+  border-top: 1px solid var(--line);
+}
+
+/* 筛选标题作为左侧行标题，不再使用详情页式大标题下划线。 */
+#bank-filter-panel-title {
+  margin: 25px 0 0;
+  color: #555;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.bank-filter-panel-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(110px, 1fr)) max-content;
+  align-items: end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.bank-filter-panel-item {
+  min-width: 0;
+}
+
+.bank-filter-panel-item label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.bank-filter-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.bank-filter-panel-actions button {
+  white-space: nowrap;
+}
+
+/* “应用筛选”是筛选区的主要操作，因此使用实心蓝色。 */
+.bank-filter-panel-actions button[type="submit"] {
+  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.bank-filter-panel-actions button[type="submit"]:hover {
+  color: #fff;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+/* ==================== 结果摘要工具栏 ==================== */
+
+.bank-result-toolbar-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  margin-bottom: 18px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid rgba(216, 221, 227, 0.94);
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.bank-result-toolbar-panel p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+#problem-count {
+  margin: 0 2px;
+  color: #333;
+  font-size: 16px;
+}
+
+.bank-result-toolbar-panel > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#sort-order {
+  width: auto;
+  min-width: 120px;
+}
+

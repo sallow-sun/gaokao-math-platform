@@ -1,0 +1,10 @@
+/* 左侧题面与选项 */
+.content-panel {
+  min-height: 0px;
+  padding: 30px 34px;
+}
+
+.content-panel-question {
+  font-size: 20px;
+}
+

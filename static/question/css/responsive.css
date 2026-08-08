@@ -1,0 +1,106 @@
+/* 平板与手机适配：必须最后引入 */
+@media (max-width: 760px) {
+  body > header {
+    column-gap: 14px;
+    padding: 0 14px;
+  }
+
+  body > header h1 {
+    display: none;
+  }
+
+  .page-container {
+    width: calc(100% - 24px);
+    padding-top: 12px;
+  }
+
+  .header-panel {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 14px 12px;
+    padding: 18px 16px;
+  }
+
+  /* 窄屏时先让标题独占整行，获得 stats 原来占用的全部宽度。 */
+  .header-panel-title {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    gap: clamp(3px, 1.2vw, 7px);
+  }
+
+  .header-panel-stats {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+    width: max-content;
+  }
+
+  .header-panel-stats-item {
+    flex: 0 0 auto;
+    min-width: 56px;
+    padding: 0 9px;
+  }
+
+  .header-panel-button {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .header-panel-button button {
+    flex: 1;
+  }
+
+  .page-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .content-panel {
+    min-height: auto;
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 520px) {
+  .header-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .header-panel-title {
+    font-size: clamp(12.5px, 3.9vw, 16px); /* 320px 宽时仍尽量让示例标题保持一排。 */
+  }
+
+  .header-panel-stats {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .header-panel-button {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 430px) {
+  .header-panel-title {
+    gap: 3px;
+    letter-spacing: -0.02em;
+  }
+
+  .header-panel-button {
+    flex-direction: row;
+  }
+
+  .content-panel {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

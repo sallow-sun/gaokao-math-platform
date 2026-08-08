@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="题库页面">
+  <title>题库</title>
+
+  <!-- 题库页面样式：按功能拆分，加载顺序请勿随意调整 -->
+  <link rel="stylesheet" href="problems-base.css">
+  <link rel="stylesheet" href="problems-layout.css">
+  <link rel="stylesheet" href="problems-header-panel.css">
+  <link rel="stylesheet" href="problems-filter-panel.css">
+  <link rel="stylesheet" href="problems-content-panel.css">
+  <link rel="stylesheet" href="problems-responsive.css">
+
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='problems/css/problems-base.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='problems/css/problems-layout.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='problems/css/problems-header-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='problems/css/problems-filter-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='problems/css/problems-content-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='problems/css/problems-responsive.css') }}"
+  >
+
+  <!-- 题库交互脚本：下载 problems.txt 后请将其改名为 problems.js -->
+  <script
+    src="{{ url_for('static', filename='problems/js/problems.js') }}"
+  ></script>
+</head>
+
+<body>
+  <!-- 网站顶部导航 -->
+  <header>
+    <a id="header-return" href="index.html">← 返回</a><!--返回按钮-->
+    <span id="header-location">题库</span><!--目前所在的位置-->
+    {% if current_user %}
+      <a
+          id="header-user"
+          href="{{ url_for('user_page', user_id=current_user.id) }}"
+          aria-label="进入{{ current_user.username }}的个人主页"
+      >
+          <img
+              id="header-userimg"
+              src="{{ url_for(
+                  'static',
+                  filename=current_user.avatar or 'userpage/img/default-avatar.png'
+              ) }}"
+              alt="{{ current_user.username }}的头像"
+          >
+      </a>
+    {% endif %}
+  </header>
+
+  <main>
+    <!-- 页面标题与视图切换 -->
+    <section class="bank-header">
+      <div class="bank-header-title">
+        <h1>题库</h1>
+        <p>长风破浪会有时，直挂云帆济沧海</p>
+      </div>
+
+      <div class="bank-header-view-switch">
+        <!-- 新增：data-view-target 供 JavaScript 判断需要显示的视图。 -->
+        <button type="button" class="bank-header-view-switch-button"
+          data-view-target="list-view" aria-controls="list-view" aria-pressed="true">列表模式</button>
+        <button type="button" class="bank-header-view-switch-button"
+          data-view-target="preview-view" aria-controls="preview-view" aria-pressed="false">预览模式</button>
+      </div>
+
+      <!-- 批量选择按钮的状态和受控区域 -->
+      <div class="bank-header-tools">
+        <button type="button" id="batch-select-toggle" class="bank-header-tool-button"
+          aria-pressed="false" aria-controls="batch-selection-toolbar list-view preview-view">批量选中</button>
+        <button type="button" id="batch-print" class="bank-header-tool-button" hidden disabled>打印</button>
+        <button type="button" id="batch-add-to-list" class="bank-header-tool-button" hidden disabled>加入题单</button>
+      </div>
+
+      <!-- 批量选择模式的全选、计数和清空区域；默认隐藏，由 JavaScript 控制显示 -->
+      <div id="batch-selection-toolbar" class="bank-batch-selection-toolbar" hidden>
+        <label class="bank-batch-selection-all">
+          <input id="batch-select-all" type="checkbox">
+          <span>全选本页</span>
+        </label>
+        <p class="bank-batch-selection-count" aria-live="polite">
+          已选择 <strong id="selected-problem-count">0</strong> 道题目
+        </p>
+        <button type="button" id="batch-selection-clear" disabled>取消选择</button>
+      </div>
+
+    </section>
+
+
+
+    <!-- 共用筛选区 -->
+    <section class="bank-filter-panel">
+      <h2 id="bank-filter-panel-title">筛选</h2>
+
+      <form id="problem-filter-form" class="bank-filter-panel-form">
+        <div class="bank-filter-panel-item">
+          <label for="keyword">关键词</label>
+          <input id="keyword" name="keyword" type="search" placeholder="搜索题号、标题或知识点">
+        </div>
+
+        <div class="bank-filter-panel-item">
+          <label for="year">年份</label>
+          <select id="year" name="year">
+            <option value="">全部年份</option>
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </select>
+        </div>
+
+        <div class="bank-filter-panel-item">
+          <label for="source">来源</label>
+          <select id="source" name="source">
+            <option value="">全部来源</option>
+            <option value="national-a">全国甲卷</option>
+            <option value="national-new-1">新高考Ⅰ卷</option>
+            <option value="national-new-2">新高考Ⅱ卷</option>
+            <option value="mock">模拟题</option>
+          </select>
+        </div>
+
+        <div class="bank-filter-panel-item">
+          <label for="type">题型</label>
+          <select id="type" name="type">
+            <option value="">全部题型</option>
+            <option value="single-choice">单项选择题</option>
+            <option value="multiple-choice">多项选择题</option>
+            <option value="fill-blank">填空题</option>
+            <option value="solution">解答题</option>
+          </select>
+        </div>
+
+        <div class="bank-filter-panel-item">
+          <label for="level">训练价值</label>
+          <select id="level" name="level">
+            <option value="">全部等级</option>
+            <option value="basic">基础</option>
+            <option value="typical">典型</option>
+            <option value="important">重点</option>
+            <option value="challenge">挑战</option>
+          </select>
+        </div>
+
+        <div class="bank-filter-panel-actions">
+          <button type="submit">应用筛选</button>
+          <button type="reset">清除筛选</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 筛选结果摘要 -->
+    <section class="bank-result-toolbar-panel">
+      <p>共找到 <strong id="problem-count">2</strong> 道题目</p>
+
+      <label for="sort-order">
+        排序
+        <select id="sort-order" name="sort-order">
+          <option value="newest">最新收录</option>
+          <option value="oldest">最早收录</option>
+          <option value="easy-first">由易到难</option>
+          <option value="hard-first">由难到易</option>
+        </select>
+      </label>
+    </section>
+
+
+    
+    <!-- Luogu 风格：紧凑列表模式 -->
+    <section id="list-view" class="bank-result-problem-panel-view">
+      <!-- 新增：Luogu 风格列表标题栏；各列与下方题目行使用相同宽度。 -->
+      <div class="bank-result-problem-list-heading" role="row" aria-label="题目列表标题栏">
+        <span class="bank-result-problem-list-heading-select" aria-hidden="true"></span>
+        <span class="bank-result-problem-list-heading-status" role="columnheader">状态</span>
+        <div class="bank-result-problem-list-heading-summary" role="presentation">
+          <span role="columnheader">
+            <button type="button" class="bank-result-problem-list-sort"
+              data-list-sort="problem-id" aria-label="按题号排序" aria-pressed="false">题号</button>
+          </span>
+          <span role="columnheader">
+            <button type="button" class="bank-result-problem-list-sort"
+              data-list-sort="year" aria-label="按年份排序" aria-pressed="false">年份</button>
+          </span>
+          <span role="columnheader">题目来源</span>
+          <span role="columnheader">题型</span>
+        </div>
+        <span class="bank-result-problem-list-heading-tags" role="columnheader">标签</span>
+        <span class="bank-result-problem-list-heading-value" role="columnheader">
+          <button type="button" class="bank-result-problem-list-sort"
+            data-list-sort="level" aria-label="按训练价值排序" aria-pressed="false">训练价值</button>
+        </span>
+      </div>
+
+      <!-- 新增：data-year、data-source、data-type 和 data-level 供前端筛选与排序使用。 -->
+      <article class="bank-result-problem-panel-view-item" data-problem-id="P10001"
+        data-year="2025" data-source="national-new-1" data-type="single-choice" data-level="important">
+        <!-- 新增：单题选择框；两个视图通过相同的 data-problem-id 同步选中状态 -->
+        <label class="bank-result-problem-select" hidden>
+          <input type="checkbox" class="bank-result-problem-select-checkbox"
+            name="selected-problems" value="P10001" data-problem-id="P10001"
+            aria-label="选择题目 P10001">
+        </label>
+        <span class="bank-result-problem-panel-view-item-status">○</span>
+        <div class="bank-result-problem-panel-view-item-summary">
+          <p><a href="question.html?id=P10001"><span>P10001</span>
+            <span>2025</span><span>新高考Ⅰ卷</span><span>单选题</span></a>
+          </p>
+        </div>
+        <div class="bank-result-problem-panel-view-item-tags">
+          <span>集合</span>
+        </div>
+        <div class="bank-result-problem-panel-view-item-value" data-question-value="red">
+          <span>RED</span>
+        </div>
+      </article>
+
+      <article class="bank-result-problem-panel-view-item is-complete" data-problem-id="P10002"
+        data-year="2024" data-source="national-a" data-type="solution" data-level="basic">
+        <!-- 新增：单题选择框；两个视图通过相同的 data-problem-id 同步选中状态 -->
+        <label class="bank-result-problem-select" hidden>
+          <input type="checkbox" class="bank-result-problem-select-checkbox"
+            name="selected-problems" value="P10002" data-problem-id="P10002"
+            aria-label="选择题目 P10002">
+        </label>
+        <span class="bank-result-problem-panel-view-item-status">✓</span>
+        <div class="bank-result-problem-panel-view-item-summary">
+          <p><a href="question.html?id=P10002"><span>P10002</span>
+            <span>2024</span><span>全国甲卷</span><span>解答题</span></a>
+          </p>
+        </div>
+
+        <div class="bank-result-problem-panel-view-item-tags">
+          <span>函数</span>
+        </div>
+        <div class="bank-result-problem-panel-view-item-value" data-question-value="green">
+          <span>GREEN</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- Demo 风格：完整题干预览模式；默认隐藏，之后由 JavaScript 控制切换 -->
+    <section id="preview-view" class="bank-result-problem-panel-view" hidden>
+      <!-- 新增：预览卡片沿用列表中的筛选数据，保证两个视图结果一致。 -->
+      <article class="bank-result-problem-panel-view-card" data-problem-id="P10001"
+        data-year="2025" data-source="national-new-1" data-type="single-choice" data-level="important">
+
+        <!--header，包括名称、tag、value等等-->
+        <header class="bank-result-problem-panel-view-card-header">
+          <!-- 新增：预览模式中的单题选择框，与列表模式中的同题选择框保持同步 -->
+          <label class="bank-result-problem-select" hidden>
+            <input type="checkbox" class="bank-result-problem-select-checkbox"
+              name="selected-problems" value="P10001" data-problem-id="P10001"
+              aria-label="选择题目 P10001">
+          </label>
+          <p><a href="question.html?id=P10001"><span>P10001</span>
+            <span>2025</span><span>新高考Ⅰ卷</span><span>单选题</span></a>
+          </p>
+          <div class="bank-result-problem-panel-view-card-tags">
+            <span>集合</span>
+          </div>
+          <div class="bank-result-problem-panel-view-card-value" data-question-value="red">
+            <span>RED</span>
+          </div>
+        </header>
+
+        <!--content，题目内容-->
+        <div class="bank-result-problem-panel-view-card-content">
+            <pre>
+1.(1+5i)i 的虚部为( )
+A.-1    B. 0    C. 1    D. 6
+            </pre>
+        </div>
+
+        <!--footer-->
+        <footer class="bank-result-problem-panel-view-card-footer">
+          <a href="question.html?id=P10001">查看详情</a>
+          <button type="button">加入练习清单</button>
+        </footer>
+
+      </article>
+
+     <article class="bank-result-problem-panel-view-card" data-problem-id="P10002"
+       data-year="2024" data-source="national-a" data-type="solution" data-level="basic">
+
+        <!--header，包括名称、tag、value等等-->
+        <header class="bank-result-problem-panel-view-card-header">
+          <!-- 新增：预览模式中的单题选择框，与列表模式中的同题选择框保持同步 -->
+          <label class="bank-result-problem-select" hidden>
+            <input type="checkbox" class="bank-result-problem-select-checkbox"
+              name="selected-problems" value="P10002" data-problem-id="P10002"
+              aria-label="选择题目 P10002">
+          </label>
+          <p><a href="question.html?id=P10002"><span>P10002</span>
+            <span>2024</span><span>全国甲卷</span><span>解答题</span></a>
+          </p>
+        <div class="bank-result-problem-panel-view-card-tags">
+          <span>函数</span>
+        </div>
+        <div class="bank-result-problem-panel-view-card-value" data-question-value="green">
+          <span>GREEN</span>
+        </div>
+        </header>
+
+        <!--content，题目内容-->
+        <div class="bank-result-problem-panel-view-card-content">
+            <pre>
+这里是一道题目
+            </pre>
+        </div>
+
+        <!--footer-->
+        <footer class="bank-result-problem-panel-view-card-footer">
+          <a href="question.html?id=P10002">查看详情</a>
+          <button type="button">加入练习清单</button>
+        </footer>
+      </article>
+    </section>
+
+    <!-- 分页 -->
+    <nav class="bank-pagination">
+      <button type="button" disabled>上一页</button>
+      <a href="?page=1">1</a>
+      <a href="?page=2">2</a>
+      <a href="?page=3">3</a>
+      <button type="button">下一页</button>
+    </nav>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 暂时没想好名字的网站</p>
+  </footer>
+
+</body>
+</html>
