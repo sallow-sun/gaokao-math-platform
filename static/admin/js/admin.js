@@ -246,7 +246,6 @@ document.addEventListener("DOMContentLoaded", () => {
             "source",
             "question_type",
             "difficulty",
-            "tags",
             "content",
             "solution",
             "answer"
@@ -259,6 +258,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 field.value = question[fieldName] || "";
             }
         });
+
+        const selectedTags = new Set(
+            String(question.tags || "")
+                .replaceAll("，", ",")
+                .split(",")
+                .map(tag => tag.trim())
+                .filter(Boolean)
+        );
+
+        questionForm
+            .querySelectorAll('input[name="tags"]')
+            .forEach(checkbox => {
+                checkbox.checked = selectedTags.has(
+                    checkbox.value
+                );
+            });
 
         formTitle.textContent =
             `编辑 ${question.problem_number}`;
@@ -342,9 +357,14 @@ document.addEventListener("DOMContentLoaded", () => {
     questionForm.addEventListener("submit", async event => {
         event.preventDefault();
 
+        const formData = new FormData(questionForm);
         const data = Object.fromEntries(
-            new FormData(questionForm).entries()
+            formData.entries()
         );
+
+        data.tags = formData
+            .getAll("tags")
+            .join(",");
 
         const id = questionId.value;
         const editing = Boolean(id);

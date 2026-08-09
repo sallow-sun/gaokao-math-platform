@@ -218,13 +218,23 @@
                                 </select>
                             </label>
 
-                            <label class="full-width">
-                                标签
-                                <input
-                                    name="tags"
-                                    placeholder="函数, 导数"
-                                >
-                            </label>
+                           <fieldset class="full-width tag-field">
+                                <legend>标签（可以选择多个）</legend>
+
+                                <div class="tag-options">
+                                    {% for tag in question_tag_options %}
+                                    <label class="tag-option">
+                                        <input
+                                            type="checkbox"
+                                            name="tags"
+                                            value="{{ tag }}"
+                                        >
+
+                                        <span>{{ tag }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </fieldset>
 
                             <label class="full-width">
                                 题面

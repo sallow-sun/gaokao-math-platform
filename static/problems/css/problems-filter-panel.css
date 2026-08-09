@@ -20,7 +20,7 @@
 
 .bank-filter-panel-form {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(110px, 1fr)) max-content;
+  grid-template-columns: minmax(220px, 2fr) repeat(5, minmax(110px, 1fr)) max-content;
   align-items: end;
   gap: 10px;
   min-width: 0;
@@ -103,3 +103,29 @@
   min-width: 120px;
 }
 
+
+.bank-filter-clear-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 5px 14px;
+    color: var(--text-secondary);
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+    transition:
+        color 0.16s ease,
+        background-color 0.16s ease,
+        border-color 0.16s ease;
+}
+
+.bank-filter-clear-button:hover {
+    color: var(--primary);
+    background: var(--primary-soft);
+    border-color: #8bc7eb;
+}

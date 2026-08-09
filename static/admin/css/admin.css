@@ -398,3 +398,61 @@ th {
         grid-column: 1;
     }
 }
+
+.tag-field {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.tag-field legend {
+    margin-bottom: 7px;
+    color: #666;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.tag-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    background: #f7f9fa;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+}
+
+.form-grid .tag-option {
+    display: inline-flex;
+    align-items: center;
+    flex-direction: row;
+    gap: 6px;
+    min-height: 30px;
+    padding: 4px 10px;
+    color: #555;
+    background: white;
+    border: 1px solid #d8dde3;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.form-grid .tag-option:hover {
+    color: var(--primary);
+    background: #edf7fd;
+    border-color: #8bc7eb;
+}
+
+.tag-option input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--primary);
+}
+
+.tag-option:has(input:checked) {
+    color: white;
+    background: var(--primary);
+    border-color: var(--primary);
+}

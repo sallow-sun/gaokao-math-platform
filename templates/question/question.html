@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/base.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/layout.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/header-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/content-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/sidebar-panel.css') }}"
+  >
+  <link rel="stylesheet"
+    href="{{ url_for('static', filename='question/css/responsive.css') }}"
+  >
+  <!-- 新增：使用独立 JavaScript 控制侧栏内容的展开与收起 -->
+   <script
+    src="{{ url_for('static', filename='question/js/sidebar-panel.js') }}"
+   ></script>
+  <title>题目详情 - P10001</title><!--题目详情-题号-->
+</head>
+
+<!--所有class名均为小写-->
+
+<body>
+  <header>
+    <a id="header-return" href="index.html">← 返回</a><!--返回按钮-->
+    <span id="header-location">题库/P10001</span><!--目前所在的位置-->
+    <a id="header-user" href=""><img id="header-userimg" src="./img/background.jpg" alt="user-img"></a><!--用户头像-->
+  </header>
+  <!--最上方功能栏，显示返回按钮，位置，用户头像-->
+
+  <main class="page-container">
+    <article>
+    <!--题目页面-->
+
+      <!--==================== header-panel（题头栏） ====================-->
+<section
+    class="header-panel"
+    data-question-type="{{ question_type_style }}"
+>
+    <div class="header-panel-title">
+        <span class="header-panel-title-id">
+            {{ question["problem_number"] }}
+        </span>
+
+        <span>
+            <span>{{ question["source"] or "未知来源" }}</span>
+
+            {% if question["year"] %}
+                <span>{{ question["year"] }}年</span>
+            {% endif %}
+        </span>
+
+        <span>{{ question["question_type"] or "其他" }}</span>
+    </div>
+
+    <div class="header-panel-stats">
+        <div class="header-panel-stats-item">
+            <span>浏览</span>
+            <span>0</span>
+        </div>
+
+        <div class="header-panel-stats-item">
+            <span>通过</span>
+            <span>0</span>
+        </div>
+
+        <div class="header-panel-stats-item">
+            <span>下载</span>
+            <span>0</span>
+        </div>
+
+        <div class="header-panel-stats-item">
+            <span>收藏</span>
+            <span>0</span>
+        </div>
+    </div>
+
+    <div class="header-panel-button">
+        <button type="button">加入题单</button>
+        <button type="button">下载题目</button>
+    </div>
+</section>
+
+<div class="page-layout">
+
+    <!--==================== content-panel（题面栏） ====================-->
+      <section class="content-panel">
+          <div class="content-panel-question">
+              <pre>{{ question["content"] }}</pre>
+          </div>
+      </section>
+
+      <!--==================== sidebar-panel（侧栏） ====================-->
+      <aside class="sidebar">
+
+          <!-- 题目信息 -->
+          <section class="information-panel">
+              <p>
+                  <span class="information-panel-title">题目编号</span>
+                  <span class="information-panel-content">
+                      {{ question["problem_number"] }}
+                  </span>
+              </p>
+
+              <p>
+                  <span class="information-panel-title">年份</span>
+                  <span class="information-panel-content">
+                      {{ question["year"] or "未知" }}
+                  </span>
+              </p>
+
+              <p>
+                  <span class="information-panel-title">地区</span>
+                  <span class="information-panel-content">
+                      {{ question["region"] or "未知" }}
+                  </span>
+              </p>
+
+              <p>
+                  <span class="information-panel-title">来源</span>
+                  <span class="information-panel-content">
+                      {{ question["source"] or "未知" }}
+                  </span>
+              </p>
+
+              <p>
+                  <span class="information-panel-title">题型</span>
+                  <span class="information-panel-content">
+                      {{ question["question_type"] or "其他" }}
+                  </span>
+              </p>
+
+              <p>
+                  <span class="information-panel-title">上传者</span>
+
+                  {% if creator %}
+                      <a
+                          href="{{ url_for('user_page', user_id=creator['id']) }}"
+                          class="information-panel-content"
+                      >
+                          {{ creator["username"] }}
+                      </a>
+                  {% else %}
+                      <span class="information-panel-content">未知用户</span>
+                  {% endif %}
+              </p>
+
+              <p>
+                  <span class="information-panel-title">难度</span>
+                  <span
+                      class="information-panel-content"
+                      id="information-panel-value"
+                      data-question-type="{{ question_type_style }}"
+                  >
+                      {{ question["difficulty"] or "未知" }}
+                  </span>
+              </p>
+
+              <p>
+                  <span class="information-panel-title">上传时间</span>
+                  <span class="information-panel-content">
+                      {{ question["created_at"] or "未知" }}
+                  </span>
+              </p>
+
+              <p class="information-panel-actions">
+                  <button type="button" class="information-panel-action">
+                      点击打卡
+                  </button>
+
+                  <a href="#" class="information-panel-action">
+                      练习记录
+                  </a>
+
+                  <button type="button" class="information-panel-action">
+                      收藏题目
+                  </button>
+
+                  <a href="#" class="information-panel-action">
+                      题目反馈
+                  </a>
+              </p>
+          </section>
+
+          <!-- 答案解析 -->
+          <section class="answer-panel">
+              <div class="sidebar-panel-header">
+                  <h2>答案解析</h2>
+                  <a href="#" class="sidebar-panel-link">进入题解区</a>
+              </div>
+
+              <div
+                  id="answer-panel-content"
+                  class="sidebar-panel-content"
+                  hidden
+              >
+                  <div class="answer-panel-answer">
+                      <h3>答案</h3>
+
+                      {% if question["answer"] %}
+                          <pre>{{ question["answer"] }}</pre>
+                      {% else %}
+                          <p class="sidebar-panel-empty">暂无答案</p>
+                      {% endif %}
+                  </div>
+
+                  <div class="answer-panel-solution">
+                      <h3>解析</h3>
+
+                      {% if question["solution"] %}
+                          <pre>{{ question["solution"] }}</pre>
+                      {% else %}
+                          <p class="sidebar-panel-empty">暂无解析</p>
+                      {% endif %}
+                  </div>
+              </div>
+
+              <button
+                  type="button"
+                  class="sidebar-panel-toggle"
+                  aria-expanded="false"
+                  aria-controls="answer-panel-content"
+                  data-collapsed-text="显示答案"
+                  data-expanded-text="收起答案"
+              >
+                  <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+                  <span class="sidebar-panel-toggle-text">显示答案</span>
+              </button>
+          </section>
+
+          <!-- 标签 -->
+          <section class="tag-panel">
+              <div class="sidebar-panel-header">
+                  <h2>标签</h2>
+              </div>
+
+              <div
+                  id="tag-panel-content"
+                  class="sidebar-panel-content"
+                  hidden
+              >
+                  {% if tags %}
+                      {% for tag in tags %}
+                          <a
+                              href="{{ url_for('problems_page', tag=tag) }}"
+                              class="sidebar-panel-item sidebar-panel-tag"
+                          >
+                              {{ tag }}
+                          </a>
+                      {% endfor %}
+                  {% else %}
+                      <p class="sidebar-panel-empty">暂无标签</p>
+                  {% endif %}
+              </div>
+
+              <button
+                  type="button"
+                  class="sidebar-panel-toggle"
+                  aria-expanded="false"
+                  aria-controls="tag-panel-content"
+                  data-collapsed-text="显示题目标签"
+                  data-expanded-text="收起题目标签"
+              >
+                  <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+                  <span class="sidebar-panel-toggle-text">显示题目标签</span>
+              </button>
+          </section>
+
+          <!-- 题目讨论 -->
+          <section class="discussion-panel">
+              <div class="sidebar-panel-header">
+                  <h2>题目讨论</h2>
+                  <a href="#" class="sidebar-panel-link">进入讨论版</a>
+              </div>
+
+              <div
+                  id="discussion-panel-content"
+                  class="sidebar-panel-content discussion-panel-content"
+                  hidden
+              >
+                  <p class="sidebar-panel-empty discussion-panel-empty">
+                      暂无讨论
+                  </p>
+              </div>
+
+              <button
+                  type="button"
+                  class="sidebar-panel-toggle"
+                  aria-expanded="false"
+                  aria-controls="discussion-panel-content"
+                  data-collapsed-text="查看讨论"
+                  data-expanded-text="收起讨论"
+              >
+                  <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+                  <span class="sidebar-panel-toggle-text">查看讨论</span>
+              </button>
+          </section>
+
+          <!-- 题单收录 -->
+          <section class="collection-panel">
+              <div class="sidebar-panel-header">
+                  <h2>本题收录于</h2>
+              </div>
+
+              <div
+                  id="collection-panel-content"
+                  class="sidebar-panel-content"
+                  hidden
+              >
+                  <p class="sidebar-panel-empty">暂无收录信息</p>
+              </div>
+
+              <button
+                  type="button"
+                  class="sidebar-panel-toggle"
+                  aria-expanded="false"
+                  aria-controls="collection-panel-content"
+                  data-collapsed-text="查看收录情况"
+                  data-expanded-text="收起收录情况"
+              >
+                  <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+                  <span class="sidebar-panel-toggle-text">查看收录情况</span>
+              </button>
+          </section>
+
+          <!-- 推荐题目 -->
+          <section class="recommendation-panel">
+              <div class="sidebar-panel-header">
+                  <h2>推荐题目</h2>
+              </div>
+
+              <div
+                  id="recommendation-panel-content"
+                  class="sidebar-panel-content"
+                  hidden
+              >
+                  {% if recommendation %}
+                      <a
+                          href="{{ url_for(
+                              'question_page',
+                              problem_number=recommendation['problem_number']
+                          ) }}"
+                          class="sidebar-panel-item"
+                      >
+                          {{ recommendation["problem_number"] }}
+                          {{ recommendation["source"] or "" }}
+                          {{ recommendation["question_type"] or "" }}
+                      </a>
+                  {% else %}
+                      <p class="sidebar-panel-empty">暂无推荐题目</p>
+                  {% endif %}
+              </div>
+
+              <button
+                  type="button"
+                  class="sidebar-panel-toggle"
+                  aria-expanded="false"
+                  aria-controls="recommendation-panel-content"
+                  data-collapsed-text="查看推荐"
+                  data-expanded-text="收起推荐"
+              >
+                  <span class="sidebar-panel-arrow" aria-hidden="true"></span>
+                  <span class="sidebar-panel-toggle-text">查看推荐</span>
+              </button>
+          </section>
+
+      </aside>
+  </div>
+  </main>
+</body>
+</html>
