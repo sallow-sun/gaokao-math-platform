@@ -16,6 +16,8 @@ app.config["QUESTION_DATABASE"] = "questionDatabase.db"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
+app.url_map.strict_slashes = False
+
 
 QUESTION_TAG_OPTIONS = [
     "集合",
@@ -196,9 +198,8 @@ def valid_phone(phone):
 
 
 @app.route("/")
-@login_required
 def index():
-    return render_template("problems/problems.html")
+    return render_template("index/index.html")
 
 @app.route("/login")
 def login_page():
@@ -213,6 +214,10 @@ def register_page():
 @app.route("/forgot")
 def forgot_page():
     return render_template("userpage/forgot.html")
+
+
+
+
 
 @app.route("/problems")
 @login_required
