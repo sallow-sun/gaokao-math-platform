@@ -1,28 +1,33 @@
-/* ==================== 全局变量与基础样式 ==================== */
+/* ==================== Office 风格变量与基础样式 ==================== */
 
-/* :root 用于集中保存题库页面会重复使用的颜色、圆角和尺寸。 */
+/* :root 集中保存题库页面的色彩、边框与尺寸，便于后续统一调整。 */
 :root {
-  --page-bg: #e9edf1; /* 背景图未加载时使用的浅灰蓝色。 */
-  --surface: rgba(255, 255, 255, 0.95); /* 主要面板使用的半透明白色。 */
-  --surface-strong: #fff; /* 需要保持清晰的题目行使用纯白色。 */
-  --surface-soft: #f7f8fa; /* 表头、卡片题头等次级区域的浅灰色。 */
-  --text-main: #3f3f3f; /* 页面主要文字颜色。 */
-  --text-secondary: #666; /* 年份、题型等次要信息颜色。 */
-  --text-muted: #999; /* 提示文字和未完成状态颜色。 */
-  --line: #e6e8eb; /* 普通分隔线颜色。 */
-  --line-strong: #d8dde3; /* 输入框和面板外边框颜色。 */
-  --primary: #3498db; /* 参照 Luogu 使用清爽的蓝色作为主色。 */
-  --primary-dark: #2586c4; /* 主色按钮悬停时使用的深蓝色。 */
-  --primary-soft: #edf7fd; /* 选中或悬停时使用的浅蓝色背景。 */
-  --success: #52c41a; /* 已完成状态使用的绿色。 */
-  --tag: #18b8b1; /* 知识点标签使用的青绿色。 */
-  --value-red: #f45164; /* RED 训练价值标签颜色。 */
-  --value-yellow: #f5a623; /* YELLOW 训练价值标签颜色。 */
-  --value-blue: #3498db; /* BLUE 训练价值标签颜色。 */
-  --value-green: #52b91f; /* GREEN 训练价值标签颜色。 */
-  --shadow: 0 2px 12px rgba(39, 52, 64, 0.12); /* 面板使用的轻微阴影。 */
-  --radius: 6px; /* 主要面板使用的小圆角。 */
-  --content-width: 1240px; /* 题库主体在宽屏上的最大宽度。 */
+  --page-bg: #f3f3f3; /* Office 工作区常见的中性浅灰背景。 */
+  --surface: #ffffff; /* 页面主要工作面板。 */
+  --surface-strong: #ffffff; /* 题目表格与题面区域。 */
+  --surface-soft: #faf9f8; /* 工具条与卡片次级区域。 */
+  --surface-muted: #f3f2f1; /* 分段控件与表头底色。 */
+  --text-main: #242424; /* 正文使用的高对比度深灰。 */
+  --text-secondary: #605e5c; /* 次要信息文字。 */
+  --text-muted: #8a8886; /* 提示、占位和未完成状态。 */
+  --line: #edebe9; /* 普通分隔线。 */
+  --line-strong: #d2d0ce; /* 面板和输入控件边框。 */
+  --control-border: #8a8886; /* Office 输入控件的默认描边。 */
+  --primary: #185abd; /* 接近 Word 的正式蓝色。 */
+  --primary-dark: #0f4c9e; /* 主色悬停状态。 */
+  --primary-pressed: #0b3c79; /* 主色按下状态。 */
+  --primary-soft: #eaf3f8; /* 选择、悬停使用的淡蓝底色。 */
+  --success: #107c10; /* 已完成状态。 */
+  --tag-text: #0f548c; /* 知识点标签文字。 */
+  --tag-bg: #eff6fc; /* 知识点标签背景。 */
+  --tag-border: #c7e0f4; /* 知识点标签边框。 */
+  --value-red: #a4262c; /* RED 训练价值语义色。 */
+  --value-yellow: #8a4b08; /* YELLOW 训练价值语义色。 */
+  --value-blue: #005a9e; /* BLUE 训练价值语义色。 */
+  --value-green: #107c10; /* GREEN 训练价值语义色。 */
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 14px rgba(0, 0, 0, 0.04); /* 克制的面板阴影。 */
+  --radius: 4px; /* 正式界面使用较小圆角。 */
+  --content-width: 1320px; /* 宽屏下保持接近办公软件的工作区比例。 */
 }
 
 /* 星号选中所有元素，使宽高计算包含内边距和边框。 */
@@ -35,7 +40,7 @@ html {
   color-scheme: light;
 }
 
-/* 页面最外层使用竖直弹性布局，使版权栏在内容较少时仍位于底部。 */
+/* 页面采用纯色工作区，不再使用背景图片和磨砂效果。 */
 body {
   display: flex;
   min-width: 320px;
@@ -43,17 +48,12 @@ body {
   margin: 0;
   flex-direction: column;
   color: var(--text-main);
-  background-color: var(--page-bg);
-  background-image:
-    linear-gradient(rgba(232, 238, 242, 0.14), rgba(232, 238, 242, 0.14)),
-    url("./img/background.jpg"); /* 保留原项目的背景图片路径。 */
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-size: cover;
-  font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.6;
+  background: var(--page-bg);
+  font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui,
+    -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* JavaScript 通过 hidden 属性控制视图和批量工具的显隐。 */
@@ -61,69 +61,78 @@ body {
   display: none !important;
 }
 
-/* 所有链接默认使用主题蓝色，并去掉浏览器下划线。 */
+/* 链接只在需要交互时使用主色，不额外添加装饰。 */
 a {
   color: var(--primary);
   text-decoration: none;
-  transition: color 0.16s ease;
+  transition: color 0.12s ease;
 }
 
 a:hover {
   color: var(--primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-/* 按钮使用接近 Luogu 的紧凑白底描边样式。 */
+/* 按钮采用 Office 命令按钮的紧凑尺寸与低饱和度边框。 */
 button {
-  min-height: 34px;
-  padding: 5px 14px;
-  color: var(--text-secondary);
-  background: #fff;
+  min-height: 32px;
+  padding: 0 12px;
+  color: var(--text-main);
+  background: var(--surface);
   border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  border-radius: 2px;
   font: inherit;
-  font-size: 14px;
-  line-height: 1.2;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 30px;
   cursor: pointer;
-  transition: color 0.16s ease, background-color 0.16s ease,
-    border-color 0.16s ease, box-shadow 0.16s ease;
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    color 0.12s ease, box-shadow 0.12s ease;
 }
 
 button:not(:disabled):hover {
-  color: var(--primary);
-  background: var(--primary-soft);
-  border-color: #8bc7eb;
+  color: var(--text-main);
+  background: var(--surface-muted);
+  border-color: #a19f9d;
+}
+
+button:not(:disabled):active {
+  background: #e1dfdd;
+  border-color: var(--control-border);
 }
 
 button:disabled {
-  color: #b8bdc4;
-  background: #f4f5f6;
+  color: #a19f9d;
+  background: #f3f2f1;
+  border-color: #e1dfdd;
   cursor: not-allowed;
 }
 
-/* 输入框和下拉框统一使用白底、浅灰边框。 */
+/* 输入框和下拉框使用清晰的单像素边界，避免过度圆润。 */
 input,
 select {
   color: var(--text-main);
-  background: #fff;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  border-radius: 2px;
   font: inherit;
 }
 
 input[type="search"],
 select {
   width: 100%;
-  min-height: 36px;
-  padding: 6px 10px;
-  font-size: 14px;
-  line-height: 1.2;
+  min-height: 34px;
+  padding: 5px 10px;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 input[type="search"]::placeholder {
-  color: #adb2b8;
+  color: var(--text-muted);
 }
 
-/* 复选框保留浏览器原生外观，并将选中颜色改成主题色。 */
+/* 复选框保留原生辨识度，并使用页面主色表示选中。 */
 input[type="checkbox"] {
   width: 16px;
   height: 16px;
@@ -132,18 +141,23 @@ input[type="checkbox"] {
   cursor: pointer;
 }
 
-/* 键盘操作时显示清晰但不过分突出的焦点轮廓。 */
+/* 键盘焦点使用两层轮廓，接近 Microsoft Fluent 的可访问性表现。 */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid rgba(52, 152, 219, 0.24);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 input[type="search"]:focus,
 select:focus {
-  border-color: #7fc2e9;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.09);
+  border-color: var(--primary);
+  box-shadow: inset 0 -1px var(--primary);
 }
 
+/* 文本选择使用低饱和度蓝色，保持整套界面一致。 */
+::selection {
+  color: var(--text-main);
+  background: #c7e0f4;
+}

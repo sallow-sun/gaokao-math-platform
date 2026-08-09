@@ -1,4 +1,4 @@
-/* ==================== 网站顶部导航 ==================== */
+/* ==================== Office 式应用顶部栏 ==================== */
 
 /* 只选中 body 下第一层 header，避免影响预览卡片自己的 header。 */
 body > header {
@@ -7,59 +7,86 @@ body > header {
   z-index: 1000;
   display: flex;
   align-items: center;
-  min-height: 54px;
-  padding: 0 max(20px, calc((100vw - var(--content-width)) / 2));
-  column-gap: 22px;
-  color: #fff;
-  background: rgba(40, 51, 59, 0.92);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 9px rgba(23, 31, 37, 0.16);
-  backdrop-filter: blur(10px);
+  min-height: 48px;
+  padding: 0 max(24px, calc((100vw - var(--content-width)) / 2));
+  column-gap: 8px;
+  color: #ffffff;
+  background: var(--primary);
+  border-bottom: 1px solid var(--primary-dark);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
 }
 
 #header-return,
 #header-location {
-  color: rgba(255, 255, 255, 0.94);
-  font-size: 14px;
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
 }
 
-#header-return:hover {
-  color: #fff;
+#header-return {
+  margin-left: -10px;
+  padding: 0 10px;
+  border-radius: 2px;
 }
 
-/* 使用浅色竖线分隔返回入口和当前位置。 */
+#header-return:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  text-decoration: none;
+}
+
+/* 当前页面名称使用细分隔线与返回入口区分。 */
 #header-location {
-  padding-left: 22px;
-  border-left: 1px solid rgba(255, 255, 255, 0.22);
+  margin-left: 4px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.38);
 }
 
 #header-user {
+  position: relative;
+  display: block;
+  width: 28px;
+  height: 28px;
   margin-left: auto;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.16);
+  background-image:
+    radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.88) 0 17%, transparent 18%),
+    radial-gradient(ellipse at 50% 102%, rgba(255, 255, 255, 0.88) 0 35%, transparent 36%);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 50%;
 }
 
 #header-userimg {
+  position: relative;
   display: block;
-  width: 32px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 2px solid rgba(255, 255, 255, 0.72);
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 0;
   border-radius: 50%;
   object-fit: cover;
 }
 
-/* ==================== 页面标题、视图切换与批量工具 ==================== */
+/* 头像地址为空时隐藏损坏图标，保留上方生成的中性用户占位图。 */
+#header-userimg[src=""] {
+  opacity: 0;
+}
+
+/* ==================== 页面标题与命令区 ==================== */
 
 .bank-header {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) max-content max-content;
+  grid-template-columns: minmax(240px, 1fr) max-content max-content;
   align-items: center;
-  gap: 12px 20px;
-  padding: 14px 18px;
-  border-top: 1px solid rgba(216, 221, 227, 0.94);
+  gap: 14px 20px;
+  padding: 20px 24px 18px;
+  border-top: 1px solid var(--line-strong);
   border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: var(--shadow);
 }
 
 .bank-header-title {
@@ -68,17 +95,18 @@ body > header {
 
 .bank-header-title h1 {
   margin: 0;
-  color: #333;
-  font-size: 20px;
+  color: var(--text-main);
+  font-size: 25px;
   font-weight: 600;
-  line-height: 1.3;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .bank-header-title p {
-  margin: 3px 0 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.5;
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .bank-header-view-switch,
@@ -88,58 +116,97 @@ body > header {
   justify-content: flex-end;
 }
 
-/* 视图切换使用相连按钮组，减少工具区的视觉噪声。 */
+/* 视图切换使用低调的分段命令控件，选中项以白底和蓝字表示。 */
+.bank-header-view-switch {
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
 .bank-header-view-switch-button {
   position: relative;
   min-width: 82px;
-  border-radius: 0;
+  border-color: transparent;
+  border-radius: 2px;
+  background: transparent;
 }
 
-.bank-header-view-switch-button:first-child {
-  border-radius: 4px 0 0 4px;
-}
-
+.bank-header-view-switch-button:first-child,
 .bank-header-view-switch-button:last-child {
-  margin-left: -1px;
-  border-radius: 0 4px 4px 0;
+  margin-left: 0;
+  border-radius: 2px;
+}
+
+.bank-header-view-switch-button:not(:disabled):hover {
+  background: #e1dfdd;
+  border-color: transparent;
 }
 
 .bank-header-tools {
-  gap: 7px;
+  gap: 8px;
+  padding-left: 20px;
+  border-left: 1px solid var(--line-strong);
 }
 
 /* 没有脚本状态时默认强调列表模式；脚本加入状态后强调当前按钮。 */
 .bank-header-view-switch:not(:has(.bank-header-view-switch-button.is-active)):not(:has(.bank-header-view-switch-button[aria-pressed="true"]))
   .bank-header-view-switch-button:first-child,
 .bank-header-view-switch-button.is-active,
-.bank-header-view-switch-button[aria-pressed="true"],
-.bank-header-tool-button[aria-pressed="true"] {
+.bank-header-view-switch-button[aria-pressed="true"] {
   z-index: 1;
-  color: #fff;
-  background: var(--primary);
-  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--surface);
+  border-color: var(--surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .bank-header-view-switch:not(:has(.bank-header-view-switch-button.is-active)):not(:has(.bank-header-view-switch-button[aria-pressed="true"]))
   .bank-header-view-switch-button:first-child:hover,
 .bank-header-view-switch-button.is-active:hover,
-.bank-header-view-switch-button[aria-pressed="true"]:hover,
+.bank-header-view-switch-button[aria-pressed="true"]:hover {
+  color: var(--primary-dark);
+  background: var(--surface);
+  border-color: var(--surface);
+}
+
+/* 批量模式使用浅蓝状态，避免与主要提交按钮产生相同视觉权重。 */
+.bank-header-tool-button[aria-pressed="true"] {
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+  border-color: #91c2e6;
+}
+
 .bank-header-tool-button[aria-pressed="true"]:hover {
-  color: #fff;
+  color: var(--primary-dark);
+  background: #deecf9;
+  border-color: #69afe5;
+}
+
+/* “加入题单”在批量模式中作为主要操作显示。 */
+#batch-add-to-list:not([hidden]):not(:disabled) {
+  color: #ffffff;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+#batch-add-to-list:not([hidden]):not(:disabled):hover {
+  color: #ffffff;
   background: var(--primary-dark);
   border-color: var(--primary-dark);
 }
 
-/* 批量工具栏显示时占满标题面板底部，形成轻量提示条。 */
+/* 批量工具栏占满标题面板底部，表现为 Office 状态命令条。 */
 .bank-batch-selection-toolbar:not([hidden]) {
   display: flex;
   grid-column: 1 / -1;
   align-items: center;
   gap: 18px;
-  margin: 2px -18px -14px;
-  padding: 10px 18px;
-  background: rgba(237, 247, 253, 0.9);
-  border-top: 1px solid rgba(52, 152, 219, 0.2);
+  margin: 4px -24px -18px;
+  padding: 10px 24px;
+  background: #eff6fc;
+  border-top: 1px solid #c7e0f4;
 }
 
 .bank-batch-selection-all {
@@ -158,10 +225,10 @@ body > header {
 
 #selected-problem-count {
   color: var(--primary);
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 #batch-selection-clear {
   margin-left: auto;
 }
-
