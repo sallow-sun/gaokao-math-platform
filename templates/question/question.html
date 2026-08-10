@@ -32,9 +32,52 @@
 
 <body>
   <header>
-    <a id="header-return" href="index.html">← 返回</a><!--返回按钮-->
+    <a id="header-return" href="{{ url_for('problems_page') }}">← 返回</a><!--返回按钮-->
     <span id="header-location">题库/P10001</span><!--目前所在的位置-->
-    <a id="header-user" href=""><img id="header-userimg" src="./img/background.jpg" alt="user-img"></a><!--用户头像-->
+    {% if current_user %}
+        {% set avatar = current_user["avatar"] %}
+
+        <a
+            id="header-user"
+            href="{{ url_for(
+            'user_page',
+            user_id=current_user['id']
+            ) }}"
+            aria-label="进入{{ current_user['username'] }}的个人主页"
+        >
+        {% if avatar
+          and avatar != "userpage/img/default-avatar.png"
+          and avatar != "''" %}
+        <img
+            id="header-userimg"
+            src="{{ url_for('static', filename=avatar) }}"
+            alt=""
+            onerror="
+            this.hidden = true;
+            this.nextElementSibling.hidden = false;
+            "
+        >
+
+        <span
+            class="header-user-fallback"
+            aria-hidden="true"
+            hidden
+        >
+            {{ current_user["username"][0]|upper }}
+        </span>
+
+        {% else %}
+
+        <span
+            class="header-user-fallback"
+            aria-hidden="true"
+        >
+            {{ current_user["username"][0]|upper }}
+        </span>
+
+        {% endif %}
+    </a>
+    {% endif %}
   </header>
   <!--最上方功能栏，显示返回按钮，位置，用户头像-->
 

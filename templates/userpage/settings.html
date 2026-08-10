@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="数海用户设置">
+  <title>用户设置 - 数海 MathSea</title>
+
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='userpage/css/settings.css') }}"
+  >
+</head>
+
+<body>
+  <header class="settings-site-header">
+    <a
+      class="settings-back"
+      href="{{ url_for('user_page', user_id=user['id']) }}"
+    >
+      ← 返回个人主页
+    </a>
+
+    
+  </header>
+
+  <main class="settings-page">
+    <section class="settings-heading-panel">
+      <div class="settings-heading-text">
+        <p class="settings-eyebrow">ACCOUNT SETTINGS</p>
+        <h1>用户设置</h1>
+        <p>管理你的公开资料、账户偏好与安全信息。</p>
+      </div>
+
+      <div class="settings-user-summary">
+        <span>{{ user['username'] }}</span>
+        <small>{{ user['uid'] }}</small>
+      </div>
+
+      <nav class="settings-tabs" aria-label="用户设置导航">
+        <a
+          href="{{ url_for('user_settings_page') }}"
+          class="{{ 'active' if active_tab == 'profile' else '' }}"
+        >
+          个人设置
+        </a>
+
+        <a
+          href="{{ url_for('user_preference_page') }}"
+          class="{{ 'active' if active_tab == 'preference' else '' }}"
+        >
+          偏好设置
+        </a>
+
+        <a
+          href="{{ url_for('user_security_page') }}"
+          class="{{ 'active' if active_tab == 'security' else '' }}"
+        >
+          安全设置
+        </a>
+      </nav>
+    </section>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="settings-messages" aria-live="polite">
+          {% for category, message in messages %}
+            <p class="settings-message settings-message-{{ category }}">
+              {{ message }}
+            </p>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    {% if active_tab == "profile" %}
+      <form
+        class="settings-card profile-settings-card"
+        method="post"
+        enctype="multipart/form-data"
+        action="{{ url_for('user_settings_page') }}"
+      >
+        <div class="settings-card-title">
+          <div>
+            <p class="settings-card-kicker">PUBLIC PROFILE</p>
+            <h2>个人设置</h2>
+          </div>
+
+          <p>头像与签名会显示在你的个人主页中。</p>
+        </div>
+
+        <div class="profile-setting-row avatar-setting-row">
+          <div class="setting-description">
+            <h3>头像</h3>
+            <p>支持 PNG、JPG、GIF、WEBP，文件不超过5MB。</p>
+          </div>
+
+          <div class="avatar-setting-control">
+            <div class="avatar-preview-shell">
+              <img
+                id="avatar-preview"
+                src="{{ url_for('static', filename=user['avatar']) if user['avatar'] else '' }}"
+                alt=""
+                {% if not user['avatar'] %}hidden{% endif %}
+                onerror="
+                  this.hidden = true;
+                  document.getElementById('avatar-preview-fallback').hidden = false;
+                "
+              >
+
+              <span
+                id="avatar-preview-fallback"
+                {% if user['avatar'] %}hidden{% endif %}
+              >
+                头像预览
+              </span>
+            </div>
+
+            <div>
+              <label class="settings-primary-button" for="avatar-input">
+                选择头像
+              </label>
+
+              <input
+                id="avatar-input"
+                name="avatar"
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                hidden
+              >
+
+              <p id="avatar-file-name" class="avatar-file-name">
+                尚未选择新头像
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-setting-row signature-setting-row">
+          <div class="setting-description">
+            <h3>个人签名</h3>
+            <p>个人签名</p>
+          </div>
+
+          <div class="signature-control">
+            <textarea
+              id="signature"
+              name="signature"
+              maxlength="40"
+              rows="4"
+              placeholder="介绍一下自己，或者写下你正在努力的方向……"
+            >{{ user['signature'] or '' }}</textarea>
+
+            <p class="signature-counter">
+              <span id="signature-count">0</span>/40
+            </p>
+          </div>
+        </div>
+
+        <div class="settings-form-actions">
+          <button class="settings-primary-button" type="submit">
+            保存个人设置
+          </button>
+        </div>
+      </form>
+    {% endif %}
+
+    {% if active_tab == "preference" %}
+      <section class="settings-card settings-empty-card">
+        <div class="settings-empty-icon">⚙</div>
+        <h2>偏好设置</h2>
+        <p>当前暂无可以设置的偏好内容。</p>
+      </section>
+    {% endif %}
+
+    {% if active_tab == "security" %}
+      <section class="settings-security-list">
+        <form
+          class="settings-card security-setting-card"
+          method="post"
+          action="{{ url_for('user_security_page') }}"
+        >
+          <input type="hidden" name="action" value="username">
+
+          <div class="security-setting-copy">
+            <h2>修改用户名</h2>
+            <p>用户名会显示在个人主页和你上传的题目旁。</p>
+          </div>
+
+          <div class="security-setting-form">
+            <label for="username">新用户名</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              minlength="2"
+              maxlength="30"
+              value="{{ user['username'] }}"
+              required
+            >
+            <button class="settings-primary-button" type="submit">
+              修改用户名
+            </button>
+          </div>
+        </form>
+
+        <form
+          class="settings-card security-setting-card"
+          method="post"
+          action="{{ url_for('user_security_page') }}"
+        >
+          <input type="hidden" name="action" value="password">
+
+          <div class="security-setting-copy">
+            <h2>修改密码</h2>
+            <p>修改前需要验证当前密码，新密码至少8个字符。</p>
+          </div>
+
+          <div class="security-setting-form security-password-form">
+            <label for="current-password">当前密码</label>
+            <input
+              id="current-password"
+              name="current_password"
+              type="password"
+              autocomplete="current-password"
+              required
+            >
+
+            <label for="new-password">新密码</label>
+            <input
+              id="new-password"
+              name="new_password"
+              type="password"
+              minlength="8"
+              autocomplete="new-password"
+              required
+            >
+
+            <label for="confirm-password">确认新密码</label>
+            <input
+              id="confirm-password"
+              name="confirm_password"
+              type="password"
+              minlength="8"
+              autocomplete="new-password"
+              required
+            >
+
+            <button class="settings-primary-button" type="submit">
+              修改密码
+            </button>
+          </div>
+        </form>
+
+        <form
+          class="settings-card security-setting-card"
+          method="post"
+          action="{{ url_for('user_security_page') }}"
+        >
+          <input type="hidden" name="action" value="email">
+
+          <div class="security-setting-copy">
+            <h2>修改邮箱</h2>
+            <p>邮箱可以用于账户验证与找回密码。</p>
+          </div>
+
+          <div class="security-setting-form">
+            <label for="email">新邮箱</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value="{{ user['email'] or '' }}"
+              autocomplete="email"
+              placeholder="name@example.com"
+            >
+            <button class="settings-primary-button" type="submit">
+              修改邮箱
+            </button>
+          </div>
+        </form>
+
+        <form
+          class="settings-card security-setting-card"
+          method="post"
+          action="{{ url_for('user_security_page') }}"
+        >
+          <input type="hidden" name="action" value="phone">
+
+          <div class="security-setting-copy">
+            <h2>修改手机</h2>
+            <p>可以填写国家区号，例如 +8613800000000。</p>
+          </div>
+
+          <div class="security-setting-form">
+            <label for="phone">新手机号</label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              value="{{ user['phone'] or '' }}"
+              autocomplete="tel"
+              placeholder="请输入手机号"
+            >
+            <button class="settings-primary-button" type="submit">
+              修改手机
+            </button>
+          </div>
+        </form>
+      </section>
+    {% endif %}
+  </main>
+
+  <script
+    src="{{ url_for('static', filename='userpage/js/settings.js') }}"
+  ></script>
+</body>
+
+</html>

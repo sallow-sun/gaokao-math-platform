@@ -2,9 +2,20 @@ from functools import wraps
 import re
 import secrets
 import sqlite3
+import os
+import uuid
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, abort
-
+from flask import (
+    Flask,
+    abort,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for
+)
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -35,6 +46,9 @@ QUESTION_TAG_OPTIONS = [
     "逻辑与命题",
     "算法与程序框图"
 ]
+
+ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_AVATAR_SIZE = 5 * 1024 * 1024
 
 def get_user_db():
     connection = sqlite3.connect(app.config["USER_DATABASE"])
@@ -195,6 +209,58 @@ def valid_phone(phone):
 
     pattern = r"^1[3-9]\d{9}$"
     return re.match(pattern, phone) is not None
+
+def init_user_setting_fields():
+    """在已有 users 表中补充头像和签名字段。"""
+    connection = get_user_db()
+
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(users)").fetchall()
+    }
+
+    if "avatar" not in columns:
+        connection.execute(
+            "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT ''"
+        )
+
+    if "signature" not in columns:
+        connection.execute(
+            "ALTER TABLE users ADD COLUMN signature TEXT DEFAULT ''"
+        )
+
+    connection.commit()
+    connection.close()
+
+
+def get_setting_user():
+    connection = get_user_db()
+
+    user = connection.execute(
+        """
+        SELECT
+            id,
+            uid,
+            username,
+            email,
+            phone,
+            avatar,
+            signature,
+            password_hash
+        FROM users
+        WHERE id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    connection.close()
+
+    if user is None:
+        abort(404)
+
+    return user
+
+
 
 
 @app.route("/")
@@ -507,42 +573,41 @@ def problems_page():
 def user_page(user_id):
     connection = get_user_db()
 
-    user = connection.execute("""
-        SELECT id, uid, username, email, phone, created_at
+    user = connection.execute(
+        """
+        SELECT
+            id,
+            uid,
+            username,
+            email,
+            phone,
+            avatar,
+            signature,
+            created_at
         FROM users
         WHERE id = ?
-    """, (user_id,)).fetchone()
+        """,
+        (user_id,)
+    ).fetchone()
 
     connection.close()
 
     if user is None:
-        return "用户不存在", 404
-
-    question_connection = get_question_db()
-
-    uploaded = question_connection.execute("""
-        SELECT COUNT(*)
-        FROM questions
-        WHERE creator_uid = ?
-    """, (user["uid"],)).fetchone()[0]
-
-    question_connection.close()
+        abort(404)
 
     stats = {
-        "solved": 0,
-        "uploaded": uploaded,
-        "collections": 0,
-        "streak_days": 0
+        "completed": 0,
+        "uploaded": 0,
+        "collected": 0,
+        "streak": 0
     }
-
-    is_owner = session["user_id"] == user["id"]
 
     return render_template(
         "userpage/user.html",
         user=user,
         stats=stats,
         recent_records=[],
-        is_owner=session["user_id"] == user["id"]
+        is_owner=session.get("user_id") == user_id
     )
 
 @app.route("/problems/<problem_number>")
@@ -895,18 +960,27 @@ def logout():
 
 @app.context_processor
 def inject_current_user():
-    if "user_id" not in session:
+    user_id = session.get("user_id")
+
+    if user_id is None:
         return {
             "current_user": None
         }
 
     connection = get_user_db()
 
-    current_user = connection.execute("""
-        SELECT id, uid, username, avatar
+    current_user = connection.execute(
+        """
+        SELECT
+            id,
+            uid,
+            username,
+            avatar
         FROM users
         WHERE id = ?
-    """, (session["user_id"],)).fetchone()
+        """,
+        (user_id,)
+    ).fetchone()
 
     connection.close()
 
@@ -946,6 +1020,218 @@ def admin_required(function):
         return function(*args, **kwargs)
 
     return decorated_function
+
+@app.route("/user/setting", methods=["GET", "POST"])
+@login_required
+def user_settings_page():
+    user = get_setting_user()
+
+    if request.method == "POST":
+        signature = request.form.get("signature", "").strip()
+        avatar_file = request.files.get("avatar")
+
+        if len(signature) > 40:
+            flash("签名不能超过40个字符", "error")
+            return redirect(url_for("user_settings_page"))
+
+        if request.content_length and request.content_length > MAX_AVATAR_SIZE:
+            flash("头像文件不能超过5MB", "error")
+            return redirect(url_for("user_settings_page"))
+
+        avatar_path = user["avatar"] or ""
+
+        if avatar_file and avatar_file.filename:
+            extension = (
+                avatar_file.filename.rsplit(".", 1)[-1].lower()
+                if "." in avatar_file.filename
+                else ""
+            )
+
+            if extension not in ALLOWED_AVATAR_EXTENSIONS:
+                flash("头像只支持 PNG、JPG、JPEG、GIF 或 WEBP", "error")
+                return redirect(url_for("user_settings_page"))
+
+            avatar_directory = os.path.join(
+                app.static_folder,
+                "uploads",
+                "avatars"
+            )
+            os.makedirs(avatar_directory, exist_ok=True)
+
+            avatar_filename = f"{uuid.uuid4().hex}.{extension}"
+            avatar_file.save(
+                os.path.join(avatar_directory, avatar_filename)
+            )
+
+            avatar_path = f"uploads/avatars/{avatar_filename}"
+
+        connection = get_user_db()
+        connection.execute(
+            """
+            UPDATE users
+            SET avatar = ?, signature = ?
+            WHERE id = ?
+            """,
+            (avatar_path, signature, session["user_id"])
+        )
+        connection.commit()
+        connection.close()
+
+        flash("个人设置已保存", "success")
+        return redirect(url_for("user_settings_page"))
+
+    return render_template(
+        "userpage/settings.html",
+        user=user,
+        active_tab="profile"
+    )
+
+
+@app.route("/user/setting/preference")
+@login_required
+def user_preference_page():
+    return render_template(
+        "userpage/settings.html",
+        user=get_setting_user(),
+        active_tab="preference"
+    )
+
+
+@app.route("/user/setting/security", methods=["GET", "POST"])
+@login_required
+def user_security_page():
+    user = get_setting_user()
+
+    if request.method == "POST":
+        action = request.form.get("action", "")
+        connection = get_user_db()
+
+        if action == "username":
+            username = request.form.get("username", "").strip()
+
+            if not 2 <= len(username) <= 30:
+                connection.close()
+                flash("用户名长度应为2至30个字符", "error")
+                return redirect(url_for("user_security_page"))
+
+            duplicate = connection.execute(
+                "SELECT id FROM users WHERE username = ? AND id != ?",
+                (username, session["user_id"])
+            ).fetchone()
+
+            if duplicate:
+                connection.close()
+                flash("该用户名已经被使用", "error")
+                return redirect(url_for("user_security_page"))
+
+            connection.execute(
+                "UPDATE users SET username = ? WHERE id = ?",
+                (username, session["user_id"])
+            )
+            message = "用户名修改成功"
+
+        elif action == "password":
+            current_password = request.form.get("current_password", "")
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+
+            if not check_password_hash(
+                user["password_hash"],
+                current_password
+            ):
+                connection.close()
+                flash("当前密码不正确", "error")
+                return redirect(url_for("user_security_page"))
+
+            if len(new_password) < 8:
+                connection.close()
+                flash("新密码至少需要8个字符", "error")
+                return redirect(url_for("user_security_page"))
+
+            if new_password != confirm_password:
+                connection.close()
+                flash("两次输入的新密码不一致", "error")
+                return redirect(url_for("user_security_page"))
+
+            connection.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?",
+                (
+                    generate_password_hash(new_password),
+                    session["user_id"]
+                )
+            )
+            message = "密码修改成功"
+
+        elif action == "email":
+            email = request.form.get("email", "").strip().lower()
+
+            if email and not re.fullmatch(
+                r"[^@\s]+@[^@\s]+\.[^@\s]+",
+                email
+            ):
+                connection.close()
+                flash("邮箱格式不正确", "error")
+                return redirect(url_for("user_security_page"))
+
+            duplicate = None
+            if email:
+                duplicate = connection.execute(
+                    "SELECT id FROM users WHERE email = ? AND id != ?",
+                    (email, session["user_id"])
+                ).fetchone()
+
+            if duplicate:
+                connection.close()
+                flash("该邮箱已经被使用", "error")
+                return redirect(url_for("user_security_page"))
+
+            connection.execute(
+                "UPDATE users SET email = ? WHERE id = ?",
+                (email, session["user_id"])
+            )
+            message = "邮箱修改成功"
+
+        elif action == "phone":
+            phone = request.form.get("phone", "").strip()
+
+            if phone and not re.fullmatch(r"\+?[0-9]{6,20}", phone):
+                connection.close()
+                flash("手机号格式不正确", "error")
+                return redirect(url_for("user_security_page"))
+
+            duplicate = None
+            if phone:
+                duplicate = connection.execute(
+                    "SELECT id FROM users WHERE phone = ? AND id != ?",
+                    (phone, session["user_id"])
+                ).fetchone()
+
+            if duplicate:
+                connection.close()
+                flash("该手机号已经被使用", "error")
+                return redirect(url_for("user_security_page"))
+
+            connection.execute(
+                "UPDATE users SET phone = ? WHERE id = ?",
+                (phone, session["user_id"])
+            )
+            message = "手机号修改成功"
+
+        else:
+            connection.close()
+            flash("未知的修改操作", "error")
+            return redirect(url_for("user_security_page"))
+
+        connection.commit()
+        connection.close()
+        flash(message, "success")
+        return redirect(url_for("user_security_page"))
+
+    return render_template(
+        "userpage/settings.html",
+        user=user,
+        active_tab="security"
+    )
 
 
 def get_question_data():
@@ -1292,5 +1578,6 @@ def admin_update_question(question_id):
 
 if __name__ == "__main__":
     init_user_database()
-    init_question_database();
+    init_user_setting_fields()
+    init_question_database()
     app.run(host="127.0.0.1", port=5000, debug=True)

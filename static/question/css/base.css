@@ -134,8 +134,8 @@ body > header {
 /* 头像图片 */
 #header-userimg {
   display: block; /* 让图片作为块级元素显示，避免底部出现文字基线空隙 */
-  width: 34px; /* 设置图片宽度为 34 像素 */
-  height: 34px; /* 设置图片高度为 34 像素 */
+  width: 45px; /* 设置图片宽度为 45 像素 */
+  height: 45px; /* 设置图片高度为 45 像素 */
   background: rgba(255, 255, 255, 0.16); /* 图片未加载时显示半透明白色背景 */
   border: 2px solid rgba(255, 255, 255, 0.72); /* 添加 2 像素的半透明白色边框 */
   border-radius: 50%; /* 把正方形图片裁成圆形 */

@@ -7,7 +7,7 @@ body > header {
   z-index: 1000;
   display: flex;
   align-items: center;
-  min-height: 54px;
+  min-height: 58px;
   padding: 0 max(20px, calc((100vw - var(--content-width)) / 2));
   column-gap: 22px;
   color: #fff;
@@ -41,8 +41,8 @@ body > header {
 
 #header-userimg {
   display: block;
-  width: 32px;
-  height: 32px;
+  width: 45px;
+  height: 45px;
   background: rgba(255, 255, 255, 0.14);
   border: 2px solid rgba(255, 255, 255, 0.72);
   border-radius: 50%;
@@ -165,3 +165,53 @@ body > header {
   margin-left: auto;
 }
 
+#header-user {
+  position: relative;
+  display: block;
+  flex: 0 0 45px;
+  width: 45px;
+  height: 45px;
+  padding: 0;
+  overflow: hidden;
+  text-decoration: none;
+  background: linear-gradient(135deg, #42a9df, #718de6);
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+}
+
+#header-userimg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+#header-userimg[hidden] {
+  display: none;
+}
+
+#header-user > .header-user-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  color: #fff !important;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+#header-user > .header-user-fallback[hidden] {
+  display: none;
+}
