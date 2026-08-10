@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070914">
+  <meta name="description" content="Mathverse Knowledge Galaxy，用星系探索数学知识、标签与题目之间的联系。">
+  <title>Knowledge Galaxy · Mathverse</title>
+  <link rel="stylesheet" href="../styles/tokens.css">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/pages/galaxy.css">
+</head>
+<body class="galaxy-body">
+  <header class="galaxy-topbar">
+    <a class="galaxy-brand" href="home.html" aria-label="返回 Mathverse 首页">
+      <span class="galaxy-brand-mark">M</span>
+      <span>math<b>verse</b></span>
+    </a>
+
+    <div class="galaxy-title">
+      <span>KNOWLEDGE GALAXY</span>
+      <strong>知识星系</strong>
+      <i>PROTOTYPE 01</i>
+    </div>
+
+    <form class="galaxy-search" id="galaxy-search" role="search">
+      <label class="sr-only" for="galaxy-search-input">搜索知识点、标签或题目</label>
+      <span aria-hidden="true">⌕</span>
+      <input id="galaxy-search-input" type="search" placeholder="搜索知识点、方法或题号" autocomplete="off" list="galaxy-suggestions">
+      <kbd>Enter</kbd>
+      <datalist id="galaxy-suggestions">
+        <option value="导数"></option>
+        <option value="隐零点"></option>
+        <option value="构造函数"></option>
+        <option value="圆锥曲线"></option>
+        <option value="条件概率"></option>
+      </datalist>
+    </form>
+
+    <div class="view-switch" aria-label="星系视图模式">
+      <button class="active" type="button" data-view-mode="atlas">全部知识</button>
+      <button type="button" data-view-mode="personal"><span></span>我的星系</button>
+    </div>
+
+    <div class="exploration-rank" aria-label="当前探索等级">
+      <span id="rank-name">ORBIT I</span>
+      <b id="rank-depth">43%</b>
+    </div>
+
+    <button class="immersive-toggle" id="immersive-toggle" type="button">
+      <span aria-hidden="true">⛶</span><b>沉浸模式</b>
+    </button>
+
+    <button class="mobile-panel-button" id="mobile-panel-button" type="button" aria-label="打开控制面板">☰</button>
+  </header>
+
+  <div class="galaxy-shell">
+    <aside class="galaxy-controls" id="galaxy-controls">
+      <div class="controls-intro">
+        <p>YOUR UNIVERSE</p>
+        <h1>知识不是目录，<br>而是一片可以抵达的宇宙。</h1>
+        <span>拖动画布探索 · 滚轮缩放 · 点击星体聚焦</span>
+      </div>
+
+      <section class="exploration-summary" aria-labelledby="summary-title">
+        <div class="control-heading">
+          <h2 id="summary-title">探索概览</h2>
+          <span id="summary-mode">全部知识</span>
+        </div>
+        <div class="summary-grid">
+          <div><strong id="explored-count">18</strong><span>已涉猎节点</span></div>
+          <div><strong id="depth-average">43%</strong><span>平均深度</span></div>
+          <div><strong id="solved-count">12</strong><span>完成题目</span></div>
+        </div>
+        <div class="summary-progress"><i id="summary-progress-bar"></i></div>
+      </section>
+
+      <section class="galaxy-filter" aria-labelledby="filter-title">
+        <div class="control-heading">
+          <h2 id="filter-title">星云结构</h2>
+          <button id="show-all-galaxies" type="button">全部</button>
+        </div>
+        <div class="galaxy-filter-list">
+          <button class="active" type="button" data-galaxy-filter="function"><i style="--field-color:#7778f5"></i><span>函数与导数</span><b>67%</b></button>
+          <button class="active" type="button" data-galaxy-filter="geometry"><i style="--field-color:#48c8dc"></i><span>几何与向量</span><b>34%</b></button>
+          <button class="active" type="button" data-galaxy-filter="sequence"><i style="--field-color:#d9a65d"></i><span>代数与数列</span><b>52%</b></button>
+          <button class="active" type="button" data-galaxy-filter="probability"><i style="--field-color:#4eb798"></i><span>概率与统计</span><b>18%</b></button>
+        </div>
+      </section>
+
+      <section class="galaxy-legend" aria-labelledby="legend-title">
+        <div class="control-heading"><h2 id="legend-title">图例</h2></div>
+        <ul>
+          <li><i class="legend-star module"></i><span>知识模块</span></li>
+          <li><i class="legend-star concept"></i><span>知识点</span></li>
+          <li><i class="legend-star method"></i><span>结构 / 方法标签</span></li>
+          <li><i class="legend-star personal"></i><span>个人标签</span></li>
+          <li><i class="legend-star problem"></i><span>题目星尘</span></li>
+        </ul>
+        <p>星体核心越明亮，代表学习深度越高。</p>
+      </section>
+
+      <p class="control-device-note">个人进度与自建标签目前保存在此设备</p>
+    </aside>
+
+    <main class="galaxy-stage" id="galaxy-stage">
+      <canvas id="galaxy-canvas" aria-label="数学知识星系交互图"></canvas>
+
+      <div class="cosmic-atmosphere" aria-hidden="true">
+        <i class="cosmic-vignette"></i>
+        <i class="cosmic-grain"></i>
+        <i class="cosmic-lens"></i>
+      </div>
+
+      <div class="stage-topline">
+        <span><i></i> GALAXY SIGNAL ONLINE</span>
+        <b id="visible-layer">当前层级：知识模块</b>
+      </div>
+
+      <div class="stage-hint" id="stage-hint">
+        <span>✦</span>
+        <p>双击一片星云<br>进入它的知识结构</p>
+      </div>
+
+      <div class="galaxy-toolbar" aria-label="画布控制">
+        <button id="zoom-out" type="button" aria-label="缩小">−</button>
+        <span id="zoom-level">55%</span>
+        <button id="zoom-in" type="button" aria-label="放大">＋</button>
+        <i></i>
+        <button id="reset-view" type="button">回到宇宙</button>
+      </div>
+
+      <div class="scale-legend">
+        <span>星云</span><i></i><span>知识点</span><i></i><span>标签</span><i></i><span>题目</span>
+      </div>
+
+      <div class="galaxy-live" id="galaxy-live" role="status" aria-live="polite"></div>
+
+      <div class="field-reveal" id="field-reveal" aria-hidden="true">
+        <span>ENTERING KNOWLEDGE FIELD</span>
+        <strong id="field-reveal-name">函数与导数</strong>
+        <i></i>
+      </div>
+
+      <div class="achievement-flare" id="achievement-flare" role="status" aria-live="polite">
+        <div class="achievement-star"><i></i></div>
+        <div><span id="achievement-kicker">GALAXY UPDATED</span><strong id="achievement-title">一颗新星被点亮</strong><p id="achievement-message">你的知识宇宙正在生长。</p></div>
+      </div>
+    </main>
+
+    <aside class="node-inspector" id="node-inspector" aria-label="节点信息">
+      <button class="inspector-close" id="inspector-close" type="button" aria-label="关闭详情">×</button>
+      <div class="inspector-type"><i id="inspector-type-dot"></i><span id="inspector-type">知识模块</span></div>
+      <h2 id="inspector-name">函数与导数</h2>
+      <p class="inspector-id" id="inspector-id">GALAXY · FUNCTION</p>
+      <p class="inspector-description" id="inspector-description">研究变量之间的关系、变化趋势与局部性质，是高中数学中连接最广泛的知识星云。</p>
+
+      <section class="depth-card">
+        <div class="depth-orbit" id="depth-orbit"><strong id="inspector-progress">67%</strong><span>学习深度</span></div>
+        <div>
+          <p>你的探索正在点亮这片星云。</p>
+          <small id="progress-note">已覆盖 18 个知识节点</small>
+        </div>
+      </section>
+
+      <section class="inspector-section">
+        <h3>知识路径</h3>
+        <div class="knowledge-breadcrumb" id="knowledge-breadcrumb">
+          <span>高中数学</span><b>›</b><span>函数与导数</span>
+        </div>
+      </section>
+
+      <section class="inspector-section">
+        <h3>节点信息</h3>
+        <div class="node-metrics">
+          <div><strong id="child-count">12</strong><span>关联节点</span></div>
+          <div><strong id="question-count">24</strong><span>相关题目</span></div>
+          <div><strong id="method-count">6</strong><span>相关方法</span></div>
+        </div>
+      </section>
+
+      <section class="inspector-section related-section">
+        <h3>相关标签</h3>
+        <div class="related-tags" id="related-tags"><span>导数</span><span>函数零点</span><span>单调性</span></div>
+      </section>
+
+      <div class="inspector-actions">
+        <button class="primary" id="focus-node" type="button">进入这片星云 <span>→</span></button>
+        <button id="record-learning" type="button">记录一次学习</button>
+        <button id="create-personal-tag" type="button">＋ 创建个人标签</button>
+      </div>
+    </aside>
+  </div>
+
+  <dialog class="tag-dialog" id="tag-dialog">
+    <form method="dialog" id="tag-form">
+      <div class="tag-dialog-heading">
+        <div><span>NEW STAR</span><h2>创建个人标签</h2></div>
+        <button value="cancel" aria-label="关闭">×</button>
+      </div>
+      <p>标签将围绕当前节点 <strong id="tag-parent-name">函数与导数</strong> 生长。</p>
+      <label for="tag-name">标签名称</label>
+      <input id="tag-name" type="text" maxlength="24" placeholder="例如：需要二刷" required>
+      <label for="tag-kind">标签类型</label>
+      <select id="tag-kind">
+        <option value="personal">个人标记</option>
+        <option value="method">解题方法</option>
+        <option value="concept">知识点</option>
+      </select>
+      <div class="tag-dialog-actions">
+        <button value="cancel">取消</button>
+        <button id="save-tag" value="default">点亮新星</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="../scripts/pages/galaxy.js" defer></script>
+</body>
+</html>
