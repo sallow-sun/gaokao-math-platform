@@ -2,9 +2,8 @@
 
 /*
  * 使用说明：
- * 1. 为避免下载 JavaScript 文件时出现异常，本文件以 .txt 格式提供。
- * 2. 使用前请将文件名由 problems.txt 改为 problems.js。
- * 3. 本脚本不依赖第三方库，可直接配合 problems.html 使用。
+ * 1. 本文件已随完整压缩包以 problems.js 格式提供，无需修改后缀。
+ * 2. 本脚本不依赖第三方库，可直接配合 problems.html 使用。
  */
 
 (function () {
@@ -13,7 +12,8 @@
   /* 页面状态在本地保存时使用独立键名，避免与网站其他页面冲突。 */
   const STORAGE_KEYS = {
     activeView: "problem-bank-active-view",
-    practiceList: "problem-bank-practice-list"
+    practiceList: "problem-bank-practice-list",
+    displayOptions: "problem-bank-display-options"
   };
 
   /* 训练价值的排序顺序与筛选框中的文字层级保持一致。 */
@@ -37,9 +37,15 @@
     const viewButtons = Array.from(
       document.querySelectorAll(".bank-header-view-switch-button[data-view-target]")
     );
+    const displayFilter = document.querySelector(".bank-display-filter");
+    const displayFilterToggle = document.getElementById("bank-display-filter-toggle");
+    const displayFilterPopover = document.getElementById("bank-display-filter-popover");
     const filterForm = document.getElementById("problem-filter-form");
     const sortOrder = document.getElementById("sort-order");
     const problemCount = document.getElementById("problem-count");
+    const filterOptionButtons = Array.from(
+      document.querySelectorAll(".bank-filter-options button[data-filter-name][data-filter-value]")
+    );
     const listSortButtons = Array.from(
       document.querySelectorAll(".bank-result-problem-list-sort[data-list-sort]")
     );
@@ -134,6 +140,14 @@
         button.classList.toggle("is-active", isActive);
       });
 
+      if (displayFilter) {
+        displayFilter.hidden = targetId !== "preview-view";
+      }
+
+      if (targetId !== "preview-view") {
+        closeDisplayFilter();
+      }
+
       if (shouldSave) {
         writeLocalStorage(STORAGE_KEYS.activeView, targetId);
       }
@@ -147,11 +161,123 @@
       });
     });
 
-    const savedView = readLocalStorage(STORAGE_KEYS.activeView, "list-view");
+    const savedView = readLocalStorage(STORAGE_KEYS.activeView, "preview-view");
+
+    /* ==================== 完整模式展示筛选 ==================== */
+
+    const DISPLAY_OPTION_NAMES = ["selection", "problem-id", "tags", "value", "source", "export"];
+    const displayOptionControls = Array.from(
+      document.querySelectorAll("[data-display-option-control]")
+    );
+    let displayOptions = DISPLAY_OPTION_NAMES.reduce(function (options, name) {
+      options[name] = true;
+      return options;
+    }, {});
+
+    try {
+      const savedDisplayOptions = JSON.parse(
+        readLocalStorage(STORAGE_KEYS.displayOptions, "{}")
+      );
+
+      DISPLAY_OPTION_NAMES.forEach(function (name) {
+        if (typeof savedDisplayOptions[name] === "boolean") {
+          displayOptions[name] = savedDisplayOptions[name];
+        }
+      });
+    } catch (error) {
+      /* 保存内容损坏时使用全部显示，不影响题目浏览。 */
+    }
+
+    function closeDisplayFilter() {
+      if (!displayFilterToggle || !displayFilterPopover) {
+        return;
+      }
+
+      displayFilterToggle.setAttribute("aria-expanded", "false");
+      displayFilterPopover.hidden = true;
+    }
+
+    function applyDisplayOptions(shouldSave) {
+      DISPLAY_OPTION_NAMES.forEach(function (name) {
+        previewView.querySelectorAll('[data-display-option="' + name + '"]').forEach(function (element) {
+          element.hidden = !displayOptions[name];
+        });
+      });
+
+      displayOptionControls.forEach(function (control) {
+        control.checked = displayOptions[control.dataset.displayOptionControl];
+      });
+
+      previewView.classList.toggle(
+        "is-minimal-display",
+        !displayOptions.selection && !displayOptions.tags && !displayOptions.value
+      );
+      /* 单独隐藏选择框时同步收回预留列，避免题目标题被挤窄。 */
+      previewView.classList.toggle("is-selection-hidden", !displayOptions.selection);
+
+      if (shouldSave) {
+        writeLocalStorage(STORAGE_KEYS.displayOptions, JSON.stringify(displayOptions));
+      }
+    }
+
+    if (displayFilterToggle && displayFilterPopover) {
+      displayFilterToggle.addEventListener("click", function () {
+        const shouldOpen = displayFilterPopover.hidden;
+        displayFilterPopover.hidden = !shouldOpen;
+        displayFilterToggle.setAttribute("aria-expanded", String(shouldOpen));
+      });
+
+      displayFilterPopover.querySelectorAll("[data-display-filter-close]").forEach(function (button) {
+        button.addEventListener("click", closeDisplayFilter);
+      });
+
+      displayOptionControls.forEach(function (control) {
+        control.addEventListener("change", function () {
+          displayOptions[control.dataset.displayOptionControl] = control.checked;
+          applyDisplayOptions(true);
+        });
+      });
+
+      const minimalButton = displayFilterPopover.querySelector("[data-display-minimal]");
+      const showAllButton = displayFilterPopover.querySelector("[data-display-all]");
+
+      if (minimalButton) {
+        minimalButton.addEventListener("click", function () {
+          DISPLAY_OPTION_NAMES.forEach(function (name) {
+            displayOptions[name] = false;
+          });
+          applyDisplayOptions(true);
+          showFeedback("已切换为最整洁显示");
+        });
+      }
+
+      if (showAllButton) {
+        showAllButton.addEventListener("click", function () {
+          DISPLAY_OPTION_NAMES.forEach(function (name) {
+            displayOptions[name] = true;
+          });
+          applyDisplayOptions(true);
+          showFeedback("已恢复全部显示内容");
+        });
+      }
+    }
+
+    document.addEventListener("click", function (event) {
+      if (displayFilter && !displayFilter.contains(event.target)) {
+        closeDisplayFilter();
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeDisplayFilter();
+      }
+    });
+
+    applyDisplayOptions(false);
 
     /* ==================== 批量选择与跨视图同步 ==================== */
 
-    const batchToggle = document.getElementById("batch-select-toggle");
     const batchToolbar = document.getElementById("batch-selection-toolbar");
     const batchSelectAll = document.getElementById("batch-select-all");
     const selectedProblemCount = document.getElementById("selected-problem-count");
@@ -210,6 +336,11 @@
         selectedProblemCount.textContent = String(selectedCount);
       }
 
+      /* 参考版列表始终显示选择框；只有选中题目后才展开批量命令。 */
+      if (batchToolbar) {
+        batchToolbar.hidden = selectedCount === 0;
+      }
+
       if (batchSelectAll) {
         batchSelectAll.disabled = visibleIds.length === 0;
         batchSelectAll.checked = visibleIds.length > 0 && visibleSelectedCount === visibleIds.length;
@@ -229,43 +360,6 @@
         syncProblemSelection(problemId, false);
       });
       updateBatchControls();
-    }
-
-    function setBatchMode(isActive) {
-      document.body.classList.toggle("is-batch-selecting", isActive);
-
-      if (batchToggle) {
-        batchToggle.setAttribute("aria-pressed", String(isActive));
-        batchToggle.textContent = isActive ? "退出批量" : "批量选中";
-      }
-
-      if (batchToolbar) {
-        batchToolbar.hidden = !isActive;
-      }
-
-      [batchPrint, batchAddToList].forEach(function (button) {
-        if (button) {
-          button.hidden = !isActive;
-        }
-      });
-
-      document.querySelectorAll(".bank-result-problem-select").forEach(function (label) {
-        label.hidden = !isActive;
-      });
-
-      /* 退出批量模式时清空选择，防止隐藏状态下仍保留误操作对象。 */
-      if (!isActive) {
-        clearSelection();
-      }
-
-      updateBatchControls();
-    }
-
-    if (batchToggle) {
-      batchToggle.addEventListener("click", function () {
-        const isActive = batchToggle.getAttribute("aria-pressed") === "true";
-        setBatchMode(!isActive);
-      });
     }
 
     allCheckboxes.forEach(function (checkbox) {
@@ -288,15 +382,45 @@
       batchClear.addEventListener("click", clearSelection);
     }
 
-    setBatchMode(false);
+    /* 选择框始终可用，批量工具栏由选中数量自动控制。 */
+    document.body.classList.add("is-batch-selecting");
+    updateBatchControls();
+
     /* 批量控件完成初始化后再恢复视图，避免初始化期间读取尚未建立的选择状态。 */
-    setActiveView(savedView === "preview-view" ? "preview-view" : "list-view", false);
+    setActiveView(savedView === "list-view" ? "list-view" : "preview-view", false);
 
     /* ==================== 关键词与条件筛选 ==================== */
 
     function normalizeText(value) {
       return String(value || "").trim().toLocaleLowerCase("zh-CN");
     }
+
+    /* 横向筛选按钮与隐藏字段保持同步，HTML 表单仍可按常规方式提交。 */
+    function syncFilterOptionButtons() {
+      filterOptionButtons.forEach(function (button) {
+        const input = filterForm
+          ? filterForm.elements.namedItem(button.dataset.filterName)
+          : null;
+        const isActive = Boolean(input) && String(input.value) === button.dataset.filterValue;
+
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+    }
+
+    filterOptionButtons.forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (!filterForm) {
+          return;
+        }
+
+        const input = filterForm.elements.namedItem(button.dataset.filterName);
+        if (input) {
+          input.value = button.dataset.filterValue;
+          syncFilterOptionButtons();
+        }
+      });
+    });
 
     function itemMatchesFilters(item, filters) {
       if (filters.keyword && !normalizeText(item.textContent).includes(filters.keyword)) {
@@ -340,7 +464,11 @@
       });
 
       if (problemCount) {
-        problemCount.textContent = String(matchedIds.size);
+        const hasActiveFilter = Object.values(filters).some(Boolean);
+        const totalCount = Number(problemCount.dataset.totalCount) || matchedIds.size;
+        const visibleCount = hasActiveFilter ? matchedIds.size : totalCount;
+
+        problemCount.textContent = visibleCount.toLocaleString("zh-CN");
       }
 
       updateBatchControls();
@@ -354,7 +482,16 @@
 
       filterForm.addEventListener("reset", function () {
         /* reset 事件发生时表单值尚未复原，下一帧再重新计算筛选结果。 */
-        window.requestAnimationFrame(applyFilters);
+        window.requestAnimationFrame(function () {
+          ["year", "source", "type"].forEach(function (fieldName) {
+            const input = filterForm.elements.namedItem(fieldName);
+            if (input) {
+              input.value = "";
+            }
+          });
+          syncFilterOptionButtons();
+          applyFilters();
+        });
       });
     }
 
@@ -498,6 +635,7 @@
       });
     });
 
+    syncFilterOptionButtons();
     applyFilters();
     applySortOrder(sortOrder ? sortOrder.value : "newest");
 
@@ -515,7 +653,7 @@
     }
 
     const practiceButtons = Array.from(
-      document.querySelectorAll(".bank-result-problem-panel-view-card-footer button")
+      document.querySelectorAll(".bank-result-problem-panel-view-card-footer [data-add-to-list]")
     );
 
     function updatePracticeButtons() {
@@ -525,7 +663,7 @@
         const isAdded = practiceList.has(problemId);
 
         button.disabled = isAdded;
-        button.textContent = isAdded ? "已加入练习清单" : "加入练习清单";
+        button.textContent = isAdded ? "已加入题单" : "加入题单";
       });
     }
 
@@ -553,9 +691,9 @@
       );
 
       if (newlyAddedIds.length > 0) {
-        showFeedback("已将 " + newlyAddedIds.length + " 道题目加入练习清单");
+        showFeedback("已将 " + newlyAddedIds.length + " 道题目加入题单");
       } else {
-        showFeedback("所选题目已在练习清单中");
+        showFeedback("所选题目已在题单中");
       }
     }
 
@@ -576,14 +714,326 @@
 
     updatePracticeButtons();
 
-    /* ==================== 批量打印 ==================== */
+    /* ==================== 单题打印与导出 ==================== */
 
-    function finishSelectionPrint() {
+    let titleBeforePrint = "";
+
+    function finishPrint() {
+      document.body.classList.remove("is-printing-single");
       document.body.classList.remove("is-printing-selection");
       document.querySelectorAll(".is-selected-for-print").forEach(function (element) {
         element.classList.remove("is-selected-for-print");
       });
+
+      if (titleBeforePrint) {
+        document.title = titleBeforePrint;
+        titleBeforePrint = "";
+      }
     }
+
+    function getCardExportData(card) {
+      const title = card.querySelector("h3");
+      const type = card.querySelector(".bank-problem-meta > span:last-child");
+      const content = card.querySelector(".bank-result-problem-panel-view-card-content pre");
+      const source = card.querySelector('[data-display-option="source"]');
+
+      return {
+        problemId: card.dataset.problemId || "problem",
+        title: title ? title.textContent.trim() : "题目",
+        type: type ? type.textContent.trim() : "",
+        content: content ? content.textContent.trim() : "",
+        source: source ? source.textContent.trim() : ""
+      };
+    }
+
+    function getSafeFileName(value) {
+      return String(value || "题目")
+        .replace(/[\\/:*?"<>|]/g, "-")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 80) || "题目";
+    }
+
+    function printSingleCard(card, forPdf) {
+      finishPrint();
+      titleBeforePrint = document.title;
+
+      const data = getCardExportData(card);
+      document.title = getSafeFileName(data.title);
+      card.classList.add("is-selected-for-print");
+      document.body.classList.add("is-printing-single");
+
+      if (forPdf) {
+        showFeedback("请在打印窗口中选择“另存为 PDF”");
+      }
+
+      window.setTimeout(function () {
+        window.print();
+      }, 0);
+    }
+
+    function getPlainText(data) {
+      return [
+        data.title,
+        data.type ? "题型：" + data.type : "",
+        data.source ? "来源：" + data.source : "",
+        "",
+        data.content
+      ].filter(function (line, index, lines) {
+        return line || (index > 0 && index < lines.length - 1);
+      }).join("\n");
+    }
+
+    function getMarkdown(data) {
+      return [
+        "## " + data.title,
+        "",
+        data.type ? "**题型：** " + data.type : "",
+        data.source ? "**来源：** " + data.source : "",
+        "",
+        data.content
+      ].filter(function (line, index, lines) {
+        return line || (index > 0 && index < lines.length - 1);
+      }).join("\n");
+    }
+
+    function escapeLatex(value) {
+      const replacements = {
+        "\\": "\\textbackslash{}",
+        "#": "\\#",
+        "$": "\\$",
+        "%": "\\%",
+        "&": "\\&",
+        "_": "\\_",
+        "{": "\\{",
+        "}": "\\}",
+        "^": "\\textasciicircum{}",
+        "~": "\\textasciitilde{}"
+      };
+
+      return String(value || "").replace(/[\\#$%&_{}^~]/g, function (character) {
+        return replacements[character];
+      });
+    }
+
+    function getLatex(data) {
+      const body = data.content
+        .split("\n")
+        .map(escapeLatex)
+        .join("\\\\\n");
+
+      return [
+        "\\subsection*{" + escapeLatex(data.title) + "}",
+        data.type ? "\\textbf{题型：" + escapeLatex(data.type) + "}" : "",
+        data.source ? "\\textbf{来源：" + escapeLatex(data.source) + "}" : "",
+        "",
+        body
+      ].filter(Boolean).join("\n\n");
+    }
+
+    function copyText(value) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(value);
+      }
+
+      return new Promise(function (resolve, reject) {
+        const textArea = document.createElement("textarea");
+        textArea.value = value;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+
+        try {
+          const copied = document.execCommand("copy");
+          textArea.remove();
+          copied ? resolve() : reject(new Error("copy failed"));
+        } catch (error) {
+          textArea.remove();
+          reject(error);
+        }
+      });
+    }
+
+    function getCanvasLines(context, value, maxWidth) {
+      const lines = [];
+
+      String(value || "").split("\n").forEach(function (paragraph) {
+        if (!paragraph) {
+          lines.push("");
+          return;
+        }
+
+        let line = "";
+        Array.from(paragraph).forEach(function (character) {
+          const nextLine = line + character;
+
+          if (line && context.measureText(nextLine).width > maxWidth) {
+            lines.push(line);
+            line = character;
+          } else {
+            line = nextLine;
+          }
+        });
+        lines.push(line);
+      });
+
+      return lines;
+    }
+
+    /* 图片采用浏览器原生 Canvas 生成，页面离线打开时也可使用。 */
+    function exportCardAsImage(card) {
+      const data = getCardExportData(card);
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        showFeedback("当前浏览器不支持图片导出");
+        return;
+      }
+
+      const width = 1400;
+      const horizontalPadding = 76;
+      const contentWidth = width - horizontalPadding * 2;
+      context.font = '26px "Noto Serif SC", "Songti SC", SimSun, serif';
+      const bodyLines = getCanvasLines(context, data.content, contentWidth);
+      const height = Math.max(520, 255 + bodyLines.length * 46 + 80);
+
+      canvas.width = width;
+      canvas.height = height;
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, width, height);
+      context.strokeStyle = "#d6dfe6";
+      context.lineWidth = 2;
+      context.strokeRect(24, 24, width - 48, height - 48);
+
+      context.fillStyle = "#092744";
+      context.font = '700 36px "Noto Serif SC", "Songti SC", SimSun, serif';
+      context.fillText(data.title, horizontalPadding, 105, contentWidth);
+
+      context.fillStyle = "#526474";
+      context.font = '20px "Noto Sans SC", "Microsoft YaHei", sans-serif';
+      const meta = [data.type, data.source].filter(Boolean).join("  ·  ");
+      context.fillText(meta, horizontalPadding, 153, contentWidth);
+
+      context.strokeStyle = "#dce4ea";
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(horizontalPadding, 188);
+      context.lineTo(width - horizontalPadding, 188);
+      context.stroke();
+
+      context.fillStyle = "#172b3c";
+      context.font = '26px "Noto Serif SC", "Songti SC", SimSun, serif';
+      bodyLines.forEach(function (line, index) {
+        context.fillText(line, horizontalPadding, 245 + index * 46, contentWidth);
+      });
+
+      function downloadImage(blob) {
+        const link = document.createElement("a");
+        link.download = getSafeFileName(data.title) + ".png";
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        window.setTimeout(function () {
+          URL.revokeObjectURL(link.href);
+        }, 1000);
+        showFeedback("题目图片已导出");
+      }
+
+      if (canvas.toBlob) {
+        canvas.toBlob(function (blob) {
+          if (blob) {
+            downloadImage(blob);
+          }
+        }, "image/png");
+      } else {
+        const link = document.createElement("a");
+        link.download = getSafeFileName(data.title) + ".png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showFeedback("题目图片已导出");
+      }
+    }
+
+    function closeExportMenus(exceptMenu) {
+      document.querySelectorAll(".bank-problem-export-menu").forEach(function (menu) {
+        const shouldKeepOpen = menu === exceptMenu;
+        menu.hidden = !shouldKeepOpen;
+
+        const toggle = menu.parentElement.querySelector("[data-export-toggle]");
+        if (toggle) {
+          toggle.setAttribute("aria-expanded", String(shouldKeepOpen));
+        }
+      });
+    }
+
+    document.querySelectorAll("[data-card-print]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const card = button.closest(".bank-result-problem-panel-view-card");
+        if (card) {
+          printSingleCard(card, false);
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-export-toggle]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const menu = button.parentElement.querySelector(".bank-problem-export-menu");
+        const shouldOpen = menu && menu.hidden;
+        closeExportMenus(shouldOpen ? menu : null);
+      });
+    });
+
+    document.querySelectorAll("[data-export-format]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const card = button.closest(".bank-result-problem-panel-view-card");
+        const format = button.dataset.exportFormat;
+
+        closeExportMenus();
+        if (!card) {
+          return;
+        }
+
+        const data = getCardExportData(card);
+
+        if (format === "pdf") {
+          printSingleCard(card, true);
+        } else if (format === "image") {
+          exportCardAsImage(card);
+        } else {
+          const copyValue =
+            format === "markdown"
+              ? getMarkdown(data)
+              : format === "latex"
+                ? getLatex(data)
+                : getPlainText(data);
+
+          copyText(copyValue)
+            .then(function () {
+              const formatNames = { markdown: "Markdown", latex: "LaTeX", text: "纯文本" };
+              showFeedback("已按" + formatNames[format] + "格式复制");
+            })
+            .catch(function () {
+              showFeedback("复制失败，请检查浏览器剪贴板权限");
+            });
+        }
+      });
+    });
+
+    document.addEventListener("click", function (event) {
+      if (!event.target.closest(".bank-problem-export")) {
+        closeExportMenus();
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeExportMenus();
+      }
+    });
+
+    /* ==================== 批量打印 ==================== */
 
     if (batchPrint) {
       batchPrint.addEventListener("click", function () {
@@ -600,12 +1050,14 @@
             );
           });
 
+        titleBeforePrint = document.title;
+        document.title = "题库-所选题目";
         document.body.classList.add("is-printing-selection");
         window.print();
       });
     }
 
-    window.addEventListener("afterprint", finishSelectionPrint);
+    window.addEventListener("afterprint", finishPrint);
 
     /* ==================== 分页按钮 ==================== */
 

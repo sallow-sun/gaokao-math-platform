@@ -3,54 +3,432 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="题库页面">
+  <meta name="description" content="按年份、来源、题型与训练价值筛选高考数学真题和精选题">
   <title>题库</title>
 
   <!-- 题库页面样式：按功能拆分，加载顺序请勿随意调整 -->
-  <link rel="stylesheet" href="problems-base.css">
-  <link rel="stylesheet" href="problems-layout.css">
-  <link rel="stylesheet" href="problems-header-panel.css">
-  <link rel="stylesheet" href="problems-filter-panel.css">
-  <link rel="stylesheet" href="problems-content-panel.css">
-  <link rel="stylesheet" href="problems-responsive.css">
+  <link rel="stylesheet" href="css/problems-base.css">
+  <link rel="stylesheet" href="css/problems-layout.css">
+  <link rel="stylesheet" href="css/problems-header-panel.css">
+  <link rel="stylesheet" href="css/problems-filter-panel.css">
+  <link rel="stylesheet" href="css/problems-content-panel.css">
+  <link rel="stylesheet" href="css/problems-responsive.css">
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/problems-compact.css"><!-- 页面紧凑：必须放在其他样式之后 -->
 
-  <!-- 题库交互脚本：下载 problems.txt 后请将其改名为 problems.js -->
-  <script src="problems.js" defer></script>
+  <!-- 题库交互脚本：不依赖第三方库，可直接在本地打开使用 -->
+<script src="js/problems.js"></script>
+<script src="js/problems-filter.js"></script>
 </head>
 
 <body>
-  <!-- 网站顶部导航 -->
-  <header>
-    <a id="header-return" href="index.html">← 返回</a><!--返回按钮-->
-    <span id="header-location">题库</span><!--目前所在的位置-->
-    <a id="header-user" href=""><img id="header-userimg" src="" alt="user-img"></a><!--用户头像-->
-  </header>
-
   <main>
-    <!-- 页面标题与视图切换 -->
-    <section class="bank-header">
-      <div class="bank-header-title">
-        <h1>题库</h1>
-        <p>长风破浪会有时，直挂云帆济沧海</p>
+    <!----------- 页面标题、小字和题库统计。----------->
+    <section class="bank-header" aria-labelledby="bank-page-title">
+      <div class="bank-header-content">
+        <div class="bank-header-title">
+            <h1 id="bank-page-title">高考数学题库</h1>
+            <p>长风破浪会有时，直挂云帆济沧海。</p>          <!--这里可以在名言库里随机-->
+        </div>
+
+        <dl class="bank-header-stats" aria-label="题库概况">
+            <div>
+              <dt>已收录</dt>
+              <dd>1,284</dd>
+            </div>
+            <div>
+              <dt>真题年份</dt>
+              <dd>12</dd>
+            </div>
+            <div>
+              <dt>知识专题</dt>
+              <dd>36</dd>
+            </div>
+        </dl>
+      </div>
+    </section>
+
+    <!----------- 筛选区----------->
+<section class="bank-filter-panel" aria-labelledby="bank-filter-panel-title">
+    <!----------- 筛选区-title ----------->
+  <header class="bank-filter-panel-header">
+    <div>
+      <h2 id="bank-filter-panel-title">筛选</h2>
+    </div>
+
+    <div class="bank-filter-header-actions">
+      <!-- 开启后，同一筛选行可以选择多个条件。 -->
+      <label class="bank-filter-multiple-control">
+        <span class="bank-filter-multiple-label">允许多选</span>
+        <input
+          class="bank-filter-multiple-input"
+          type="checkbox"
+          role="switch"
+          data-filter-mode-toggle
+          aria-label="允许同一筛选行选择多个条件"
+        >
+        <span class="bank-filter-multiple-switch" aria-hidden="true"></span>
+      </label>
+
+      <button
+        class="bank-filter-clear"
+        type="reset"
+        form="problem-bank-filter-form"
+      >清除全部</button>
+    </div>
+  </header>
+    <!----------- 筛选区-form ----------->
+  <form
+    id="problem-bank-filter-form"
+    class="bank-filter-panel-form"
+    data-filter-mode="single"
+  >
+    <input id="filter-year" name="year" type="hidden" value="">
+    <input id="filter-source" name="source" type="hidden" value="">
+    <input id="filter-type" name="type" type="hidden" value="">
+    <input id="filter-level" name="level" type="hidden" value="">
+    <input id="filter-mode" name="filter_mode" type="hidden" value="single">
+
+    <!----------- 筛选区-年份 ----------->
+    <div
+      class="bank-filter-group"
+      data-filter-group="year"
+      data-default-pinned="2026,2025,2024,2023"
+      role="group"
+      aria-labelledby="bank-filter-year-label"
+    >
+      <span id="bank-filter-year-label" class="bank-filter-group-label">年份</span>
+
+      <div class="bank-filter-control">
+        <div class="bank-filter-options" data-filter-main="year">
+          <button
+            type="button"
+            class="is-active"
+            data-filter-choice
+            data-filter-field="year"
+            data-filter-value=""
+            aria-pressed="true"
+          >全部</button>
+          <button type="button" data-filter-choice data-filter-field="year" data-filter-value="2026" data-filter-pinned-main aria-pressed="false">2026</button>
+          <button type="button" data-filter-choice data-filter-field="year" data-filter-value="2025" data-filter-pinned-main aria-pressed="false">2025</button>
+          <button type="button" data-filter-choice data-filter-field="year" data-filter-value="2024" data-filter-pinned-main aria-pressed="false">2024</button>
+          <button type="button" data-filter-choice data-filter-field="year" data-filter-value="2023" data-filter-pinned-main aria-pressed="false">2023</button>
+          <button
+            type="button"
+            class="bank-filter-more"
+            data-filter-more="year"
+            aria-expanded="false"
+            aria-controls="bank-filter-year-popover"
+          >
+            <span>更多</span>
+            <span class="bank-filter-more-count" data-filter-hidden-count hidden>0</span>
+          </button>
+        </div>
+
+        <div
+          id="bank-filter-year-popover"
+          class="bank-filter-popover"
+          data-filter-popover="year"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="bank-filter-year-popover-title"
+          hidden
+        >
+          <header class="bank-filter-popover-header">
+            <div>
+              <h3 id="bank-filter-year-popover-title">所有年份</h3>
+              <p>选择年份；勾选“显示在筛选栏”可设为常用项。</p>
+            </div>
+            <button class="bank-filter-popover-close" type="button" data-filter-popover-close aria-label="关闭年份小窗">×</button>
+          </header>
+
+          <div
+            class="bank-filter-catalog-list bank-filter-year-catalog"
+            data-year-catalog
+            data-year-start="2026"
+            data-year-end="1978"
+          ></div>
+
+          <footer class="bank-filter-popover-footer">
+            <span>固定设置仅保存在当前浏览器。“全部”始终固定显示。</span>
+            <button type="button" data-filter-popover-close>完成</button>
+          </footer>
+        </div>
+      </div>
+    </div>
+    <!----------- 筛选区-来源 ----------->
+    <div
+      class="bank-filter-group"
+      data-filter-group="source"
+      data-default-pinned="national-new-1,national-new-2,local,mock"
+      role="group"
+      aria-labelledby="bank-filter-source-label"
+    >
+      <span id="bank-filter-source-label" class="bank-filter-group-label">来源</span>
+
+      <div class="bank-filter-control">
+        <div class="bank-filter-options" data-filter-main="source">
+          <button
+            type="button"
+            class="is-active"
+            data-filter-choice
+            data-filter-field="source"
+            data-filter-value=""
+            aria-pressed="true"
+          >全部</button>
+          <button type="button" data-filter-choice data-filter-field="source" data-filter-value="national-new-1" data-filter-pinned-main aria-pressed="false">新高考Ⅰ卷</button>
+          <button type="button" data-filter-choice data-filter-field="source" data-filter-value="national-new-2" data-filter-pinned-main aria-pressed="false">新高考Ⅱ卷</button>
+          <button type="button" data-filter-choice data-filter-field="source" data-filter-value="local" data-filter-pinned-main aria-pressed="false">地方卷</button>
+          <button type="button" data-filter-choice data-filter-field="source" data-filter-value="mock" data-filter-pinned-main aria-pressed="false">模拟题</button>
+          <button
+            type="button"
+            class="bank-filter-more"
+            data-filter-more="source"
+            aria-expanded="false"
+            aria-controls="bank-filter-source-popover"
+          >
+            <span>更多</span>
+            <span class="bank-filter-more-count" data-filter-hidden-count hidden>0</span>
+          </button>
+        </div>
+
+        <div
+          id="bank-filter-source-popover"
+          class="bank-filter-popover"
+          data-filter-popover="source"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="bank-filter-source-popover-title"
+          hidden
+        >
+          <header class="bank-filter-popover-header">
+            <div>
+              <h3 id="bank-filter-source-popover-title">所有来源</h3>
+              <p>选择来源；勾选“显示在筛选栏”可设为常用项。</p>
+            </div>
+            <button class="bank-filter-popover-close" type="button" data-filter-popover-close aria-label="关闭来源小窗">×</button>
+          </header>
+
+          <div class="bank-filter-catalog-list">
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice is-active" data-filter-choice data-filter-field="source" data-filter-value="" aria-pressed="true">全部</button>
+              <span class="bank-filter-pin-fixed">始终显示</span>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="source" data-filter-value="national-new-1" aria-pressed="false">新高考Ⅰ卷</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="source" data-filter-pin-value="national-new-1" checked><span>显示在筛选栏</span></label>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="source" data-filter-value="national-new-2" aria-pressed="false">新高考Ⅱ卷</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="source" data-filter-pin-value="national-new-2" checked><span>显示在筛选栏</span></label>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="source" data-filter-value="national-a" aria-pressed="false">全国甲卷</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="source" data-filter-pin-value="national-a"><span>显示在筛选栏</span></label>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="source" data-filter-value="local" aria-pressed="false">地方卷</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="source" data-filter-pin-value="local" checked><span>显示在筛选栏</span></label>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="source" data-filter-value="mock" aria-pressed="false">模拟题</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="source" data-filter-pin-value="mock" checked><span>显示在筛选栏</span></label>
+            </div>
+          </div>
+
+          <footer class="bank-filter-popover-footer">
+            <span>固定设置仅保存在当前浏览器。“全部”始终固定显示。</span>
+            <button type="button" data-filter-popover-close>完成</button>
+          </footer>
+        </div>
+      </div>
+    </div>
+    <!----------- 筛选区-题型 ----------->
+    <div
+      class="bank-filter-group"
+      data-filter-group="type"
+      data-default-pinned="single-choice,multiple-choice,fill-blank,solution"
+      role="group"
+      aria-labelledby="bank-filter-type-label"
+    >
+      <span id="bank-filter-type-label" class="bank-filter-group-label">题型</span>
+
+      <div class="bank-filter-control">
+        <div class="bank-filter-options" data-filter-main="type">
+          <button
+            type="button"
+            class="is-active"
+            data-filter-choice
+            data-filter-field="type"
+            data-filter-value=""
+            aria-pressed="true"
+          >全部</button>
+          <button type="button" data-filter-choice data-filter-field="type" data-filter-value="single-choice" data-filter-pinned-main aria-pressed="false">单选题</button>
+          <button type="button" data-filter-choice data-filter-field="type" data-filter-value="multiple-choice" data-filter-pinned-main aria-pressed="false">多选题</button>
+          <button type="button" data-filter-choice data-filter-field="type" data-filter-value="fill-blank" data-filter-pinned-main aria-pressed="false">填空题</button>
+          <button type="button" data-filter-choice data-filter-field="type" data-filter-value="solution" data-filter-pinned-main aria-pressed="false">解答题</button>
+          <button
+            type="button"
+            class="bank-filter-more"
+            data-filter-more="type"
+            aria-expanded="false"
+            aria-controls="bank-filter-type-popover"
+          >
+            <span>更多</span>
+            <span class="bank-filter-more-count" data-filter-hidden-count hidden>0</span>
+          </button>
+        </div>
+
+        <div
+          id="bank-filter-type-popover"
+          class="bank-filter-popover"
+          data-filter-popover="type"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="bank-filter-type-popover-title"
+          hidden
+        >
+          <header class="bank-filter-popover-header">
+            <div>
+              <h3 id="bank-filter-type-popover-title">所有题型</h3>
+              <p>选择题型；勾选“显示在筛选栏”可设为常用项。</p>
+            </div>
+            <button class="bank-filter-popover-close" type="button" data-filter-popover-close aria-label="关闭题型小窗">×</button>
+          </header>
+
+          <div class="bank-filter-catalog-list">
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice is-active" data-filter-choice data-filter-field="type" data-filter-value="" aria-pressed="true">全部</button>
+              <span class="bank-filter-pin-fixed">始终显示</span>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="type" data-filter-value="single-choice" aria-pressed="false">单项选择题</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="type" data-filter-pin-value="single-choice" checked><span>显示在筛选栏</span></label>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="type" data-filter-value="multiple-choice" aria-pressed="false">多项选择题</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="type" data-filter-pin-value="multiple-choice" checked><span>显示在筛选栏</span></label>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="type" data-filter-value="fill-blank" aria-pressed="false">填空题</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="type" data-filter-pin-value="fill-blank" checked><span>显示在筛选栏</span></label>
+            </div>
+
+            <div class="bank-filter-catalog-item">
+              <button type="button" class="bank-filter-catalog-choice" data-filter-choice data-filter-field="type" data-filter-value="solution" aria-pressed="false">解答题</button>
+              <label class="bank-filter-pin-control"><input type="checkbox" data-filter-pin-field="type" data-filter-pin-value="solution" checked><span>显示在筛选栏</span></label>
+            </div>
+          </div>
+
+          <footer class="bank-filter-popover-footer">
+            <span>固定设置仅保存在当前浏览器。“全部”始终固定显示。</span>
+            <button type="button" data-filter-popover-close>完成</button>
+          </footer>
+        </div>
+      </div>
+    </div>
+    <!----------- 筛选区-训练价值 ----------->
+    <div
+      class="bank-filter-group bank-filter-level-group"
+      data-filter-group="level"
+      role="group"
+      aria-labelledby="bank-filter-level-label"
+    >
+      <span id="bank-filter-level-label" class="bank-filter-group-label">训练价值</span>
+      <div class="bank-filter-options bank-filter-level-options" data-filter-main="level">
+        <button type="button" class="is-active" data-filter-choice data-filter-field="level" data-filter-value="" aria-pressed="true">全部</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="red" data-level-color="red" aria-pressed="false">RED</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="orange" data-level-color="orange" aria-pressed="false">ORANGE</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="yellow" data-level-color="yellow" aria-pressed="false">YELLOW</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="green" data-level-color="green" aria-pressed="false">GREEN</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="cyan" data-level-color="cyan" aria-pressed="false">CYAN</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="blue" data-level-color="blue" aria-pressed="false">BLUE</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="purple" data-level-color="purple" aria-pressed="false">PURPLE</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="black" data-level-color="black" aria-pressed="false">BLACK</button>
+        <button type="button" data-filter-choice data-filter-field="level" data-filter-value="white" data-level-color="white" aria-pressed="false">WHITE</button>
+      </div>
+    </div>
+
+    <div class="bank-filter-search-row">
+      <div class="bank-filter-panel-item bank-filter-keyword">
+        <label for="keyword">关键词</label>
+        <input id="keyword" name="keyword" type="search" placeholder="搜索题号、来源或知识点">
       </div>
 
-      <div class="bank-header-view-switch">
-        <!-- 新增：data-view-target 供 JavaScript 判断需要显示的视图。 -->
-        <button type="button" class="bank-header-view-switch-button"
-          data-view-target="list-view" aria-controls="list-view" aria-pressed="true">列表模式</button>
-        <button type="button" class="bank-header-view-switch-button"
-          data-view-target="preview-view" aria-controls="preview-view" aria-pressed="false">预览模式</button>
-      </div>
+      <button class="bank-filter-submit" type="submit">查找题目</button>
+    </div>
+  </form>
+</section>
 
-      <!-- 批量选择按钮的状态和受控区域 -->
-      <div class="bank-header-tools">
-        <button type="button" id="batch-select-toggle" class="bank-header-tool-button"
-          aria-pressed="false" aria-controls="batch-selection-toolbar list-view preview-view">批量选中</button>
-        <button type="button" id="batch-print" class="bank-header-tool-button" hidden disabled>打印</button>
-        <button type="button" id="batch-add-to-list" class="bank-header-tool-button" hidden disabled>加入题单</button>
-      </div>
+    <!----------- 结果区 ----------->
+    <section class="bank-results-panel" aria-labelledby="bank-result-title">
+    <!----------- 结果区-title、工具栏----------->  
+      <header class="bank-result-toolbar-panel">
+        <div class="bank-result-heading">
+          <h2 id="bank-result-title">筛选结果</h2>
+          <p>共 <strong id="problem-count" data-total-count="1284">1,284</strong> 道题目</p>
+        </div>
 
-      <!-- 批量选择模式的全选、计数和清空区域；默认隐藏，由 JavaScript 控制显示 -->
+        <div class="bank-result-toolbar-controls">
+          <!-- 完整模式可自定义题目卡片中显示的辅助信息。 -->
+          <div class="bank-display-filter">
+            <button type="button" id="bank-display-filter-toggle" class="bank-display-filter-toggle"
+              aria-expanded="false" aria-controls="bank-display-filter-popover">显示设置</button>
+            <div id="bank-display-filter-popover" class="bank-display-filter-popover"
+              role="dialog" aria-labelledby="bank-display-filter-title" hidden>
+              <header>
+                <div>
+                  <h3 id="bank-display-filter-title">完整模式显示内容</h3>
+                  <p>题目名称、题型、题干、打印、查看详情和加入题单始终显示。</p>
+                </div>
+                <button type="button" data-display-filter-close aria-label="关闭展示筛选">×</button>
+              </header>
+              <div class="bank-display-filter-options">
+                <label><input type="checkbox" data-display-option-control="selection" checked><span>选择框</span></label>
+                <label><input type="checkbox" data-display-option-control="problem-id" checked><span>题号</span></label>
+                <label><input type="checkbox" data-display-option-control="tags" checked><span>知识标签</span></label>
+                <label><input type="checkbox" data-display-option-control="value" checked><span>训练价值</span></label>
+                <label><input type="checkbox" data-display-option-control="source" checked><span>来源信息</span></label>
+                <label><input type="checkbox" data-display-option-control="export" checked><span>导出按钮</span></label>
+              </div>
+              <footer>
+                <button type="button" data-display-minimal>全部隐藏</button>
+                <button type="button" data-display-all>全部显示</button>
+              </footer>
+            </div>
+          </div>
+
+          <div class="bank-header-view-switch" aria-label="题目展示方式">
+            <button type="button" class="bank-header-view-switch-button"
+              data-view-target="preview-view" aria-controls="preview-view" aria-pressed="true">完整</button>
+            <button type="button" class="bank-header-view-switch-button"
+              data-view-target="list-view" aria-controls="list-view" aria-pressed="false">简略</button>
+          </div>
+
+          <label class="bank-sort-control" for="sort-order">
+            <span>按</span>
+            <select id="sort-order" name="sort-order">
+              <option value="newest">最新收录</option>
+              <option value="oldest">最早收录</option>
+              <option value="easy-first">由易到难</option>
+              <option value="hard-first">由难到易</option>
+              <option value="view-most">最多浏览</option>
+              <option value="star-most">最多收藏</option>
+            </select>
+            <span>排序</span>
+          </label>
+        </div>
+      </header>
+
+      <!----------- 结果区-批量工具栏：勾选任意题目后显示，默认隐藏。 -----------> 
       <div id="batch-selection-toolbar" class="bank-batch-selection-toolbar" hidden>
         <label class="bank-batch-selection-all">
           <input id="batch-select-all" type="checkbox">
@@ -59,242 +437,184 @@
         <p class="bank-batch-selection-count" aria-live="polite">
           已选择 <strong id="selected-problem-count">0</strong> 道题目
         </p>
-        <button type="button" id="batch-selection-clear" disabled>取消选择</button>
+        <div class="bank-batch-selection-actions">
+          <button type="button" id="batch-print" disabled>打印所选</button>
+          <button type="button" id="batch-add-to-list" disabled>加入题单</button>
+          <button type="button" id="batch-selection-clear" disabled>取消选择</button>
+        </div>
       </div>
 
-    </section>
-
-
-
-    <!-- 共用筛选区 -->
-    <section class="bank-filter-panel">
-      <h2 id="bank-filter-panel-title">筛选</h2>
-
-      <form id="problem-filter-form" class="bank-filter-panel-form">
-        <div class="bank-filter-panel-item">
-          <label for="keyword">关键词</label>
-          <input id="keyword" name="keyword" type="search" placeholder="搜索题号、标题或知识点">
+      <!----------- 结果区-简略模式 ----------->
+      <section id="list-view" class="bank-result-problem-panel-view" hidden>
+        <div class="bank-result-problem-list-heading" role="row" aria-label="题目列表标题栏">
+          <span class="bank-result-problem-list-heading-select" aria-hidden="true"></span>
+          <span class="bank-result-problem-list-heading-status" role="columnheader">状态</span>
+          <span class="bank-result-problem-list-heading-summary" role="columnheader">题目</span>
+          <span class="bank-result-problem-list-heading-tags" role="columnheader">Tag</span>
+          <span class="bank-result-problem-list-heading-source" role="columnheader">来源</span>
+          <span class="bank-result-problem-list-heading-value" role="columnheader">训练价值</span>
+          <span aria-hidden="true"></span>
         </div>
 
-        <div class="bank-filter-panel-item">
-          <label for="year">年份</label>
-          <select id="year" name="year">
-            <option value="">全部年份</option>
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-          </select>
-        </div>
-
-        <div class="bank-filter-panel-item">
-          <label for="source">来源</label>
-          <select id="source" name="source">
-            <option value="">全部来源</option>
-            <option value="national-a">全国甲卷</option>
-            <option value="national-new-1">新高考Ⅰ卷</option>
-            <option value="national-new-2">新高考Ⅱ卷</option>
-            <option value="mock">模拟题</option>
-          </select>
-        </div>
-
-        <div class="bank-filter-panel-item">
-          <label for="type">题型</label>
-          <select id="type" name="type">
-            <option value="">全部题型</option>
-            <option value="single-choice">单项选择题</option>
-            <option value="multiple-choice">多项选择题</option>
-            <option value="fill-blank">填空题</option>
-            <option value="solution">解答题</option>
-          </select>
-        </div>
-
-        <div class="bank-filter-panel-item">
-          <label for="level">训练价值</label>
-          <select id="level" name="level">
-            <option value="">全部等级</option>
-            <option value="basic">基础</option>
-            <option value="typical">典型</option>
-            <option value="important">重点</option>
-            <option value="challenge">挑战</option>
-          </select>
-        </div>
-
-        <div class="bank-filter-panel-actions">
-          <button type="submit">应用筛选</button>
-          <button type="reset">清除筛选</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- 筛选结果摘要 -->
-    <section class="bank-result-toolbar-panel">
-      <p>共找到 <strong id="problem-count">2</strong> 道题目</p>
-
-      <label for="sort-order">
-        排序
-        <select id="sort-order" name="sort-order">
-          <option value="newest">最新收录</option>
-          <option value="oldest">最早收录</option>
-          <option value="easy-first">由易到难</option>
-          <option value="hard-first">由难到易</option>
-        </select>
-      </label>
-    </section>
-
-
-    
-    <!-- Luogu 风格：紧凑列表模式 -->
-    <section id="list-view" class="bank-result-problem-panel-view">
-      <!-- 新增：Luogu 风格列表标题栏；各列与下方题目行使用相同宽度。 -->
-      <div class="bank-result-problem-list-heading" role="row" aria-label="题目列表标题栏">
-        <span class="bank-result-problem-list-heading-select" aria-hidden="true"></span>
-        <span class="bank-result-problem-list-heading-status" role="columnheader">状态</span>
-        <div class="bank-result-problem-list-heading-summary" role="presentation">
-          <span role="columnheader">
-            <button type="button" class="bank-result-problem-list-sort"
-              data-list-sort="problem-id" aria-label="按题号排序" aria-pressed="false">题号</button>
-          </span>
-          <span role="columnheader">
-            <button type="button" class="bank-result-problem-list-sort"
-              data-list-sort="year" aria-label="按年份排序" aria-pressed="false">年份</button>
-          </span>
-          <span role="columnheader">题目来源</span>
-          <span role="columnheader">题型</span>
-        </div>
-        <span class="bank-result-problem-list-heading-tags" role="columnheader">标签</span>
-        <span class="bank-result-problem-list-heading-value" role="columnheader">
-          <button type="button" class="bank-result-problem-list-sort"
-            data-list-sort="level" aria-label="按训练价值排序" aria-pressed="false">训练价值</button>
-        </span>
-      </div>
-
-      <!-- 新增：data-year、data-source、data-type 和 data-level 供前端筛选与排序使用。 -->
-      <article class="bank-result-problem-panel-view-item" data-problem-id="P10001"
-        data-year="2025" data-source="national-new-1" data-type="single-choice" data-level="important">
-        <!-- 新增：单题选择框；两个视图通过相同的 data-problem-id 同步选中状态 -->
-        <label class="bank-result-problem-select" hidden>
-          <input type="checkbox" class="bank-result-problem-select-checkbox"
-            name="selected-problems" value="P10001" data-problem-id="P10001"
-            aria-label="选择题目 P10001">
-        </label>
-        <span class="bank-result-problem-panel-view-item-status">○</span>
-        <div class="bank-result-problem-panel-view-item-summary">
-          <p><a href="question.html?id=P10001"><span>P10001</span>
-            <span>2025</span><span>新高考Ⅰ卷</span><span>单选题</span></a>
-          </p>
-        </div>
-        <div class="bank-result-problem-panel-view-item-tags">
-          <span>集合</span>
-        </div>
-        <div class="bank-result-problem-panel-view-item-value" data-question-value="red">
-          <span>RED</span>
-        </div>
-      </article>
-
-      <article class="bank-result-problem-panel-view-item is-complete" data-problem-id="P10002"
-        data-year="2024" data-source="national-a" data-type="solution" data-level="basic">
-        <!-- 新增：单题选择框；两个视图通过相同的 data-problem-id 同步选中状态 -->
-        <label class="bank-result-problem-select" hidden>
-          <input type="checkbox" class="bank-result-problem-select-checkbox"
-            name="selected-problems" value="P10002" data-problem-id="P10002"
-            aria-label="选择题目 P10002">
-        </label>
-        <span class="bank-result-problem-panel-view-item-status">✓</span>
-        <div class="bank-result-problem-panel-view-item-summary">
-          <p><a href="question.html?id=P10002"><span>P10002</span>
-            <span>2024</span><span>全国甲卷</span><span>解答题</span></a>
-          </p>
-        </div>
-
-        <div class="bank-result-problem-panel-view-item-tags">
-          <span>函数</span>
-        </div>
-        <div class="bank-result-problem-panel-view-item-value" data-question-value="green">
-          <span>GREEN</span>
-        </div>
-      </article>
-    </section>
-
-    <!-- Demo 风格：完整题干预览模式；默认隐藏，之后由 JavaScript 控制切换 -->
-    <section id="preview-view" class="bank-result-problem-panel-view" hidden>
-      <!-- 新增：预览卡片沿用列表中的筛选数据，保证两个视图结果一致。 -->
-      <article class="bank-result-problem-panel-view-card" data-problem-id="P10001"
-        data-year="2025" data-source="national-new-1" data-type="single-choice" data-level="important">
-
-        <!--header，包括名称、tag、value等等-->
-        <header class="bank-result-problem-panel-view-card-header">
-          <!-- 新增：预览模式中的单题选择框，与列表模式中的同题选择框保持同步 -->
-          <label class="bank-result-problem-select" hidden>
+        <!----------- 结果区-简略模式-题目1 ----------->
+        <!-- data-year、data-source、data-type 和 data-level 供前端筛选与排序使用。 -->
+        <article class="bank-result-problem-panel-view-item" data-problem-id="P10001"
+          data-year="2025" data-source="national-new-1" data-type="single-choice" data-level="red">
+          <label class="bank-result-problem-select">
             <input type="checkbox" class="bank-result-problem-select-checkbox"
               name="selected-problems" value="P10001" data-problem-id="P10001"
               aria-label="选择题目 P10001">
           </label>
-          <p><a href="question.html?id=P10001"><span>P10001</span>
-            <span>2025</span><span>新高考Ⅰ卷</span><span>单选题</span></a>
-          </p>
-          <div class="bank-result-problem-panel-view-card-tags">
-            <span>集合</span>
+          <span class="bank-result-problem-panel-view-item-status" aria-label="未完成">○</span>
+          <div class="bank-result-problem-panel-view-item-summary">
+            <p class="bank-problem-meta">
+              <a href="question.html?id=P10001">P10001</a>
+              <span aria-hidden="true">|</span>
+              <span>单选题</span>
+            </p>
+            <h3><a href="question.html?id=P10001">2025 年新高考Ⅰ卷 · T1 </a></h3>
+            <p class="bank-problem-detail">复数的基本运算</p>
           </div>
-          <div class="bank-result-problem-panel-view-card-value" data-question-value="red">
-            <span>RED</span>
+          <div class="bank-result-problem-panel-view-item-tags">
+            <span>复数</span>
           </div>
-        </header>
+          <div class="bank-result-problem-panel-view-item-source">
+            <strong>2025</strong>
+            <span>新高考Ⅰ卷</span>
+          </div>
+          <div class="bank-result-problem-panel-view-item-value" data-question-value="red">
+            <span>red</span>
+          </div>
+          <a class="bank-result-problem-open" href="question.html?id=P10001" aria-label="查看题目 P10001">→</a>
+        </article>
 
-        <!--content，题目内容-->
-        <div class="bank-result-problem-panel-view-card-content">
-            <pre>
-1.(1+5i)i 的虚部为( )
-A.-1    B. 0    C. 1    D. 6
-            </pre>
-        </div>
-
-        <!--footer-->
-        <footer class="bank-result-problem-panel-view-card-footer">
-          <a href="question.html?id=P10001">查看详情</a>
-          <button type="button">加入练习清单</button>
-        </footer>
-
-      </article>
-
-     <article class="bank-result-problem-panel-view-card" data-problem-id="P10002"
-       data-year="2024" data-source="national-a" data-type="solution" data-level="basic">
-
-        <!--header，包括名称、tag、value等等-->
-        <header class="bank-result-problem-panel-view-card-header">
-          <!-- 新增：预览模式中的单题选择框，与列表模式中的同题选择框保持同步 -->
-          <label class="bank-result-problem-select" hidden>
+        <!----------- 结果区-简略模式-题目2 ----------->
+        <article class="bank-result-problem-panel-view-item is-complete" data-problem-id="P10002"
+          data-year="2024" data-source="national-a" data-type="solution" data-level="green">
+          <label class="bank-result-problem-select">
             <input type="checkbox" class="bank-result-problem-select-checkbox"
               name="selected-problems" value="P10002" data-problem-id="P10002"
               aria-label="选择题目 P10002">
           </label>
-          <p><a href="question.html?id=P10002"><span>P10002</span>
-            <span>2024</span><span>全国甲卷</span><span>解答题</span></a>
-          </p>
-        <div class="bank-result-problem-panel-view-card-tags">
-          <span>函数</span>
-        </div>
-        <div class="bank-result-problem-panel-view-card-value" data-question-value="green">
-          <span>GREEN</span>
-        </div>
-        </header>
+          <span class="bank-result-problem-panel-view-item-status" aria-label="已完成">✓</span>
+          <div class="bank-result-problem-panel-view-item-summary">
+            <p class="bank-problem-meta">
+              <a href="question.html?id=P10002">P10002</a>
+              <span aria-hidden="true">|</span>
+              <span>解答题</span>
+            </p>
+            <h3><a href="question.html?id=P10002">2024 年全国甲卷 · T21</a></h3>
+            <p class="bank-problem-detail">函数的单调性与最值</p>
+          </div>
+          <div class="bank-result-problem-panel-view-item-tags">
+            <span>函数</span>
+            <span>导数</span>
+          </div>
+          <div class="bank-result-problem-panel-view-item-source">
+            <strong>2024</strong>
+            <span>全国甲卷</span>
+          </div>
+          <div class="bank-result-problem-panel-view-item-value" data-question-value="green">
+            <span>green</span>
+          </div>
+          <a class="bank-result-problem-open" href="question.html?id=P10002" aria-label="查看题目 P10002">→</a>
+        </article>
+      </section>
 
-        <!--content，题目内容-->
-        <div class="bank-result-problem-panel-view-card-content">
-            <pre>
-这里是一道题目
-            </pre>
-        </div>
+      <!----------- 结果区-完整模式 ----------->
+      <section id="preview-view" class="bank-result-problem-panel-view">
 
-        <!--footer-->
-        <footer class="bank-result-problem-panel-view-card-footer">
-          <a href="question.html?id=P10002">查看详情</a>
-          <button type="button">加入练习清单</button>
-        </footer>
-      </article>
+        <!----------- 结果区-完整模式-题目1 ----------->
+        <article class="bank-result-problem-panel-view-card" data-problem-id="P10001"
+          data-year="2025" data-source="national-new-1" data-type="single-choice" data-level="red">
+          <header class="bank-result-problem-panel-view-card-header">
+            <label class="bank-result-problem-select" data-display-option="selection">
+              <input type="checkbox" class="bank-result-problem-select-checkbox"
+                name="selected-problems" value="P10001" data-problem-id="P10001"
+                aria-label="选择题目 P10001">
+            </label>
+            <div class="bank-result-problem-panel-view-card-summary">
+              <p class="bank-problem-meta"><a href="question.html?id=P10001" data-display-option="problem-id">P10001</a><span data-display-option="problem-id" aria-hidden="true">|</span><span>单选题</span></p>
+              <h3><a href="question.html?id=P10001">2025 年新高考Ⅰ卷 · T1</a></h3>
+            </div>
+            <div class="bank-result-problem-panel-view-card-tags" data-display-option="tags"><span>复数</span></div>
+            <div class="bank-result-problem-panel-view-card-value" data-display-option="value" data-question-value="red"><span>red</span></div>
+          </header>
+
+          <div class="bank-result-problem-panel-view-card-content">
+            <pre>1. (1 + 5i)i 的虚部为（    ）
+
+A. −1        B. 0        C. 1        D. 6</pre>
+          </div>
+
+          <footer class="bank-result-problem-panel-view-card-footer">
+            <p data-display-option="source">2025 · 新高考Ⅰ卷 · T1</p>
+            <div class="bank-result-problem-panel-view-card-actions">
+              <button type="button" data-card-print>打印</button>
+              <div class="bank-problem-export" data-display-option="export">
+                <button type="button" data-export-toggle aria-expanded="false">导出</button>
+                <div class="bank-problem-export-menu" role="menu" hidden>
+                  <button type="button" role="menuitem" data-export-format="pdf">导出为 PDF</button>
+                  <button type="button" role="menuitem" data-export-format="image">导出为图片</button>
+                  <button type="button" role="menuitem" data-export-format="markdown">以 Markdown 格式复制</button>
+                  <button type="button" role="menuitem" data-export-format="latex">以 LaTeX 格式复制</button>
+                  <button type="button" role="menuitem" data-export-format="text">以纯文本复制</button>
+                </div>
+              </div>
+              <a href="question.html?id=P10001">查看详情</a>
+              <button type="button" data-add-to-list>加入题单</button>
+            </div>
+          </footer>
+        </article>
+
+        <!----------- 结果区-完整模式-题目2 ----------->
+        <article class="bank-result-problem-panel-view-card" data-problem-id="P10002"
+          data-year="2024" data-source="national-a" data-type="solution" data-level="green">
+          <header class="bank-result-problem-panel-view-card-header">
+            <label class="bank-result-problem-select" data-display-option="selection">
+              <input type="checkbox" class="bank-result-problem-select-checkbox"
+                name="selected-problems" value="P10002" data-problem-id="P10002"
+                aria-label="选择题目 P10002">
+            </label>
+            <div class="bank-result-problem-panel-view-card-summary">
+              <p class="bank-problem-meta"><a href="question.html?id=P10002" data-display-option="problem-id">P10002</a><span data-display-option="problem-id" aria-hidden="true">|</span><span>解答题</span></p>
+              <h3><a href="question.html?id=P10002">2024 年全国甲卷 · T21</a></h3>
+            </div>
+            <div class="bank-result-problem-panel-view-card-tags" data-display-option="tags"><span>函数</span><span>导数</span></div>
+            <div class="bank-result-problem-panel-view-card-value" data-display-option="value" data-question-value="green"><span>green</span></div>
+          </header>
+
+          <div class="bank-result-problem-panel-view-card-content">
+            <pre>21. 已知函数 f(x) = x³ − 3x² + a。
+
+(1) 求 f(x) 的单调区间；
+(2) 讨论 f(x) 的极值。</pre>
+          </div>
+
+          <footer class="bank-result-problem-panel-view-card-footer">
+            <p data-display-option="source">2024 · 全国甲卷 · T21</p>
+            <div class="bank-result-problem-panel-view-card-actions">
+              <button type="button" data-card-print>打印</button>
+              <div class="bank-problem-export" data-display-option="export">
+                <button type="button" data-export-toggle aria-expanded="false">导出</button>
+                <div class="bank-problem-export-menu" role="menu" hidden>
+                  <button type="button" role="menuitem" data-export-format="pdf">导出为 PDF</button>
+                  <button type="button" role="menuitem" data-export-format="image">导出为图片（png）</button>
+                  <button type="button" role="menuitem" data-export-format="markdown">以 Markdown 格式复制</button>
+                  <button type="button" role="menuitem" data-export-format="latex">以 LaTeX 格式复制</button>
+                  <button type="button" role="menuitem" data-export-format="text">以纯文本复制</button>
+                </div>
+              </div>
+              <a href="question.html?id=P10002">查看详情</a>
+              <button type="button" data-add-to-list>加入题单</button>
+            </div>
+          </footer>
+        </article>
+      </section>
     </section>
 
-    <!-- 分页 -->
-    <nav class="bank-pagination">
+    <!-- 分页位于结果工作区之后，避免破坏数据表的完整边界。 -->
+    <nav class="bank-pagination" aria-label="题库分页">
       <button type="button" disabled>上一页</button>
       <a href="?page=1">1</a>
       <a href="?page=2">2</a>
@@ -302,10 +622,5 @@ A.-1    B. 0    C. 1    D. 6
       <button type="button">下一页</button>
     </nav>
   </main>
-
-  <footer class="site-footer">
-    <p>&copy; 2026 暂时没想好名字的网站</p>
-  </footer>
-
 </body>
 </html>

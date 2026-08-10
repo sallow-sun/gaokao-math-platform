@@ -1,0 +1,83 @@
+/* ==================== 题库标题区 ==================== */
+
+.bank-header {
+  color: var(--color-ink);
+}
+
+.bank-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-blue-800);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.bank-breadcrumb a:hover {
+  color: var(--color-blue-900);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.bank-header-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 416px;
+  align-items: end;
+  gap: 56px;
+  margin-top: 13px;
+}
+
+.bank-header-title h1 {
+  color: #071d30;
+  font-family: var(--font-display);
+  font-size: clamp(38px, 2.55vw, 48px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.025em;
+}
+
+.bank-header-title p {
+  max-width: 900px;
+  margin-top: 3px;
+  color: var(--color-ink-secondary);
+  font-size: 20px;
+  line-height: 1.75;
+}
+
+/* 三项统计只用细线分隔，避免把标题区做成另一组卡片。 */
+.bank-header-stats {
+  display: grid;
+  min-height: 98px;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid #bdcbd7;
+  border-bottom: 1px solid #bdcbd7;
+}
+
+.bank-header-stats > div {
+  display: flex;
+  min-width: 0;
+  padding: 16px 26px 12px;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.bank-header-stats > div + div {
+  border-left: 1px solid #cbd6df;
+}
+
+.bank-header-stats dt {
+  color: var(--color-ink-secondary);
+  font-size: 16px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.bank-header-stats dd {
+  margin-top: 4px;
+  color: #0d4777;
+  font-family: Georgia, "Times New Roman", var(--font-display);
+  font-size: 31px;
+  line-height: 1.1;
+  letter-spacing: 0.035em;
+  font-variant-numeric: tabular-nums;
+}

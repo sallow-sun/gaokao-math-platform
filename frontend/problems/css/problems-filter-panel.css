@@ -1,0 +1,675 @@
+/* ==================== 题库筛选面板（第二版） ==================== */
+
+.bank-filter-panel {
+  position: relative;
+  margin-top: 44px;
+  overflow: visible;
+  border: 1px solid var(--color-border, #d8e0e7);
+  border-radius: 4px;
+  background: var(--color-surface, #ffffff);
+}
+
+.bank-filter-panel-header {
+  display: flex;
+  min-height: 105px;
+  padding: 20px 32px 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.bank-filter-panel-header h2 {
+  margin: 0;
+  color: var(--color-ink, #20252b);
+  font-family: var(--font-display, sans-serif);
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.bank-filter-panel-header p {
+  margin: 3px 0 0;
+  color: var(--color-ink-secondary, #66717d);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.bank-filter-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 22px;
+}
+
+.bank-filter-multiple-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-ink-secondary, #66717d);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bank-filter-multiple-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.bank-filter-multiple-switch {
+  position: relative;
+  display: inline-flex;
+  box-sizing: border-box;
+  width: 38px;
+  height: 22px;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 2px;
+  border: 1px solid #b8c5cf;
+  border-radius: 999px;
+  background: #dfe5ea;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.bank-filter-multiple-switch::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(30 50 65 / 24%);
+  transition: transform 160ms ease;
+}
+
+.bank-filter-multiple-control:hover .bank-filter-multiple-switch {
+  border-color: #8fa6b8;
+}
+
+.bank-filter-multiple-input:checked + .bank-filter-multiple-switch {
+  border-color: #0b5b98;
+  background: #0b5b98;
+}
+
+.bank-filter-multiple-input:checked + .bank-filter-multiple-switch::after {
+  transform: translateX(16px);
+}
+
+.bank-filter-multiple-input:focus-visible + .bank-filter-multiple-switch {
+  outline: 3px solid rgb(11 91 152 / 24%);
+  outline-offset: 2px;
+}
+
+.bank-filter-clear {
+  min-height: 42px;
+  padding: 5px 0;
+  border: 0;
+  color: #0b5b98;
+  background: transparent;
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.bank-filter-clear:not(:disabled):hover {
+  color: var(--color-blue-900, #123f64);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.bank-filter-panel-form {
+  border-top: 1px solid var(--color-border, #d8e0e7);
+}
+
+/* 每一行仍使用相同的标签起点，新增小窗不会改变主栏的浏览节奏。 */
+.bank-filter-group {
+  position: relative;
+  display: grid;
+  min-height: 78px;
+  padding: 14px 32px;
+  grid-template-columns: 122px minmax(0, 1fr);
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-light, #e8edf1);
+}
+
+.bank-filter-group-label {
+  width: 100%;
+  color: var(--color-ink-secondary, #66717d);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.bank-filter-control {
+  position: relative;
+  min-width: 0;
+}
+
+.bank-filter-options {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 10px;
+}
+
+.bank-filter-options button {
+  min-height: 46px;
+  padding: 8px 17px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--color-ink-secondary, #66717d);
+  background: transparent;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bank-filter-options button:not(:disabled):hover {
+  border-color: #c9d8e4;
+  color: var(--color-blue-900, #123f64);
+  background: var(--color-blue-050, #f0f6fa);
+}
+
+.bank-filter-options button.is-active,
+.bank-filter-options button[aria-pressed="true"] {
+  border-color: #bdd2e3;
+  color: #0c4b7e;
+  background: var(--color-blue-100, #e7f0f7);
+  font-weight: 700;
+}
+
+.bank-filter-options .bank-filter-more {
+  display: inline-flex;
+  min-height: 38px;
+  padding: 6px 10px;
+  align-items: center;
+  gap: 6px;
+  border-color: transparent;
+  border-radius: 999px;
+  color: var(--color-ink-muted, #657c90);
+  background: transparent;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bank-filter-options .bank-filter-more::after {
+  width: 6px;
+  height: 6px;
+  margin: -3px 2px 0 0;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.bank-filter-options .bank-filter-more[aria-expanded="true"]::after {
+  transform: rotate(225deg);
+}
+
+.bank-filter-options .bank-filter-more:not(:disabled):hover,
+.bank-filter-options .bank-filter-more[aria-expanded="true"] {
+  border-color: transparent;
+  color: var(--color-blue-800, #1d5687);
+  background: var(--color-blue-050, #f3f7fa);
+}
+
+.bank-filter-options .bank-filter-more.has-hidden-selection {
+  border-color: transparent;
+  color: var(--color-blue-800, #1d5687);
+  background: transparent;
+}
+
+.bank-filter-more-count {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border: 1px solid #bfd3e2;
+  border-radius: 10px;
+  color: var(--color-blue-900, #104875);
+  background: var(--color-blue-100, #e8f1f8);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.bank-filter-more-count[hidden] {
+  display: none;
+}
+
+/* ==================== “更多”小窗 ==================== */
+
+.bank-filter-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(720px, calc(100vw - 72px));
+  overflow: hidden;
+  border: 1px solid #c4d2dd;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 15px 38px rgba(23, 48, 68, 0.18);
+}
+
+.bank-filter-popover[hidden] {
+  display: none;
+}
+
+.bank-filter-popover-header {
+  display: flex;
+  min-height: 82px;
+  padding: 17px 20px 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #e1e7ec;
+  background: #fbfcfd;
+}
+
+.bank-filter-popover-header h3 {
+  margin: 0;
+  color: var(--color-ink, #20252b);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.bank-filter-popover-header p {
+  margin: 4px 0 0;
+  color: var(--color-ink-secondary, #66717d);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.bank-filter-popover-close {
+  display: inline-grid;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #66717d;
+  background: transparent;
+  font: inherit;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bank-filter-popover-close:hover {
+  border-color: #cfdae3;
+  color: #20252b;
+  background: #f2f5f7;
+}
+
+.bank-filter-catalog-list {
+  display: grid;
+  max-height: 334px;
+  padding: 16px 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.bank-filter-year-catalog {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bank-filter-catalog-item {
+  display: grid;
+  min-width: 0;
+  min-height: 76px;
+  padding: 7px;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: space-between;
+  gap: 5px;
+  border: 1px solid #e0e6eb;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.bank-filter-catalog-item.has-active-choice {
+  border-color: #9ebbd0;
+  background: #f5f9fc;
+}
+
+.bank-filter-catalog-choice {
+  min-width: 0;
+  min-height: 34px;
+  padding: 5px 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 3px;
+  color: #34424e;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bank-filter-catalog-choice:hover {
+  color: #0c4b7e;
+  background: #eaf2f8;
+}
+
+.bank-filter-catalog-choice.is-active,
+.bank-filter-catalog-choice[aria-pressed="true"] {
+  color: #0c4b7e;
+  background: #dfecf5;
+}
+
+.bank-filter-pin-control {
+  display: inline-flex;
+  min-height: 25px;
+  padding: 2px 6px;
+  align-items: center;
+  gap: 6px;
+  color: #697681;
+  font-size: 12px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.bank-filter-pin-control input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #0b5b98;
+}
+
+.bank-filter-pin-fixed {
+  display: inline-flex;
+  min-height: 25px;
+  padding: 2px 6px;
+  align-items: center;
+  color: #87919a;
+  font-size: 12px;
+}
+
+.bank-filter-popover-footer {
+  display: flex;
+  min-height: 54px;
+  padding: 10px 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid #e1e7ec;
+  color: #78838d;
+  background: #fbfcfd;
+  font-size: 13px;
+}
+
+.bank-filter-popover-footer button {
+  min-height: 34px;
+  padding: 5px 15px;
+  border: 1px solid #b7cad9;
+  border-radius: 4px;
+  color: #0c4b7e;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bank-filter-popover-footer button:hover {
+  border-color: #89aac2;
+  background: #edf5fa;
+}
+
+/* ==================== 训练价值横向按钮 ==================== */
+
+.bank-filter-level-options button[data-level-color] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--training-value-color, var(--color-ink-secondary, #365a78));
+  font-weight: 650;
+  text-shadow: var(--training-value-text-shadow, none);
+}
+
+.bank-filter-level-options button[data-level-color]::before {
+  display: none;
+  content: none;
+}
+
+.bank-filter-level-options button[data-level-color].is-active,
+.bank-filter-level-options button[data-level-color][aria-pressed="true"] {
+  border-color: #bdd2e3;
+  color: var(--training-value-color, var(--color-ink-secondary, #365a78));
+  background: var(--color-blue-100, #e7f0f7);
+  box-shadow: none;
+}
+
+.bank-filter-level-options button[data-level-color]:not(:disabled):hover {
+  color: var(--training-value-color, var(--color-ink-secondary, #365a78));
+}
+
+/* ==================== 关键词与提交 ==================== */
+
+.bank-filter-panel .bank-filter-search-row {
+  display: grid;
+  min-height: 130px;
+  padding: 25px 32px 27px;
+  grid-template-columns: minmax(280px, 1fr) 144px;
+  align-items: end;
+  gap: 20px;
+  background: var(--color-surface, #ffffff);
+}
+
+.bank-filter-panel-item {
+  min-width: 0;
+}
+
+.bank-filter-panel-item label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-ink-secondary, #66717d);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.bank-filter-panel-item input {
+  width: 100%;
+  min-height: 54px;
+  padding: 10px 14px;
+  border: 1px solid #c7d1da;
+  border-radius: 4px;
+  color: var(--color-ink, #20252b);
+  background: #ffffff;
+  font: inherit;
+  font-size: 18px;
+}
+
+.bank-filter-panel-item input:focus {
+  border-color: #6e9cbd;
+  outline: 3px solid rgba(43, 111, 158, 0.13);
+}
+
+.bank-filter-submit {
+  min-height: 54px;
+  padding: 10px 20px;
+  border: 1px solid var(--color-blue-900, #123f64);
+  border-radius: 4px;
+  color: #ffffff;
+  background: var(--color-blue-900, #123f64);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bank-filter-submit:not(:disabled):hover {
+  border-color: #0a3b63;
+  background: #0a3b63;
+}
+
+.bank-filter-panel button:focus-visible,
+.bank-filter-panel input:focus-visible {
+  outline: 3px solid rgba(43, 111, 158, 0.22);
+  outline-offset: 2px;
+}
+
+/* ==================== 响应式 ==================== */
+
+@media (max-width: 980px) {
+  .bank-filter-header-actions {
+    align-items: flex-end;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .bank-filter-year-catalog {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .bank-filter-panel {
+    margin-top: 28px;
+  }
+
+  .bank-filter-panel-header {
+    min-height: 0;
+    padding: 18px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .bank-filter-panel-header h2 {
+    font-size: 22px;
+  }
+
+  .bank-filter-panel-header p {
+    font-size: 15px;
+  }
+
+  .bank-filter-header-actions {
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    gap: 14px;
+  }
+
+  .bank-filter-clear {
+    align-self: flex-start;
+    font-size: 16px;
+  }
+
+  .bank-filter-group {
+    min-height: 0;
+    padding: 15px 18px 17px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .bank-filter-group-label {
+    font-size: 17px;
+  }
+
+  .bank-filter-options {
+    gap: 7px;
+  }
+
+  .bank-filter-options button {
+    min-height: 40px;
+    padding: 6px 11px;
+    font-size: 15px;
+  }
+
+  .bank-filter-popover {
+    position: fixed;
+    z-index: 80;
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    width: auto;
+    max-height: calc(100dvh - 28px);
+    overflow: auto;
+  }
+
+  .bank-filter-catalog-list {
+    max-height: min(43dvh, 334px);
+  }
+
+  .bank-filter-panel .bank-filter-search-row {
+    min-height: 0;
+    padding: 19px 18px 20px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
+  }
+
+  .bank-filter-panel-item label {
+    margin-bottom: 6px;
+    font-size: 16px;
+  }
+
+  .bank-filter-panel-item input,
+  .bank-filter-submit {
+    min-height: 48px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 500px) {
+  .bank-filter-header-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bank-filter-clear {
+    min-height: 32px;
+    padding: 0;
+  }
+
+  .bank-filter-catalog-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bank-filter-year-catalog {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bank-filter-popover-header,
+  .bank-filter-popover-footer {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .bank-filter-popover-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bank-filter-popover-footer button {
+    width: 100%;
+  }
+}
+
+@media print {
+  .bank-filter-popover,
+  .bank-filter-multiple-control {
+    display: none !important;
+  }
+}
