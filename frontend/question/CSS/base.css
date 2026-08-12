@@ -1,143 +1,109 @@
 /* ==================== 全局变量与基础样式 ==================== */
 
-/* :root 表示整个网页的根元素，这里统一保存网站会重复使用的颜色和尺寸 */
+/* 题目页面继续使用原变量名，并统一映射到题库页面的全站设计变量。 */
 :root {
-  --page-bg: #f2f4f7; /* 页面默认的浅灰色背景 */
-  --card-bg: rgba(255, 255, 255, 0.96); /* 卡片的半透明白色背景 */
-  --text-main: #303133; /* 主要文字的颜色 */
-  --text-secondary: #606266; /* 次要文字的颜色 */
-  --text-muted: #909399; /* 提示性文字的浅灰色 */
-  --line: #e4e7ed; /* 边框和分隔线的颜色 */
-  --primary: #4580a7; /* 网站的主要蓝色 */
-  --primary-dark: #2586c4; /* 鼠标悬停时使用的深蓝色 */
-  --primary-soft: #ecf6fd; /* 浅蓝色背景 */
-  --danger: #e74c3c; /* 错误或警告使用的红色 */
-  --shadow: 0 2px 10px rgba(31, 45, 61, 0.08); /* 卡片使用的轻微阴影 */
-  --radius: 7px; /* 卡片常用的圆角大小 */
+  --page-bg: var(--color-canvas, #eef1f4); /* 页面默认背景 */
+  --card-bg: var(--color-surface, #ffffff); /* 卡片默认背景 */
+  --text-main: var(--color-ink, #0c2134); /* 主要文字颜色 */
+  --text-secondary: var(--color-ink-secondary, #365a78); /* 次要文字颜色 */
+  --text-muted: var(--color-ink-muted, #657c90); /* 提示文字颜色 */
+  --line: var(--color-border-light, #dce3e9); /* 分隔线颜色 */
+  --primary: var(--color-blue-800, #1d5687); /* 网站主要蓝色 */
+  --primary-dark: var(--color-blue-900, #104875); /* 鼠标悬停时使用的深蓝色 */
+  --primary-soft: var(--color-blue-050, #f3f7fa); /* 浅蓝色背景 */
+  --danger: var(--color-red, #984b4d); /* 错误或警告使用的红色 */
+  --radius: 4px; /* 卡片常用圆角 */
+  --question-content-width: 1440px; /* 与题库紧凑模式保持相同的内容宽度 */
 }
 
-/* 星号会选中页面中的所有 HTML 元素 */
-* {
+/* 星号会选中页面中的所有 HTML 元素和伪元素。 */
+*,
+*::before,
+*::after {
   box-sizing: border-box; /* 让宽高包含内边距和边框，尺寸更容易计算 */
 }
 
-/* html 表示整个 HTML 文档 */
+/* html 表示整个 HTML 文档。 */
 html {
   color-scheme: light; /* 告诉浏览器此页面使用浅色模式 */
+  scroll-behavior: smooth; /* 页面内跳转时使用平滑滚动 */
 }
 
-/* body 表示网页中所有可见内容的外层容器 */
+/* body 表示网页中所有可见内容的外层容器。 */
 body {
-  margin: 0; /* 删除浏览器默认的页面外边距 */
   min-width: 320px; /* 页面最窄保持 320 像素，避免内容挤得太窄 */
   min-height: 100vh; /* 页面至少占满整个浏览器窗口的高度 */
-
-  background-image: url("../img/background.jpg"); /* 使用上一级 img 文件夹中的图片作为背景 */
-  background-size: cover; /* 完整显示背景图，并保持原来的宽高比例 */
-  background-repeat: no-repeat; /* 禁止背景图重复平铺 */
-  background-position: center top; /* 让背景图在顶部水平居中 */
-  background-attachment: fixed; /* 滚动页面时背景图保持不动 */
-
-  font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif; /* 按顺序选择可用的中文或系统字体 */
-  font-size: 15px; /* 设置页面默认文字大小 */
-  line-height: 1.7; /* 设置行高为字号的 1.7 倍，让文字更易读 */
+  margin: 0; /* 删除浏览器默认的页面外边距 */
+  color: var(--text-main); /* 使用题库页面的深蓝黑主文字 */
+  background: var(--page-bg); /* 使用题库页面的纯色浅灰背景 */
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif); /* 沿用题库页面字体 */
+  font-size: 14px; /* 与题库紧凑模式保持相同的默认字号 */
+  line-height: 1.55; /* 与题库页面保持相同的正文行高 */
+  -webkit-font-smoothing: antialiased; /* 改善浅色背景上的文字显示 */
+  text-rendering: optimizeLegibility; /* 优化文字字距与连字 */
 }
 
-/* a 会选中页面中的所有链接 */
+/* 清除标题、段落和题面代码块的浏览器默认外边距。 */
+h1,
+h2,
+h3,
+p,
+pre {
+  margin: 0;
+}
+
+/* a 会选中页面中的所有链接。 */
 a {
-  color: var(--primary); /* 使用前面定义的主要蓝色 */
-  text-decoration: none; /* 去掉链接默认的下划线 */
-  transition: color 0.18s ease; /* 让链接颜色变化有 0.18 秒的过渡动画 */
+  color: var(--primary); /* 使用题库页面的主要蓝色 */
+  text-decoration: none; /* 去掉链接默认下划线 */
+  transition: color 120ms ease; /* 让链接颜色变化更平滑 */
 }
 
-/* :hover 表示鼠标正停留在链接上 */
+/* :hover 表示鼠标正停留在链接上。 */
 a:hover {
   color: var(--primary-dark); /* 鼠标悬停时把链接变成深蓝色 */
 }
 
-/* button 会选中页面中的所有按钮 */
+/* button 会选中页面中的所有按钮。 */
 button {
-  min-height: 25px; /* 按钮高度至少为 36 像素 */
-  padding: 4px 14px; /* 按钮内部上下留 7 像素、左右留 14 像素 */
+  min-height: 34px; /* 使用题库紧凑模式的按钮高度 */
+  padding: 5px 12px; /* 保持紧凑的按钮内部留白 */
+  border: 1px solid var(--color-border, #cbd6e0); /* 使用题库页面的边框颜色 */
+  border-radius: var(--radius-small, 3px); /* 使用题库页面的小圆角 */
   color: var(--text-secondary); /* 使用次要文字颜色 */
-  background: #fff; /* 设置白色按钮背景 */
-  border: 1px solid #dcdfe6; /* 添加 1 像素的浅灰色实线边框 */
-  border-radius: 4px; /* 给按钮添加 4 像素圆角 */
+  background: var(--card-bg); /* 使用纯白按钮背景 */
   font: inherit; /* 继承父元素的字体设置 */
   cursor: pointer; /* 鼠标停在按钮上时显示手形指针 */
-  font-size: 14px;
-  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease, /* 平滑改变文字、背景和边框颜色 */
-    box-shadow 0.18s ease, transform 0.08s ease; /* 平滑改变阴影和按钮位置 */
+  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease; /* 平滑改变按钮状态 */
 }
 
-/* :hover 表示鼠标正停留在按钮上 */
-button:hover {
-  color: var(--primary); /* 把按钮文字变成主要蓝色 */
+/* :hover 表示鼠标正停留在可用按钮上。 */
+button:not(:disabled):hover {
+  border-color: #aebfce; /* 使用题库页面的蓝灰色悬停边框 */
+  color: var(--primary-dark); /* 把按钮文字变成深蓝色 */
   background: var(--primary-soft); /* 把按钮背景变成浅蓝色 */
-  border-color: #9bcbea; /* 把按钮边框变成较浅的蓝色 */
-  box-shadow: 0 2px 7px rgba(52, 152, 219, 0.12); /* 在按钮下方添加淡蓝色阴影 */
 }
 
-/* :active 表示按钮正在被鼠标按下 */
-button:active {
-  transform: translateY(1px); /* 将按钮向下移动 1 像素，模拟按下效果 */
+/* :active 表示按钮正在被鼠标按下。 */
+button:not(:disabled):active {
+  border-color: var(--color-blue-700, #2d6798); /* 按下时加深边框 */
+  background: var(--color-blue-100, #e8f1f8); /* 按下时加深背景 */
 }
 
-/* :focus-visible 表示使用键盘选中了按钮或链接 */
+/* :focus-visible 表示使用键盘选中了按钮或链接。 */
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid rgba(52, 152, 219, 0.28); /* 在元素外显示 3 像素的蓝色轮廓 */
-  outline-offset: 2px; /* 让轮廓与元素之间留出 2 像素距离 */
+  outline: 2px solid var(--color-blue-700, #2d6798); /* 显示清晰的蓝色轮廓 */
+  outline-offset: 2px; /* 让轮廓与元素之间留出距离 */
 }
 
-/* ==================== 网站最上方导航 ==================== */
-
-/* > 表示直接子元素，这里只选中 body 下面第一层的 header */
-body > header {
-  position: sticky; /* 滚动页面时，功能栏到达窗口顶部后会停留在那里；若改成 static 就会随页面滚走 */
-  top: 0; /* sticky 生效时贴住浏览器窗口顶部；可改成 8px 留出顶部空隙 */
-  z-index: 1000; /* 让功能栏盖在题目卡片和侧栏之上；数值只需高于页面其他区域即可 */
-
-  display: flex; /* 横向排列导航栏内容 */
-  column-gap: 24px;                              /* 调整文字之间的距离 */
-  justify-content: start;                        /* 整体靠左排列 */
-  align-items: center; /* 让所有内容在垂直方向居中 */
-  min-height: 58px; /* 导航栏高度至少为 58 像素 */
-  padding: 0 max(20px, calc((100vw - 1480px) / 2)); /* 上下不留白，左右至少留 20 像素并随窗口变宽 */
-  color: #fff; /* 设置导航栏中的默认文字为白色 */
-  background: rgba(42, 57, 66, 0.9); /* 使用略微透明的深灰色背景 */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15); /* 添加一条半透明的底部分隔线 */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12); /* 在导航栏下方添加轻微阴影 */
-  backdrop-filter: blur(12px); /* 模糊导航栏后面的背景内容，形成磨砂效果 */
+/* hidden 属性存在时，内容不参与页面布局。 */
+[hidden] {
+  display: none !important;
 }
 
-#header-return {
-  color:#fff;
-  margin: 0; /* 删除标题默认的外边距 */
-  font-size: 15px; /* 设置标题文字大小 */
-  font-weight: 500; /* 设置中等粗细的标题文字 */
-  letter-spacing: 0.02em; /* 稍微增加字符之间的距离 */
-}
-
-/* 选中顶部导航栏中的位置（题库/P10001） */
-#header-location {
-  margin: 0; /* 删除标题默认的外边距 */
-  font-size: 15px; /* 设置标题文字大小 */
-  font-weight: 500; /* 设置中等粗细的标题文字 */
-  letter-spacing: 0.02em; /* 稍微增加字符之间的距离 */
-}
-
-#header-user {
-  margin-left: auto;/*自动居右*/
-}
-
-/* 头像图片 */
-#header-userimg {
-  display: block; /* 让图片作为块级元素显示，避免底部出现文字基线空隙 */
-  width: 34px; /* 设置图片宽度为 34 像素 */
-  height: 34px; /* 设置图片高度为 34 像素 */
-  background: rgba(255, 255, 255, 0.16); /* 图片未加载时显示半透明白色背景 */
-  border: 2px solid rgba(255, 255, 255, 0.72); /* 添加 2 像素的半透明白色边框 */
-  border-radius: 50%; /* 把正方形图片裁成圆形 */
-  object-fit: cover; /* 保持比例并裁切图片，使其填满圆形区域 */
+/* 选中文字时沿用题库页面的浅蓝色反馈。 */
+::selection {
+  color: var(--primary-dark);
+  background: #d7e7f3;
 }

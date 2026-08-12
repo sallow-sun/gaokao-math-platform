@@ -1,0 +1,95 @@
+/* ==================== 题单标题区 ==================== */
+
+.training-header h1 {
+  color: #071d30;
+  font-family: var(--font-display);
+  font-size: clamp(38px, 2.55vw, 48px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.025em;
+}
+
+.training-header p {
+  margin-top: 3px;
+  color: var(--color-ink-secondary);
+  font-size: 20px;
+  line-height: 1.75;
+}
+
+/* ==================== 主菜单 ==================== */
+
+.training-main-tabs {
+  display: flex;
+  align-items: stretch;
+  min-height: 68px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-surface);
+}
+
+.training-main-tab {
+  position: relative;
+  min-width: 142px;
+  min-height: 68px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-ink-secondary);
+  background: transparent;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.training-main-tab:hover {
+  border-color: transparent;
+  color: var(--color-blue-900);
+  background: var(--color-blue-050);
+}
+
+.training-main-tab::after {
+  position: absolute;
+  right: 24px;
+  bottom: 0;
+  left: 24px;
+  height: 3px;
+  background: transparent;
+  content: "";
+}
+
+.training-main-tab.is-active {
+  color: var(--color-blue-900);
+}
+
+.training-main-tab.is-active::after {
+  background: var(--color-blue-800);
+}
+
+/* ==================== 内容标题 ==================== */
+
+.training-panel-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.training-panel-heading h2 {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 27px;
+  line-height: 1.35;
+}
+
+.training-panel-heading p {
+  max-width: 760px;
+  margin-top: 5px;
+  color: var(--color-ink-muted);
+  font-size: 15px;
+}
+
+.training-panel-count {
+  flex: 0 0 auto;
+  color: var(--color-ink-muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}

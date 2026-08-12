@@ -3,27 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 题目页面与题库页面共用全站颜色和字体变量 -->
+  <link rel="stylesheet" href="css/themes.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/header-panel.css">
   <link rel="stylesheet" href="css/content-panel.css">
   <link rel="stylesheet" href="css/sidebar-panel.css">
   <link rel="stylesheet" href="css/responsive.css">
+  <!-- 修改：MathLive 改为随页面本地加载，避免静态文件环境下公式按键失效 -->
+  <link rel="stylesheet" href="vendor/mathlive/mathlive-fonts.css">
+  <link rel="stylesheet" href="vendor/mathlive/mathlive-static.css">
+  <script src="vendor/mathlive/mathlive.min.js" defer></script>
+  <!-- 新增：MathJax 负责多行 LaTeX、AMS 环境与扩展命令的完整渲染 -->
+  <script>
+    window.MathJax = {
+      loader: {
+        paths: {
+          "mathjax-mhchem-extension":
+            "[mathjax]/mathjax-mhchem-font-extension"
+        },
+        load: [
+          "[tex]/ams", "[tex]/newcommand", "[tex]/mathtools",
+          "[tex]/cases", "[tex]/physics", "[tex]/cancel",
+          "[tex]/mhchem", "[tex]/boldsymbol", "[tex]/braket",
+          "[tex]/color", "[tex]/bbox", "[tex]/unicode",
+          "[tex]/noerrors", "[tex]/noundefined"
+        ]
+      },
+      tex: {
+        packages: {
+          "[+]": [
+            "ams", "newcommand", "mathtools", "cases", "physics",
+            "cancel", "mhchem", "boldsymbol", "braket", "color",
+            "bbox", "unicode", "noerrors", "noundefined"
+          ]
+        }
+      },
+      svg: { fontCache: "local" },
+      options: {
+        enableMenu: false,
+        enableSpeech: false,
+        enableBraille: false,
+        enableEnrichment: false,
+        enableExplorer: false,
+        enableComplexity: false,
+        menuOptions: {
+          settings: {
+            enrich: false,
+            speech: false,
+            braille: false,
+            collapsible: false,
+            inTabOrder: false
+          }
+        }
+      },
+      startup: { typeset: false }
+    };
+  </script>
+  <script src="vendor/mathjax/tex-svg.js" defer></script>
+  <!-- 新增：图片与 PDF 导出均在浏览器本地完成，不上传草稿内容 -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" defer></script>
   <!-- 新增：使用独立 JavaScript 控制侧栏内容的展开与收起 -->
   <script src="js/sidebar-panel.js" defer></script>
+  <!-- 新增：使用独立 JavaScript 控制草稿保存、导出与发布 -->
+  <script src="js/draft-panel.js" defer></script>
   <title>题目详情 - P10001</title><!--题目详情-题号-->
 </head>
 
 <!--所有class名均为小写-->
 
 <body>
-  <header>
-    <a id="header-return" href="index.html">← 返回</a><!--返回按钮-->
-    <span id="header-location">题库/P10001</span><!--目前所在的位置-->
-    <a id="header-user" href=""><img id="header-userimg" src="./img/background.jpg" alt="user-img"></a><!--用户头像-->
-  </header>
-  <!--最上方功能栏，显示返回按钮，位置，用户头像-->
-
   <main class="page-container">
     <article>
     <!--题目页面-->
@@ -31,8 +82,15 @@
       <!--==================== header-panel(题头栏) ====================-->
       <section class="header-panel" data-question-type="single">
         <div class="header-panel-title">
+          <!-- 修改：题号与题型位于第一行，题名位于第二行，与题库页面保持一致 -->
+          <div class="header-panel-title-meta">
             <span class="header-panel-title-id">P10001</span>
-            <span><span>2025年新高考Ⅰ卷</span><span>T1</span></span><span>单选</span>
+            <span class="header-panel-title-divider" aria-hidden="true"></span>
+            <span class="header-panel-title-type">单选题</span>
+          </div>
+          <h1 class="header-panel-title-name">
+            <span>2025 年新高考Ⅰ卷</span><span>T1</span>
+          </h1>
         </div>
         <div class="header-panel-stats">
           <div class="header-panel-stats-item">
@@ -60,21 +118,219 @@
         </div>
       </section>
       <!--正上方，题目名称栏header-->
-      <!--题目栏颜色与题型保持一致。单选：红；多选：黄；填空：蓝；解答：绿；其他：白-->
+      <!--题型标识颜色与题型保持一致。单选：红；多选：黄；填空：蓝；解答：绿；其他：灰-->
 
       <div class="page-layout">
 
-        <!--==================== content-panel(题面栏) ====================-->
-        <section class="content-panel">
-          <div class="content-panel-question">
-            <pre>
+        <div class="main-column">
+          <!--==================== content-panel(题面栏) ====================-->
+          <section class="content-panel">
+            <div class="content-panel-question">
+              <pre>
 1.(1+5i)i 的虚部为( )
 A.-1    B. 0    C. 1    D. 6
-            </pre>
-          </div>
-        </section>
-        <!--正左，题面栏content-->
-        <!--此处的题目应该是直接从后台调出来，目前仅作展示。CSS只修改section和div-->
+              </pre>
+            </div>
+          </section>
+          <!--正左上方，题面栏content-->
+          <!--此处的题目应该是直接从后台调出来，目前仅作展示。CSS只修改section和div-->
+
+          <!--==================== draft-panel(演算草稿栏) ====================-->
+          <section class="draft-panel" aria-labelledby="draft-panel-title"
+            data-problem-id="P10001" data-publish-endpoint="/api/solutions">
+            <div class="draft-panel-header">
+              <div>
+                <h2 id="draft-panel-title">演算草稿</h2>
+                <p>三种方式可随时切换，所有内容自动保存在当前浏览器。</p>
+              </div>
+              <span id="draft-save-state" class="draft-save-state" role="status"
+                aria-live="polite">草稿未修改</span>
+            </div>
+
+            <!-- 新增：三个标签页分别承载混排、LaTeX 与手写编辑模式 -->
+            <div class="draft-mode-tabs" role="tablist" aria-label="草稿编辑模式">
+              <button type="button" id="draft-tab-rich" class="draft-mode-tab is-active"
+                role="tab" aria-selected="true" aria-controls="draft-mode-rich"
+                data-draft-mode="rich">图文混排</button>
+              <button type="button" id="draft-tab-latex" class="draft-mode-tab"
+                role="tab" aria-selected="false" aria-controls="draft-mode-latex"
+                data-draft-mode="latex" tabindex="-1">LaTeX</button>
+              <button type="button" id="draft-tab-handwriting" class="draft-mode-tab"
+                role="tab" aria-selected="false" aria-controls="draft-mode-handwriting"
+                data-draft-mode="handwriting" tabindex="-1">手写</button>
+            </div>
+
+            <div class="draft-mode-panels">
+              <!-- 新增：所见即所得模式允许正文与可编辑公式位于同一文档中 -->
+              <div id="draft-mode-rich" class="draft-mode-panel" role="tabpanel"
+                aria-labelledby="draft-tab-rich" data-draft-panel="rich">
+                <div class="draft-rich-toolbar" role="toolbar" aria-label="图文混排工具">
+                  <button type="button" data-rich-command="bold" aria-label="加粗"><strong>B</strong></button>
+                  <button type="button" data-rich-command="italic" aria-label="斜体"><em>I</em></button>
+                  <button type="button" data-rich-command="underline" aria-label="下划线"><u>U</u></button>
+                  <button type="button" data-rich-command="insertUnorderedList" aria-label="无序列表">列表</button>
+                  <span class="draft-toolbar-divider" aria-hidden="true"></span>
+                  <!-- 修改：公式入口固定在顶栏，并与下方 Word 式公式功能区联动 -->
+                  <button type="button" id="draft-insert-formula"
+                    aria-label="在光标处插入公式" aria-controls="draft-equation-ribbon"
+                    title="在光标处插入公式">π 公式</button>
+                </div>
+                <!-- 新增：常驻公式功能区直接写入当前公式，不再依赖弹出的虚拟键盘 -->
+                <div id="draft-equation-ribbon" class="draft-equation-ribbon"
+                  role="toolbar" aria-label="公式结构与符号">
+                  <div class="draft-equation-group" role="group" aria-label="常用符号">
+                    <span class="draft-equation-group-title">符号</span>
+                    <div class="draft-equation-buttons">
+                      <button type="button" data-formula-insert="\pm" aria-label="正负号">±</button>
+                      <button type="button" data-formula-insert="\infty" aria-label="无穷">∞</button>
+                      <button type="button" data-formula-insert="\ne" aria-label="不等于">≠</button>
+                      <button type="button" data-formula-insert="\le" aria-label="小于等于">≤</button>
+                      <button type="button" data-formula-insert="\ge" aria-label="大于等于">≥</button>
+                      <button type="button" data-formula-insert="\pi" aria-label="圆周率">π</button>
+                      <button type="button" data-formula-insert="\theta" aria-label="西塔">θ</button>
+                      <button type="button" data-formula-insert="\Delta" aria-label="大写德尔塔">Δ</button>
+                    </div>
+                  </div>
+                  <div class="draft-equation-group" role="group" aria-label="公式结构">
+                    <span class="draft-equation-group-title">结构</span>
+                    <div class="draft-equation-buttons draft-equation-buttons-structure">
+                      <button type="button" data-formula-insert="\frac{\placeholder{}}{\placeholder{}}"
+                        aria-label="分式"><span class="draft-equation-fraction">□<i></i>□</span></button>
+                      <button type="button" data-formula-insert="\sqrt{\placeholder{}}" aria-label="根式">√□</button>
+                      <button type="button" data-formula-insert="^{\placeholder{}}" aria-label="上标">x<sup>□</sup></button>
+                      <button type="button" data-formula-insert="_{\placeholder{}}" aria-label="下标">x<sub>□</sub></button>
+                      <button type="button" data-formula-insert="\int_{\placeholder{}}^{\placeholder{}} \placeholder{} \, d\placeholder{}"
+                        aria-label="积分">∫</button>
+                      <button type="button" data-formula-insert="\sum_{\placeholder{}}^{\placeholder{}} \placeholder{}"
+                        aria-label="求和">∑</button>
+                      <button type="button" data-formula-insert="\lim_{\placeholder{}\to\placeholder{}} \placeholder{}"
+                        aria-label="极限">lim</button>
+                    </div>
+                  </div>
+                  <div class="draft-equation-group" role="group" aria-label="函数与矩阵">
+                    <span class="draft-equation-group-title">函数与矩阵</span>
+                    <div class="draft-equation-buttons">
+                      <button type="button" data-formula-insert="\sin\left(\placeholder{}\right)" aria-label="正弦">sin</button>
+                      <button type="button" data-formula-insert="\cos\left(\placeholder{}\right)" aria-label="余弦">cos</button>
+                      <button type="button" data-formula-insert="\ln\left(\placeholder{}\right)" aria-label="自然对数">ln</button>
+                      <button type="button" data-formula-insert="\left(\placeholder{}\right)" aria-label="圆括号">( )</button>
+                      <button type="button" data-formula-insert="\begin{cases}\placeholder{}&amp;\placeholder{}\\\placeholder{}&amp;\placeholder{}\end{cases}"
+                        aria-label="分段函数">{…</button>
+                      <button type="button" data-formula-insert="\begin{bmatrix}\placeholder{}&amp;\placeholder{}\\\placeholder{}&amp;\placeholder{}\end{bmatrix}"
+                        aria-label="二阶矩阵">[ ]</button>
+                    </div>
+                  </div>
+                </div>
+                <div id="draft-rich-editor" class="draft-rich-editor" contenteditable="true"
+                  role="textbox" aria-multiline="true" aria-label="图文混排草稿"
+                  data-placeholder="像 Word 一样输入文字；点击“公式”后可键入，或直接选择上方符号与结构。"></div>
+                <p class="draft-mode-hint">“公式”会在正文光标处建立公式框；可直接键入，也可用上方功能区插入分式、根式、积分、矩阵等结构。</p>
+              </div>
+
+              <!-- 新增：LaTeX 模式左侧输入源码，右侧同步渲染结果 -->
+              <div id="draft-mode-latex" class="draft-mode-panel" role="tabpanel"
+                aria-labelledby="draft-tab-latex" data-draft-panel="latex" hidden>
+                <div class="draft-latex-toolbar" role="toolbar" aria-label="LaTeX 快捷工具">
+                  <button type="button" data-latex-insert="&#10;" aria-label="插入公式换行">↵ 换行</button>
+                  <button type="button" data-latex-insert="\begin{aligned}&#10;  &amp; \\&#10;  &amp; &#10;\end{aligned}" aria-label="插入对齐环境">对齐</button>
+                  <button type="button" data-latex-insert="\begin{cases}&#10;  &amp; \\&#10;  &amp; &#10;\end{cases}" aria-label="插入分段函数">分段</button>
+                  <button type="button" data-latex-insert="\begin{bmatrix}&#10;  &amp; \\&#10;  &amp; &#10;\end{bmatrix}" aria-label="插入矩阵">矩阵</button>
+                  <span>支持直接回车分行，以及 AMS、mathtools、physics、mhchem 等扩展。</span>
+                </div>
+                <div class="draft-latex-workspace">
+                  <div class="draft-latex-column">
+                    <label for="draft-latex-source">LaTeX 输入</label>
+                    <textarea id="draft-latex-source" spellcheck="false"
+                      placeholder="每行可写一条公式；也可使用 aligned、cases、matrix 等环境。&#10;例如：&#10;x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}&#10;y=x^2+1"></textarea>
+                  </div>
+                  <div class="draft-latex-column">
+                    <span class="draft-latex-label">实时渲染</span>
+                    <div id="draft-latex-preview" data-empty="true" role="img"
+                      aria-label="LaTeX 实时渲染结果"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 修改：手写模式使用可平移的大画布，并支持快捷色、图片与双向撤销 -->
+              <div id="draft-mode-handwriting" class="draft-mode-panel" role="tabpanel"
+                aria-labelledby="draft-tab-handwriting" data-draft-panel="handwriting" hidden>
+                <div class="draft-drawing-toolbar" role="toolbar" aria-label="手写画板工具">
+                  <button type="button" data-drawing-tool="move" aria-pressed="false">移动</button>
+                  <button type="button" class="is-active" data-drawing-tool="pen" aria-pressed="true">画笔</button>
+                  <button type="button" data-drawing-tool="eraser" aria-pressed="false">橡皮</button>
+                  <span class="draft-toolbar-divider" aria-hidden="true"></span>
+                  <!-- 修改：常用色改为 Word 式黑白红黄蓝绿方形色块 -->
+                  <div class="draft-color-swatches" role="group" aria-label="常用画笔颜色">
+                    <button type="button" class="draft-color-swatch is-active"
+                      data-ink-color-value="#000000" aria-label="黑色" aria-pressed="true"
+                      style="--draft-swatch-color: #000000"></button>
+                    <button type="button" class="draft-color-swatch draft-color-swatch-light"
+                      data-ink-color-value="#ffffff" aria-label="白色" aria-pressed="false"
+                      style="--draft-swatch-color: #ffffff"></button>
+                    <button type="button" class="draft-color-swatch"
+                      data-ink-color-value="#ff0000" aria-label="红色" aria-pressed="false"
+                      style="--draft-swatch-color: #ff0000"></button>
+                    <button type="button" class="draft-color-swatch"
+                      data-ink-color-value="#ffff00" aria-label="黄色" aria-pressed="false"
+                      style="--draft-swatch-color: #ffff00"></button>
+                    <button type="button" class="draft-color-swatch"
+                      data-ink-color-value="#0070c0" aria-label="蓝色" aria-pressed="false"
+                      style="--draft-swatch-color: #0070c0"></button>
+                    <button type="button" class="draft-color-swatch"
+                      data-ink-color-value="#00b050" aria-label="绿色" aria-pressed="false"
+                      style="--draft-swatch-color: #00b050"></button>
+                  </div>
+                  <label class="draft-drawing-color" for="draft-ink-color">颜色
+                    <input type="color" id="draft-ink-color" value="#000000">
+                  </label>
+                  <label class="draft-drawing-width" for="draft-ink-width">粗细
+                    <input type="range" id="draft-ink-width" min="1" max="16" value="3">
+                  </label>
+                  <button type="button" id="draft-insert-image">插入图片</button>
+                  <input type="file" id="draft-image-input" accept="image/*" hidden>
+                  <span class="draft-toolbar-spacer"></span>
+                  <button type="button" id="draft-drawing-undo" aria-label="撤销上一步">↶ 撤销</button>
+                  <button type="button" id="draft-drawing-redo" aria-label="重做下一步">↷ 重做</button>
+                  <button type="button" id="draft-drawing-clear">清空</button>
+                  <div class="draft-canvas-zoom" role="group" aria-label="画布缩放">
+                    <button type="button" id="draft-zoom-out" aria-label="缩小画布">−</button>
+                    <output id="draft-zoom-value" aria-live="polite">100%</output>
+                    <button type="button" id="draft-zoom-in" aria-label="放大画布">＋</button>
+                    <button type="button" id="draft-zoom-reset">重置</button>
+                  </div>
+                </div>
+                <!-- 修改：隐藏滚动条，以拖拽和缩放操作四向延展的无边画布 -->
+                <div id="draft-canvas-viewport" class="draft-canvas-viewport" tabindex="0"
+                  aria-label="可向四面平移并缩放的手写演算画布">
+                  <div id="draft-canvas-board" class="draft-canvas-board" data-drawing-tool="pen">
+                    <div id="draft-canvas-images" class="draft-canvas-images" aria-label="已插入图片"></div>
+                    <canvas id="draft-handwriting-canvas" tabindex="-1"
+                      aria-label="手写笔迹图层"></canvas>
+                    <span id="draft-canvas-cursor" class="draft-canvas-cursor"
+                      aria-hidden="true"></span>
+                  </div>
+                </div>
+                <p class="draft-mode-hint">选择“移动”后可向四面拖动画布；工具栏或 Ctrl/⌘＋滚轮可缩放。画布接近任一边缘时会自动延展，且不显示滚动条。</p>
+              </div>
+            </div>
+
+            <div class="draft-panel-footer">
+              <p id="draft-action-status" class="draft-action-status" role="status"
+                aria-live="polite">导出会汇总三种模式中已经填写的内容。</p>
+              <div class="draft-panel-actions">
+                <label for="draft-export-format">导出为</label>
+                <select id="draft-export-format" aria-label="导出格式">
+                  <option value="image">图片（PNG）</option>
+                  <option value="pdf">PDF</option>
+                  <option value="text">纯文本（TXT）</option>
+                </select>
+                <button type="button" id="draft-export">导出草稿</button>
+                <button type="button" id="draft-publish">发布到题解区</button>
+              </div>
+            </div>
+          </section>
+          <!--正左下方，独立演算草稿栏draft；发布接口由data-publish-endpoint统一配置-->
+        </div>
 
         <!--==================== sidebar-panel(侧栏) ====================-->
         <aside class="sidebar">
@@ -86,7 +342,7 @@ A.-1    B. 0    C. 1    D. 6
             <p><span class="information-panel-title">上传者</span>  
               <a href="" class="information-panel-content">user001</a></p><!--链接到用户主页-->
             <p><span class="information-panel-title">训练价值</span>    
-              <span class="information-panel-content" id="information-panel-value" data-question-type="red">RED</span></p>
+              <span class="information-panel-content" id="information-panel-value" data-question-value="red">RED</span></p>
             <p class="information-panel-actions">
               <button class="information-panel-action">点击打卡</button>
               <a href="" class="information-panel-action">练习记录</a>

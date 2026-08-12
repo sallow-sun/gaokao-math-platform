@@ -1,0 +1,147 @@
+/* ==================== 中等桌面适配 ==================== */
+
+@media (max-width: 1180px) {
+  body > main {
+    width: min(calc(100% - 48px), 1500px);
+  }
+
+  .training-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ==================== 平板适配 ==================== */
+
+@media (max-width: 760px) {
+  body > main {
+    width: min(calc(100% - 32px), 1500px);
+    padding-top: 26px;
+  }
+
+  .training-header h1 {
+    font-size: 36px;
+  }
+
+  .training-header p {
+    font-size: 17px;
+  }
+
+  .training-shell {
+    margin-top: 22px;
+  }
+
+  .training-main-tabs {
+    min-height: 60px;
+    padding: 0;
+  }
+
+  .training-main-tab {
+    min-width: 0;
+    min-height: 60px;
+    flex: 1 1 0;
+    padding: 0 9px;
+    font-size: 16px;
+  }
+
+  .training-main-tab::after {
+    right: 12px;
+    left: 12px;
+  }
+
+  .training-panel-content {
+    padding: 24px 20px 28px;
+  }
+
+  .training-panel-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .training-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ==================== 手机适配 ==================== */
+
+@media (max-width: 480px) {
+  body > main {
+    width: min(calc(100% - 20px), 1500px);
+    padding: 20px 0 34px;
+  }
+
+  .training-header h1 {
+    font-size: 32px;
+  }
+
+  .training-header p {
+    font-size: 15px;
+  }
+
+  .training-main-tab {
+    font-size: 15px;
+  }
+
+  .training-panel-content {
+    padding: 21px 14px 24px;
+  }
+
+  .training-series-tabs {
+    flex-wrap: nowrap;
+    margin-right: -14px;
+    margin-left: -14px;
+    padding-right: 14px;
+    padding-left: 14px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .training-series-tab {
+    flex: 0 0 auto;
+  }
+
+  .training-card-link {
+    min-height: 164px;
+    grid-template-columns: minmax(0, 1fr) 68px;
+    gap: 12px;
+    padding: 17px 14px 16px 16px;
+  }
+
+  .training-card h3 {
+    font-size: 18px;
+  }
+
+  .training-card-description {
+    min-height: 40px;
+    font-size: 13px;
+  }
+
+  .training-card-progress {
+    width: 64px;
+    height: 64px;
+    font-size: 12px;
+  }
+
+  .training-card-progress::before {
+    width: 55px;
+    height: 55px;
+  }
+
+  .training-operation-feedback {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+/* 用户选择减少动画时取消卡片与提示的位移动画。 */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .training-card,
+  .training-operation-feedback {
+    transition: none;
+  }
+}

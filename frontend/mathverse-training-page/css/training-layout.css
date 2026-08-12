@@ -1,0 +1,57 @@
+/* ==================== 页面主体 ==================== */
+
+body > main {
+  width: min(calc(100% - 72px), 1500px);
+  min-width: 0;
+  margin: 0 auto;
+  padding: 38px 0 56px;
+}
+
+.training-shell {
+  margin-top: 28px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-paper);
+}
+
+.training-tab-panel {
+  min-height: 520px;
+}
+
+.training-panel-content {
+  padding: 28px 30px 34px;
+}
+
+/* 卡片列表在不同菜单中共用相同网格，切换时页面宽度不会跳动。 */
+.training-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+/* 操作反馈只在页面右下角短暂出现，不打断题单浏览。 */
+.training-operation-feedback {
+  position: fixed;
+  right: 28px;
+  bottom: 24px;
+  z-index: 1200;
+  max-width: min(360px, calc(100vw - 32px));
+  margin: 0;
+  padding: 11px 16px;
+  border: 1px solid #0d3f69;
+  border-radius: var(--radius-small);
+  color: #ffffff;
+  background: var(--color-blue-900);
+  box-shadow: 0 8px 22px rgba(19, 48, 73, 0.18);
+  opacity: 0;
+  transform: translateY(7px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+
+.training-operation-feedback.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

@@ -1,0 +1,218 @@
+/* ==================== 官方题单分区 ==================== */
+
+.training-series-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 22px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.training-series-tab {
+  min-height: 36px;
+  padding: 6px 13px;
+  border-color: transparent;
+  color: var(--color-ink-secondary);
+  background: transparent;
+  font-size: 15px;
+}
+
+.training-series-tab:hover {
+  border-color: transparent;
+}
+
+.training-series-tab.is-active {
+  border-color: var(--color-blue-700);
+  color: var(--color-blue-900);
+  background: var(--color-blue-050);
+}
+
+/* ==================== 题单卡片 ==================== */
+
+.training-card {
+  min-width: 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.training-card:hover {
+  border-color: #aebfce;
+  box-shadow: 0 8px 18px rgba(27, 64, 94, 0.07);
+  transform: translateY(-1px);
+}
+
+.training-card-link {
+  display: grid;
+  min-height: 176px;
+  grid-template-columns: minmax(0, 1fr) 82px;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 20px 19px 22px;
+}
+
+.training-card-copy {
+  min-width: 0;
+}
+
+.training-card-code {
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-small);
+  color: var(--color-blue-800);
+  background: var(--color-blue-100);
+  font-family: var(--font-code);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.training-card h3 {
+  margin-top: 11px;
+  overflow: hidden;
+  color: #122638;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.42;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training-card-description {
+  display: -webkit-box;
+  min-height: 43px;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--color-ink-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.training-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 12px;
+  color: var(--color-ink-secondary);
+  font-size: 13px;
+}
+
+.training-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.training-card-meta span::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #8ca2b5;
+  content: "";
+}
+
+/* 圆环只表达当前用户完成进度，不承担额外操作。 */
+.training-card-progress {
+  position: relative;
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--color-blue-700) calc(var(--progress) * 1%),
+    var(--color-blue-100) 0
+  );
+  color: var(--color-ink-secondary);
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.training-card-progress::before {
+  position: absolute;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  content: "";
+}
+
+.training-card-progress span {
+  position: relative;
+  z-index: 1;
+}
+
+.training-card-progress.is-complete {
+  color: #ffffff;
+}
+
+.training-card-progress.is-complete::before {
+  background: var(--color-blue-700);
+}
+
+/* 题单广场沿用同一组卡片，只改变作者标签的颜色。 */
+.training-card.is-community .training-card-code {
+  color: var(--color-green);
+  background: var(--color-green-soft);
+}
+
+/* ==================== 我的题单空状态 ==================== */
+
+.training-empty-state {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.training-empty-state-content {
+  max-width: 440px;
+}
+
+.training-empty-mark {
+  display: grid;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border: 1px solid #b9c9d6;
+  border-radius: 50%;
+  color: var(--color-blue-800);
+  background: var(--color-blue-050);
+  font-family: var(--font-display);
+  font-size: 31px;
+  font-weight: 800;
+}
+
+.training-empty-state h2 {
+  font-family: var(--font-display);
+  font-size: 25px;
+}
+
+.training-empty-state p {
+  margin-top: 7px;
+  color: var(--color-ink-muted);
+  font-size: 15px;
+}
+
+.training-empty-action {
+  margin-top: 20px;
+  border-color: var(--color-blue-900);
+  color: #ffffff;
+  background: var(--color-blue-900);
+}
+
+.training-empty-action:hover {
+  border-color: #0b3b63 !important;
+  color: #ffffff !important;
+  background: #0b3b63 !important;
+}

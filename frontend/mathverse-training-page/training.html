@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="浏览高考数学官方题单、用户分享题单与个人题单">
+  <title>数学题单</title>
+
+  <!-- 题单页面样式：按功能拆分，加载顺序请勿随意调整 -->
+  <link rel="stylesheet" href="css/training-base.css">
+  <link rel="stylesheet" href="css/training-layout.css">
+  <link rel="stylesheet" href="css/training-header-panel.css">
+  <link rel="stylesheet" href="css/training-content-panel.css">
+  <link rel="stylesheet" href="css/training-responsive.css">
+  <link rel="stylesheet" href="css/themes.css">
+
+  <!-- 题单交互脚本：不依赖第三方库，可直接在本地打开使用 -->
+  <script src="js/training.js" defer></script>
+</head>
+
+<body>
+  <main>
+    <!----------- 页面标题、小字。----------->
+    <header class="training-header" aria-labelledby="training-page-title">
+      <h1 id="training-page-title">高考数学题单</h1>
+      <p>循序而进，聚沙成塔。</p><!-- 这里可以在名言库里随机 -->
+    </header>
+
+    <!----------- 题单主体。----------->
+    <section class="training-shell" aria-label="题单浏览区">
+      <!----------- 主菜单：从左到右保持固定顺序。----------->
+      <nav class="training-main-tabs" role="tablist" aria-label="题单分类">
+        <button
+          id="training-tab-official"
+          class="training-main-tab is-active"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="training-panel-official"
+          data-training-tab="official"
+        >官方题单</button>
+        <button
+          id="training-tab-square"
+          class="training-main-tab"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="training-panel-square"
+          data-training-tab="square"
+          tabindex="-1"
+        >题单广场</button>
+        <button
+          id="training-tab-mine"
+          class="training-main-tab"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="training-panel-mine"
+          data-training-tab="mine"
+          tabindex="-1"
+        >我的题单</button>
+      </nav>
+
+      <!----------- 官方题单。----------->
+      <section
+        id="training-panel-official"
+        class="training-tab-panel"
+        role="tabpanel"
+        aria-labelledby="training-tab-official"
+        data-training-panel="official"
+      >
+        <div class="training-panel-content">
+          <header class="training-panel-header">
+            <div class="training-panel-heading">
+              <h2>官方题单</h2>
+              <p>按知识板块与复习阶段整理，适合从基础巩固到考前冲刺。</p>
+            </div>
+            <p id="official-training-count" class="training-panel-count" aria-live="polite">共 12 份</p>
+          </header>
+
+          <!----------- 官方题单-专题切换。----------->
+          <nav class="training-series-tabs" aria-label="官方题单专题">
+            <button class="training-series-tab is-active" type="button" data-series-target="all" aria-pressed="true">全部</button>
+            <button class="training-series-tab" type="button" data-series-target="foundation" aria-pressed="false">基础巩固</button>
+            <button class="training-series-tab" type="button" data-series-target="topic" aria-pressed="false">专题突破</button>
+            <button class="training-series-tab" type="button" data-series-target="paper" aria-pressed="false">真题训练</button>
+            <button class="training-series-tab" type="button" data-series-target="sprint" aria-pressed="false">冲刺复习</button>
+          </nav>
+
+          <!----------- 官方题单-卡片列表。----------->
+          <div class="training-card-grid" data-official-grid>
+            <article class="training-card" data-training-card data-series="foundation">
+              <a class="training-card-link" href="training-detail.html?id=T1001">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1001</span>
+                  <h3>函数与导数基础</h3>
+                  <p class="training-card-description">从函数性质、基本初等函数到导数运算，建立完整知识框架。</p>
+                  <p class="training-card-meta"><span>24 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 33" aria-label="已完成 8 题，共 24 题"><span>8 / 24</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="foundation">
+              <a class="training-card-link" href="training-detail.html?id=T1002">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1002</span>
+                  <h3>三角函数与解三角形</h3>
+                  <p class="training-card-description">覆盖图象性质、恒等变换与正余弦定理的典型题型。</p>
+                  <p class="training-card-meta"><span>20 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 25" aria-label="已完成 5 题，共 20 题"><span>5 / 20</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="foundation">
+              <a class="training-card-link" href="training-detail.html?id=T1003">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1003</span>
+                  <h3>数列基础与递推</h3>
+                  <p class="training-card-description">梳理等差、等比数列及递推数列的通项与求和方法。</p>
+                  <p class="training-card-meta"><span>18 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 67" aria-label="已完成 12 题，共 18 题"><span>12 / 18</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="topic">
+              <a class="training-card-link" href="training-detail.html?id=T1101">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1101</span>
+                  <h3>立体几何综合</h3>
+                  <p class="training-card-description">从空间关系证明到空间向量计算，集中训练规范表达。</p>
+                  <p class="training-card-meta"><span>22 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 41" aria-label="已完成 9 题，共 22 题"><span>9 / 22</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="topic">
+              <a class="training-card-link" href="training-detail.html?id=T1102">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1102</span>
+                  <h3>解析几何综合</h3>
+                  <p class="training-card-description">聚焦圆锥曲线中的定点、定值、范围与最值问题。</p>
+                  <p class="training-card-meta"><span>26 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 15" aria-label="已完成 4 题，共 26 题"><span>4 / 26</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="topic">
+              <a class="training-card-link" href="training-detail.html?id=T1103">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1103</span>
+                  <h3>概率统计综合</h3>
+                  <p class="training-card-description">贯通计数原理、条件概率、分布列与统计案例。</p>
+                  <p class="training-card-meta"><span>20 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 100" aria-label="已完成全部 20 题"><span class="is-complete-text">20 / 20</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="paper">
+              <a class="training-card-link" href="training-detail.html?id=T1201">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1201</span>
+                  <h3>2026 新高考Ⅰ卷精选</h3>
+                  <p class="training-card-description">按考查模块重组最新真题，适合完成一轮复习后检验。</p>
+                  <p class="training-card-meta"><span>19 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 0" aria-label="尚未开始，共 19 题"><span>0 / 19</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="paper">
+              <a class="training-card-link" href="training-detail.html?id=T1202">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1202</span>
+                  <h3>近三年真题易错题</h3>
+                  <p class="training-card-description">筛选高频失分点，在真题语境中修正常见思维漏洞。</p>
+                  <p class="training-card-meta"><span>30 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 60" aria-label="已完成 18 题，共 30 题"><span>18 / 30</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="paper">
+              <a class="training-card-link" href="training-detail.html?id=T1203">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1203</span>
+                  <h3>地方卷创新题汇编</h3>
+                  <p class="training-card-description">收录北京、上海、天津、浙江等地试卷中的创新设问。</p>
+                  <p class="training-card-meta"><span>24 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 13" aria-label="已完成 3 题，共 24 题"><span>3 / 24</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="sprint">
+              <a class="training-card-link" href="training-detail.html?id=T1301">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1301</span>
+                  <h3>选择题限时训练</h3>
+                  <p class="training-card-description">以四组限时训练提升基础题稳定性与中档题处理速度。</p>
+                  <p class="training-card-meta"><span>32 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 50" aria-label="已完成 16 题，共 32 题"><span>16 / 32</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="sprint">
+              <a class="training-card-link" href="training-detail.html?id=T1302">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1302</span>
+                  <h3>填空题专项突破</h3>
+                  <p class="training-card-description">针对结果唯一、过程精简的题型训练计算准确率。</p>
+                  <p class="training-card-meta"><span>24 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 75" aria-label="已完成 18 题，共 24 题"><span>18 / 24</span></span>
+              </a>
+            </article>
+
+            <article class="training-card" data-training-card data-series="sprint">
+              <a class="training-card-link" href="training-detail.html?id=T1303">
+                <div class="training-card-copy">
+                  <span class="training-card-code">#T1303</span>
+                  <h3>压轴题思路训练</h3>
+                  <p class="training-card-description">拆解函数、数列与圆锥曲线压轴题中的关键转化。</p>
+                  <p class="training-card-meta"><span>18 题</span><span>Mathverse 官方</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 11" aria-label="已完成 2 题，共 18 题"><span>2 / 18</span></span>
+              </a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!----------- 题单广场。----------->
+      <section
+        id="training-panel-square"
+        class="training-tab-panel"
+        role="tabpanel"
+        aria-labelledby="training-tab-square"
+        data-training-panel="square"
+        hidden
+      >
+        <div class="training-panel-content">
+          <header class="training-panel-header">
+            <div class="training-panel-heading">
+              <h2>题单广场</h2>
+              <p>浏览学习者公开分享的题单，发现不同的整理思路。</p>
+            </div>
+            <p class="training-panel-count">精选 6 份</p>
+          </header>
+
+          <!----------- 题单广场-卡片列表。----------->
+          <div class="training-card-grid">
+            <article class="training-card is-community">
+              <a class="training-card-link" href="training-detail.html?id=S2001">
+                <div class="training-card-copy">
+                  <span class="training-card-code">@清和</span>
+                  <h3>一轮复习错题重做</h3>
+                  <p class="training-card-description">函数、三角、数列三个板块的典型易错题整理。</p>
+                  <p class="training-card-meta"><span>28 题</span><span>1,206 人收藏</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 43" aria-label="已完成 12 题，共 28 题"><span>12 / 28</span></span>
+              </a>
+            </article>
+
+            <article class="training-card is-community">
+              <a class="training-card-link" href="training-detail.html?id=S2002">
+                <div class="training-card-copy">
+                  <span class="training-card-code">@北辰</span>
+                  <h3>圆锥曲线常用结论</h3>
+                  <p class="training-card-description">按设问类型整理解析几何中可复用的运算路径。</p>
+                  <p class="training-card-meta"><span>21 题</span><span>948 人收藏</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 29" aria-label="已完成 6 题，共 21 题"><span>6 / 21</span></span>
+              </a>
+            </article>
+
+            <article class="training-card is-community">
+              <a class="training-card-link" href="training-detail.html?id=S2003">
+                <div class="training-card-copy">
+                  <span class="training-card-code">@山止</span>
+                  <h3>每天八道小题</h3>
+                  <p class="training-card-description">七天一组，适合作为晚自习前的选择填空热身。</p>
+                  <p class="training-card-meta"><span>56 题</span><span>2,341 人收藏</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 75" aria-label="已完成 42 题，共 56 题"><span>42 / 56</span></span>
+              </a>
+            </article>
+
+            <article class="training-card is-community">
+              <a class="training-card-link" href="training-detail.html?id=S2004">
+                <div class="training-card-copy">
+                  <span class="training-card-code">@见微</span>
+                  <h3>概率统计易混概念</h3>
+                  <p class="training-card-description">用小题辨析互斥、独立、条件概率与期望方差。</p>
+                  <p class="training-card-meta"><span>16 题</span><span>763 人收藏</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 100" aria-label="已完成全部 16 题"><span>16 / 16</span></span>
+              </a>
+            </article>
+
+            <article class="training-card is-community">
+              <a class="training-card-link" href="training-detail.html?id=S2005">
+                <div class="training-card-copy">
+                  <span class="training-card-code">@星野</span>
+                  <h3>导数大题分步训练</h3>
+                  <p class="training-card-description">从单调区间到恒成立与极值点偏移，逐级增加难度。</p>
+                  <p class="training-card-meta"><span>25 题</span><span>1,517 人收藏</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 20" aria-label="已完成 5 题，共 25 题"><span>5 / 25</span></span>
+              </a>
+            </article>
+
+            <article class="training-card is-community">
+              <a class="training-card-link" href="training-detail.html?id=S2006">
+                <div class="training-card-copy">
+                  <span class="training-card-code">@远岫</span>
+                  <h3>考前十五天回顾</h3>
+                  <p class="training-card-description">每天一个主题，快速复盘定义、结论和代表题。</p>
+                  <p class="training-card-meta"><span>45 题</span><span>1,089 人收藏</span></p>
+                </div>
+                <span class="training-card-progress" style="--progress: 0" aria-label="尚未开始，共 45 题"><span>0 / 45</span></span>
+              </a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!----------- 我的题单。----------->
+      <section
+        id="training-panel-mine"
+        class="training-tab-panel"
+        role="tabpanel"
+        aria-labelledby="training-tab-mine"
+        data-training-panel="mine"
+        hidden
+      >
+        <div class="training-empty-state">
+          <div class="training-empty-state-content">
+            <span class="training-empty-mark" aria-hidden="true">单</span>
+            <h2>暂时还没有题单</h2>
+            <p>创建或收藏题单后，会统一显示在这里。</p>
+            <button class="training-empty-action" type="button" data-open-square>去题单广场看看</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
