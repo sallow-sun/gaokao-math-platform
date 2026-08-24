@@ -1,0 +1,32 @@
+:root {
+  --ink-950: #111426;
+  --ink-900: #171b35;
+  --ink-800: #242943;
+  --ink-700: #383e59;
+  --ink-600: #5f657c;
+  --ink-500: #7e8498;
+  --ink-400: #a3a7b5;
+  --ink-300: #c6c9d3;
+  --ink-200: #e2e4ea;
+  --ink-100: #eef0f4;
+  --paper: #f6f5f1;
+  --surface: #ffffff;
+  --blue: #3155c6;
+  --blue-soft: #eaf0ff;
+  --gold: #b98235;
+  --gold-soft: #f7eddb;
+  --violet: #7357b4;
+  --violet-soft: #eee9f8;
+  --green: #2f806d;
+  --red: #aa4b4b;
+  --sidebar-width: 218px;
+  --topbar-height: 70px;
+  --radius-sm: 8px;
+  --radius-md: 13px;
+  --radius-lg: 18px;
+  --shadow-sm: 0 7px 26px rgba(22, 26, 50, .055);
+  --shadow-md: 0 18px 48px rgba(18, 22, 46, .09);
+  --serif: Georgia, "Noto Serif SC", "Songti SC", "STSong", serif;
+  --sans: Inter, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}

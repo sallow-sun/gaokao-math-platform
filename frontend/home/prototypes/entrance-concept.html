@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#03040b">
+  <meta name="description" content="Mathverse 入场页面独立概念稿">
+  <title>Mathverse · Entrance Concept</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --gold: #e6bd7b;
+      --blue: #8494f4;
+      --paper: #f7f3e9;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #03040b; }
+    body { color: white; user-select: none; }
+    button { font: inherit; }
+
+    .entrance {
+      position: fixed;
+      inset: 0;
+      isolation: isolate;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 64% 44%, rgba(51,61,138,.17), transparent 31%),
+        radial-gradient(circle at 16% 82%, rgba(92,67,131,.1), transparent 30%),
+        #03040b;
+    }
+
+    #universe-scene, #universe-scene canvas { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; }
+    #universe-scene canvas { display: block; }
+
+    .atmosphere, .atmosphere i { position: absolute; inset: 0; pointer-events: none; }
+    .atmosphere { z-index: 2; }
+    .vignette { background: radial-gradient(circle at 58% 45%, transparent 25%, rgba(1,2,8,.14) 55%, rgba(0,0,3,.76) 120%); }
+    .grain {
+      opacity: .16;
+      background-image:
+        radial-gradient(rgba(255,255,255,.18) .45px, transparent .55px),
+        radial-gradient(rgba(130,143,227,.13) .38px, transparent .52px);
+      background-position: 0 0, 8px 13px;
+      background-size: 17px 23px, 23px 29px;
+      mix-blend-mode: soft-light;
+    }
+    .scanline { opacity: .06; background: repeating-linear-gradient(180deg, transparent 0 3px, rgba(255,255,255,.07) 4px); }
+
+    .topbar {
+      position: absolute;
+      z-index: 5;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(25px, 4vw, 65px);
+      opacity: 0;
+      animation: reveal .8s ease .25s forwards;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      border: 1px solid rgba(255,255,255,.68);
+      border-radius: 50%;
+      font: italic 18px/1 Georgia, serif;
+    }
+    .brand-mark::after { content:""; position:absolute; right:-3px; top:3px; width:7px; height:7px; border:2px solid #03040b; border-radius:50%; background:var(--gold); box-shadow:0 0 10px var(--gold); }
+    .brand strong { font-size: 19px; font-weight: 650; letter-spacing: -.035em; }
+    .brand strong span { color: #929aff; font-weight: 450; }
+    .prototype-label { color: rgba(255,255,255,.25); font: 8px/1 ui-monospace, Consolas, monospace; letter-spacing: .2em; }
+
+    .intro-copy {
+      position: absolute;
+      z-index: 5;
+      left: clamp(27px, 7vw, 112px);
+      top: 50%;
+      width: min(590px, 48vw);
+      transform: translateY(-49%);
+      pointer-events: none;
+    }
+
+    .eyebrow, .intro-copy h1, .description, .feature-row { opacity: 0; transform: translateY(16px); }
+    .eyebrow { display:flex; align-items:center; gap:10px; margin:0 0 21px; color:rgba(255,255,255,.34); font:8px/1 ui-monospace, Consolas, monospace; letter-spacing:.25em; animation: copyIn .8s ease .55s forwards; }
+    .eyebrow i { width:24px; height:1px; background:var(--gold); }
+    .intro-copy h1 { margin:0; font:500 clamp(42px,5.3vw,78px)/1.13 Georgia,"Noto Serif SC","Songti SC",serif; letter-spacing:-.055em; animation:copyIn 1s cubic-bezier(.2,.8,.2,1) .72s forwards; }
+    .intro-copy h1 span { color:#e8c58b; text-shadow:0 0 40px rgba(226,183,112,.14); }
+    .description { max-width:540px; margin:24px 0 0; color:rgba(239,241,250,.48); font-size:clamp(12px,1.1vw,15px); line-height:1.95; animation:copyIn .9s ease 1s forwards; }
+    .description strong { color:rgba(247,242,229,.8); font-weight:500; }
+
+    .feature-row { display:flex; flex-wrap:wrap; gap:9px; margin-top:28px; animation:copyIn .9s ease 1.18s forwards; }
+    .feature-row span { padding:7px 10px; border:1px solid rgba(255,255,255,.08); border-radius:5px; color:rgba(238,241,250,.42); background:rgba(255,255,255,.025); font-size:9px; letter-spacing:.08em; backdrop-filter:blur(8px); }
+    .feature-row b { color:#d5a961; font-weight:400; margin-right:5px; }
+
+    .math-label {
+      position:absolute;
+      z-index:4;
+      color:rgba(227,232,251,.18);
+      font:7px/1.55 ui-monospace,Consolas,monospace;
+      letter-spacing:.16em;
+      pointer-events:none;
+      opacity:0;
+      animation:reveal 1s ease 1.5s forwards;
+    }
+    .math-label strong { display:block; margin-bottom:5px; color:rgba(230,193,131,.38); font-size:8px; font-weight:400; }
+    .label-geometry { top:21%; right:7%; }
+    .label-function { left:4%; bottom:16%; }
+    .label-conic { right:8%; bottom:14%; text-align:right; }
+
+    .enter-zone {
+      position:absolute;
+      z-index:7;
+      left:50%;
+      bottom:clamp(32px,6vh,68px);
+      display:grid;
+      justify-items:center;
+      gap:12px;
+      opacity:0;
+      transform:translateX(-50%) translateY(10px);
+      animation:enterIn .8s ease 1.55s forwards;
+    }
+    .enter-button { min-width:260px; padding:10px 18px; border:0; color:rgba(255,255,255,.72); background:transparent; font-size:11px; letter-spacing:.35em; cursor:pointer; transition:color .3s,letter-spacing .3s; }
+    .enter-button:hover,.enter-button:focus-visible { color:white; letter-spacing:.42em; outline:none; }
+    .signal-line { width:225px; height:1px; overflow:hidden; background:rgba(255,255,255,.11); }
+    .signal-line::after { content:""; display:block; width:38%; height:100%; background:linear-gradient(90deg,transparent,#ecc681,transparent); animation:signal 2.4s ease-in-out infinite; }
+    .enter-zone small { color:rgba(255,255,255,.2); font:7px/1 ui-monospace,Consolas,monospace; letter-spacing:.12em; }
+
+    .warp-lines { position:absolute; z-index:9; inset:0; opacity:0; pointer-events:none; background:repeating-conic-gradient(from 0deg at 64% 47%,transparent 0deg 1.2deg,rgba(219,228,255,.12) 1.4deg 1.65deg,transparent 1.85deg 4deg); mask-image:radial-gradient(circle at 64% 47%,transparent 0 8%,black 23%,transparent 72%); transform:scale(.5); }
+    .flash { position:absolute; z-index:12; inset:0; opacity:0; pointer-events:none; background:radial-gradient(circle at 64% 47%,#fff 0,#fff8e8 22%,#efc980 45%,rgba(255,255,255,0) 78%); transform:scale(.2); }
+    .transition-title { position:absolute; z-index:13; inset:0; display:grid; place-items:center; color:#111426; background:#f8f5ed; font:500 clamp(20px,3vw,40px)/1 Georgia,serif; letter-spacing:.25em; opacity:0; pointer-events:none; }
+
+    .entrance.leaving .intro-copy,.entrance.leaving .topbar,.entrance.leaving .math-label,.entrance.leaving .enter-zone { transition:opacity .45s ease,transform .7s ease; opacity:0 !important; }
+    .entrance.leaving .intro-copy { transform:translateY(-49%) scale(.96); }
+    .entrance.leaving .warp-lines { animation:warp .95s cubic-bezier(.55,0,1,.45) forwards; }
+    .entrance.leaving .flash { animation:flashIn .85s ease-in .55s forwards; }
+    .entrance.leaving .transition-title { animation:titleIn .55s ease 1.15s forwards; }
+
+    @keyframes reveal { to { opacity:1; } }
+    @keyframes copyIn { to { opacity:1; transform:translateY(0); } }
+    @keyframes enterIn { to { opacity:1; transform:translateX(-50%) translateY(0); } }
+    @keyframes signal { from { transform:translateX(-120%); } to { transform:translateX(360%); } }
+    @keyframes warp { 0%{opacity:0;transform:scale(.5) rotate(0)} 35%{opacity:.55} 100%{opacity:.9;transform:scale(2.8) rotate(2deg)} }
+    @keyframes flashIn { 0%{opacity:0;transform:scale(.2)} 72%,100%{opacity:1;transform:scale(3)} }
+    @keyframes titleIn { to { opacity:1; } }
+
+    @media (max-width:900px) {
+      .intro-copy { left:28px; top:43%; width:calc(100% - 56px); text-align:center; }
+      .eyebrow,.feature-row { justify-content:center; }
+      .description { margin-left:auto; margin-right:auto; }
+      .math-label { display:none; }
+      .entrance { background:radial-gradient(circle at 50% 42%,rgba(51,61,138,.2),transparent 34%),#03040b; }
+      .warp-lines,.flash { transform-origin:50% 42%; }
+    }
+
+    @media (max-width:560px) {
+      .topbar { height:68px; padding:0 19px; }
+      .prototype-label { display:none; }
+      .intro-copy { top:42%; left:20px; width:calc(100% - 40px); }
+      .intro-copy h1 { font-size:38px; }
+      .description { font-size:11px; line-height:1.8; }
+      .feature-row span { padding:6px 8px; font-size:8px; }
+      .enter-zone { bottom:27px; }
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { animation-duration:.01ms !important; animation-delay:0ms !important; transition-duration:.01ms !important; }
+      .eyebrow,.intro-copy h1,.description,.feature-row,.topbar,.math-label,.enter-zone { opacity:1; transform:none; }
+      .enter-zone { transform:translateX(-50%); }
+    }
+  </style>
+</head>
+<body>
+  <div class="entrance" id="entrance">
+    <div id="universe-scene" aria-hidden="true"></div>
+    <div class="atmosphere" aria-hidden="true"><i class="vignette"></i><i class="grain"></i><i class="scanline"></i></div>
+
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">M</span><strong>math<span>verse</span></strong></div>
+      <span class="prototype-label">ENTRANCE CONCEPT · 01</span>
+    </header>
+
+    <main class="intro-copy">
+      <p class="eyebrow"><i></i>MATHEMATICAL COMMONS</p>
+      <h1>让每一道题，<br>成为通往<span>知识宇宙</span>的坐标。</h1>
+      <p class="description">汇集历年高考与模拟题，按照<strong>知识点、解题方法与试卷来源</strong>重新组织；在讨论与知识星系中，看见每一次理解如何彼此连接。</p>
+      <div class="feature-row" aria-label="网站特点"><span><b>01</b>历年真题</span><span><b>02</b>多种解法</span><span><b>03</b>知识星系</span><span><b>04</b>数学讨论</span></div>
+    </main>
+
+    <p class="math-label label-geometry"><strong>STEREOMETRY</strong>空间向量 · 截面 · 二面角</p>
+    <p class="math-label label-function"><strong>FUNCTION</strong>单调性 · 零点 · 极值</p>
+    <p class="math-label label-conic"><strong>CONIC SECTION</strong>椭圆 · 抛物线 · 双曲线</p>
+
+    <div class="enter-zone">
+      <button class="enter-button" id="enter-button" type="button">按任意键进入</button>
+      <span class="signal-line" aria-hidden="true"></span>
+      <small>CLICK · TOUCH · KEYBOARD</small>
+    </div>
+
+    <div class="warp-lines" aria-hidden="true"></div>
+    <div class="flash" aria-hidden="true"></div>
+    <div class="transition-title" aria-hidden="true">WELCOME TO MATHVERSE</div>
+  </div>
+
+  <script>
+    (() => {
+      const entrance = document.querySelector("#entrance");
+      const enterButton = document.querySelector("#enter-button");
+      let ready = false;
+      let leaving = false;
+
+      window.setTimeout(() => { ready = true; }, 850);
+
+      function enterSite() {
+        if (!ready || leaving) return;
+        leaving = true;
+        entrance.classList.add("leaving");
+        window.dispatchEvent(new CustomEvent("mathverse:entrance-leave"));
+        window.setTimeout(() => window.location.assign("../pages/home.html"), 1780);
+      }
+
+      enterButton.addEventListener("click", (event) => { event.stopPropagation(); enterSite(); });
+      entrance.addEventListener("click", enterSite);
+      window.addEventListener("touchend", enterSite, { passive: true });
+      window.addEventListener("keydown", (event) => {
+        if (["Shift", "Control", "Alt", "Meta", "CapsLock"].includes(event.key)) return;
+        enterSite();
+      });
+    })();
+  </script>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
+
+    const root = document.querySelector("#universe-scene");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const mobile = window.matchMedia("(max-width:900px)").matches;
+    const lowPower = mobile || (navigator.hardwareConcurrency || 8) <= 4;
+    const particleCount = lowPower ? 1300 : 3600;
+    const starCount = lowPower ? 380 : 950;
+    const symbolCount = lowPower ? 7 : 12;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x03040b, .0075);
+    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, .1, 500);
+    camera.position.set(0, 11, 58);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: !lowPower, alpha: true, powerPreference: lowPower ? "default" : "high-performance" });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, lowPower ? 1 : 1.55));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.35;
+    root.append(renderer.domElement);
+
+    const universe = new THREE.Group();
+    universe.position.x = mobile ? 0 : 6;
+    scene.add(universe);
+
+    const core = new THREE.Mesh(new THREE.SphereGeometry(4, lowPower ? 32 : 56, lowPower ? 24 : 44), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    universe.add(core);
+
+    const auraMaterial = new THREE.ShaderMaterial({
+      uniforms:{ intensity:{value:1.12}, jump:{value:0} },
+      vertexShader:`varying vec3 n;varying vec3 v;void main(){n=normalize(normalMatrix*normal);v=normalize(-(modelViewMatrix*vec4(position,1.)).xyz);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`uniform float intensity;uniform float jump;varying vec3 n;varying vec3 v;void main(){float rim=pow(1.-max(dot(n,v),0.),3.8);vec3 amber=vec3(1.,.47,.1);vec3 hot=vec3(1.,.93,.78);vec3 c=mix(amber,hot,rim*.5+jump*.3);gl_FragColor=vec4(c*rim*intensity*(4.8+jump*3.),rim);}`,
+      side:THREE.BackSide,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false
+    });
+    universe.add(new THREE.Mesh(new THREE.SphereGeometry(4.45, lowPower ? 32 : 56, lowPower ? 24 : 44), auraMaterial));
+
+    const positions=new Float32Array(particleCount*3),colors=new Float32Array(particleCount*3),sizes=new Float32Array(particleCount);
+    const hot=new THREE.Color(0xfff1d5),warm=new THREE.Color(0xff9840),cool=new THREE.Color(0x365ed6);
+    for(let i=0;i<particleCount;i++){
+      const r=5.1+Math.pow(Math.random(),1.55)*38,a=Math.random()*Math.PI*2,o=i*3;
+      positions[o]=Math.cos(a)*r;positions[o+1]=(Math.random()-.5)*(.14+r*.008);positions[o+2]=Math.sin(a)*r;
+      const m=Math.min(1,(r-5)/31),c=hot.clone().lerp(warm,Math.min(1,m*1.45)).lerp(cool,Math.max(0,m-.62)*1.35);
+      colors[o]=c.r;colors[o+1]=c.g;colors[o+2]=c.b;sizes[i]=.45+Math.random()*1.15;
+    }
+    const diskGeometry=new THREE.BufferGeometry();
+    diskGeometry.setAttribute("position",new THREE.BufferAttribute(positions,3));diskGeometry.setAttribute("color",new THREE.BufferAttribute(colors,3));diskGeometry.setAttribute("pointSize",new THREE.BufferAttribute(sizes,1));
+    const diskMaterial=new THREE.ShaderMaterial({
+      uniforms:{time:{value:0},jump:{value:0},pixelScale:{value:renderer.getPixelRatio()*2.4}},
+      vertexShader:`uniform float time;uniform float jump;uniform float pixelScale;attribute float pointSize;varying vec3 c;varying float a;void main(){vec3 p=position;float r=length(p.xz);float q=atan(p.z,p.x)+time*(.18+1.4/sqrt(r))*(1.+jump*4.);float compression=1.-jump*.24;p.x=cos(q)*r*compression;p.z=sin(q)*r*compression;p.y+=sin(q*3.+r*.6+time*.3)*(.05+r*.002);vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=max(1.,pixelScale*pointSize*(34./-mv.z));c=color*(1.+jump*.8);a=smoothstep(4.5,5.5,r)*(1.-smoothstep(37.,43.,r));}`,
+      fragmentShader:`varying vec3 c;varying float a;void main(){float d=distance(gl_PointCoord,vec2(.5));if(d>.5)discard;gl_FragColor=vec4(c,smoothstep(.5,.02,d)*a*.88);}`,
+      vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false
+    });
+    const disk=new THREE.Points(diskGeometry,diskMaterial);universe.add(disk);
+
+    function symbolTexture(text){const c=document.createElement("canvas");c.width=c.height=128;const x=c.getContext("2d");x.fillStyle="#fff0d5";x.textAlign="center";x.textBaseline="middle";x.font="italic 55px Georgia,serif";x.fillText(text,64,68);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
+    const symbols=["∫","∑","π","∞","√","Δ","θ","e","f′","λ","φ","lim"],symbolGroup=new THREE.Group();
+    symbols.slice(0,symbolCount).forEach((s,i)=>{const m=new THREE.SpriteMaterial({map:symbolTexture(s),color:i%3?0xbec9ff:0xffd495,transparent:true,opacity:.34,blending:THREE.AdditiveBlending,depthWrite:false});const p=new THREE.Sprite(m),r=10+(i%6)*3.6,a=i/symbolCount*Math.PI*2;p.position.set(Math.cos(a)*r,(i%4-1.5)*2.1,Math.sin(a)*r);p.scale.set(1.25,1.25,1);p.userData={r,a,speed:.055+(i%4)*.012};symbolGroup.add(p);});
+    universe.add(symbolGroup);
+
+    const starPositions=new Float32Array(starCount*3);
+    for(let i=0;i<starCount;i++){const r=65+Math.random()*150,a=Math.random()*Math.PI*2,p=Math.acos(2*Math.random()-1);starPositions[i*3]=r*Math.sin(p)*Math.cos(a);starPositions[i*3+1]=r*Math.cos(p);starPositions[i*3+2]=r*Math.sin(p)*Math.sin(a);}
+    const starGeometry=new THREE.BufferGeometry();starGeometry.setAttribute("position",new THREE.BufferAttribute(starPositions,3));scene.add(new THREE.Points(starGeometry,new THREE.PointsMaterial({color:0x9eacd5,size:lowPower?.12:.16,transparent:true,opacity:.48})));
+
+    const geometryGroup=new THREE.Group();geometryGroup.position.set(mobile?7:20,9,-5);geometryGroup.rotation.set(.35,.2,.15);scene.add(geometryGroup);
+    const tetraMaterial=new THREE.LineBasicMaterial({color:0x83c9ef,transparent:true,opacity:.45,blending:THREE.AdditiveBlending});
+    const cubeMaterial=new THREE.LineBasicMaterial({color:0xb2a5ff,transparent:true,opacity:.08,blending:THREE.AdditiveBlending});
+    const tetra=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.TetrahedronGeometry(4.2)),tetraMaterial),cube=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(6.3,6.3,6.3)),cubeMaterial);
+    geometryGroup.add(tetra,cube);
+    const plane=new THREE.Mesh(new THREE.PlaneGeometry(8,5.2,4,3),new THREE.MeshBasicMaterial({color:0x5278ce,transparent:true,opacity:.045,wireframe:true,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));plane.rotation.x=Math.PI/2.5;geometryGroup.add(plane);
+
+    function lineFromPoints(points,color,opacity=.5){const g=new THREE.BufferGeometry().setFromPoints(points);return new THREE.Line(g,new THREE.LineBasicMaterial({color,transparent:true,opacity,blending:THREE.AdditiveBlending}));}
+    const functionGroup=new THREE.Group();functionGroup.position.set(mobile?-8:-20,-10,-4);functionGroup.rotation.set(-.25,.25,.08);scene.add(functionGroup);
+    functionGroup.add(lineFromPoints([new THREE.Vector3(-6,0,0),new THREE.Vector3(6,0,0)],0x6682d7,.2),lineFromPoints([new THREE.Vector3(0,-4,0),new THREE.Vector3(0,4,0)],0x6682d7,.2));
+    const curveCount=150,curvePositions=new Float32Array(curveCount*3),curveGeometry=new THREE.BufferGeometry();curveGeometry.setAttribute("position",new THREE.BufferAttribute(curvePositions,3));const curve=new THREE.Line(curveGeometry,new THREE.LineBasicMaterial({color:0x72e0e8,transparent:true,opacity:.65,blending:THREE.AdditiveBlending}));functionGroup.add(curve);
+
+    const conicGroup=new THREE.Group();conicGroup.position.set(mobile?9:21,-10,-6);conicGroup.rotation.set(-.2,-.35,-.08);scene.add(conicGroup);
+    const ellipsePoints=[];for(let i=0;i<=120;i++){const t=i/120*Math.PI*2;ellipsePoints.push(new THREE.Vector3(Math.cos(t)*5,Math.sin(t)*2.6,0));}
+    const parabolaPoints=[];for(let i=0;i<=120;i++){const t=-4.5+i/120*9;parabolaPoints.push(new THREE.Vector3(t,.27*t*t-2.5,0));}
+    const hyperbolaGeometry=new THREE.BufferGeometry(),hyper=[];for(const side of [-1,1])for(let i=0;i<90;i++){const u=-1.15+i/89*2.3;hyper.push(side*2.1*Math.cosh(u),1.65*Math.sinh(u),0);if(i<89){const v=-1.15+(i+1)/89*2.3;hyper.push(side*2.1*Math.cosh(v),1.65*Math.sinh(v),0);}}hyperbolaGeometry.setAttribute("position",new THREE.Float32BufferAttribute(hyper,3));
+    const ellipse=lineFromPoints(ellipsePoints,0xe4b96f,.55),parabola=lineFromPoints(parabolaPoints,0x7ddbd8,.08),hyperbola=new THREE.LineSegments(hyperbolaGeometry,new THREE.LineBasicMaterial({color:0xad9bef,transparent:true,opacity:.08,blending:THREE.AdditiveBlending}));conicGroup.add(ellipse,parabola,hyperbola);
+
+    let time=0,last=performance.now(),jumpStart=0,px=0,py=0,tx=0,ty=0;
+    window.addEventListener("pointermove",e=>{tx=e.clientX/innerWidth-.5;ty=e.clientY/innerHeight-.5;});
+    window.addEventListener("mathverse:entrance-leave",()=>{jumpStart=performance.now();});
+    document.addEventListener("visibilitychange",()=>{last=performance.now();});
+
+    function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,lowPower?1:1.55));diskMaterial.uniforms.pixelScale.value=renderer.getPixelRatio()*2.4;}
+    window.addEventListener("resize",resize);
+
+    function animate(now){requestAnimationFrame(animate);if(document.hidden)return;const dt=Math.min((now-last)/1000,.08);last=now;time+=reducedMotion?0:dt;px+=(tx-px)*.025;py+=(ty-py)*.025;
+      let jump=0;if(jumpStart){const p=Math.min(1,(now-jumpStart)/1450);jump=Math.sin(p*Math.PI*.5);camera.position.x+=(universe.position.x-camera.position.x)*(.025+p*.12);camera.position.y+=(0-camera.position.y)*(.025+p*.12);camera.position.z+=(.15-camera.position.z)*(.018+p*.11);camera.fov=42+p*88;camera.updateProjectionMatrix();}
+      else{camera.position.x=px*2;camera.position.y=11-py*1.4;camera.lookAt(universe.position.x,0,0);}
+      diskMaterial.uniforms.time.value=time;diskMaterial.uniforms.jump.value=jump;auraMaterial.uniforms.jump.value=jump;auraMaterial.uniforms.intensity.value=1.08+Math.sin(time*1.2)*.1+jump*.8;universe.rotation.y+=reducedMotion?0:dt*.035;universe.scale.setScalar(1-jump*.18);
+      symbolGroup.children.forEach(s=>{const d=s.userData,a=d.a+time*d.speed;s.position.x=Math.cos(a)*d.r;s.position.z=Math.sin(a)*d.r;s.material.opacity=.24+(Math.sin(time*1.6+d.a)+1)*.09;});
+      const morph=(Math.sin(time*.48)+1)/2;tetraMaterial.opacity=.08+(1-morph)*.5;cubeMaterial.opacity=.08+morph*.45;tetra.scale.setScalar(.9+morph*.18);cube.scale.setScalar(.88+(1-morph)*.16);geometryGroup.rotation.y+=reducedMotion?0:dt*.13;plane.rotation.z+=reducedMotion?0:dt*.08;
+      const arr=curveGeometry.attributes.position.array,curveMorph=(Math.sin(time*.34)+1)/2;for(let i=0;i<curveCount;i++){const x=-5.6+i/(curveCount-1)*11.2,y=(1-curveMorph)*Math.sin(x*1.25+time*.28)*2+curveMorph*(.14*x*x-2.15);arr[i*3]=x;arr[i*3+1]=y;arr[i*3+2]=0;}curveGeometry.attributes.position.needsUpdate=true;
+      const state=(time%15)/5,phase=state%1,smooth=phase*phase*(3-2*phase);let a=0,b=0,c=0;if(state<1){a=1-smooth;b=smooth;}else if(state<2){b=1-smooth;c=smooth;}else{c=1-smooth;a=smooth;}ellipse.material.opacity=.08+a*.58;parabola.material.opacity=.08+b*.58;hyperbola.material.opacity=.08+c*.58;conicGroup.rotation.z+=reducedMotion?0:dt*.025;
+      renderer.render(scene,camera);
+    }
+    resize();requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
