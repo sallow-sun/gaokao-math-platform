@@ -1,0 +1,166 @@
+/* ==================== 整个header-panel卡片 ==================== */
+.header-panel {
+  /* “其他题型”默认使用中性灰；下面不同 data-question-type 会覆盖题型文字颜色。 */
+  --type-color: var(--color-ink-muted, #657c90);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-areas:
+    "title stats"
+    "title actions";
+  align-items: center;
+  gap: 9px 28px;
+
+  min-height: 104px;
+  margin-bottom: 16px; /* 卡片下方与题面区域保持紧凑间距 */
+  padding: 18px 22px;
+  background: var(--card-bg);
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-radius: var(--radius);
+}
+
+/* ==================== 题型文字按题型变颜色 ==================== */
+/* HTML 写法：<section class="header-panel" data-question-type="single"> */
+.header-panel[data-question-type="single"] {
+  --type-color: var(--color-question-red, #d63f4b); /* 单选：亮红 */
+}
+
+.header-panel[data-question-type="multiple"] {
+  --type-color: var(--color-question-yellow, #a96500); /* 多选：亮黄 */
+}
+
+.header-panel[data-question-type="blank"] {
+  --type-color: var(--color-question-blue, #1976c9); /* 填空：亮蓝 */
+}
+
+.header-panel[data-question-type="solution"] {
+  --type-color: var(--color-question-green, #16865f); /* 解答：亮绿 */
+}
+
+/* ==================== 标题 ==================== */
+.header-panel-title {
+  grid-area: title;
+
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--text-main);
+}
+
+/* 题号、分隔线与题型组成题库页面同款的标题信息行。 */
+.header-panel-title-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 13px;
+  line-height: 1.35;
+}
+
+.header-panel-title-id {
+  color: var(--primary);
+  font-family: var(--font-code, "SFMono-Regular", Consolas, monospace);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 使用中性竖线分隔题号和题型，不让分隔线继承题型颜色。 */
+.header-panel-title-divider {
+  width: 1px;
+  height: 16px;
+  background: #9bacba;
+}
+
+/* 题型不使用边框或底色，只改变文字颜色。 */
+.header-panel-title-type {
+  color: var(--type-color);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 试卷名与题号使用题库页面相同的衬线标题字体。 */
+.header-panel-title-name {
+  display: inline-flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #092744;
+  font-family: var(--font-display, "Songti SC", STSong, SimSun, serif);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.header-panel-title-name > span + span::before {
+  margin-right: 6px;
+  color: var(--text-muted);
+  content: "·";
+}
+
+/* ==================== stats ==================== */
+.header-panel-stats {
+  grid-area: stats;
+
+  display: grid;
+  grid-template-columns: repeat(4, minmax(62px, 1fr));
+  align-items: stretch;
+}
+
+.header-panel-stats-item {
+  display: flex;
+  min-width: 0;
+  padding: 0 14px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* 给第二项及以后加分隔线。 */
+.header-panel-stats-item + .header-panel-stats-item {
+  border-left: 1px solid var(--color-border-light, #dce3e9);
+}
+
+/* 选择每个统计项中的最后一个 span，即统计数字。 */
+.header-panel-stats-item span:last-child {
+  margin-top: 2px;
+  color: var(--primary-dark);
+  font-family: Georgia, "Times New Roman", var(--font-display, serif);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==================== button ==================== */
+.header-panel-button {
+  grid-area: actions;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.header-panel-button button {
+  min-height: 32px;
+  padding: 4px 11px;
+  font-size: 13px;
+}
+
+/* 第一个按钮作为主要操作，沿用题库页面的深蓝色。 */
+.header-panel-button button:first-child {
+  border-color: var(--primary-dark);
+  color: #ffffff;
+  background: var(--primary-dark);
+}
+
+.header-panel-button button:first-child:hover {
+  border-color: #0b3b63;
+  color: #ffffff;
+  background: #0b3b63;
+}

@@ -1,0 +1,95 @@
+/* ==================== 全站设计变量 ==================== */
+:root {
+  --color-canvas: #eef1f4;
+  --color-surface: #ffffff;
+  --color-paper: #fdfdfc;
+  --color-ink: #0c2134;
+  --color-ink-secondary: #365a78;
+  --color-ink-muted: #657c90;
+  --color-border: #cbd6e0;
+  --color-border-light: #dce3e9;
+  --color-blue-900: #104875;
+  --color-blue-800: #1d5687;
+  --color-blue-700: #2d6798;
+  --color-blue-100: #e8f1f8;
+  --color-blue-050: #f3f7fa;
+  --color-green: #34785d;
+  --color-green-soft: #edf6f1;
+  --color-red: #984b4d;
+  --color-red-soft: #f8eeee;
+  --color-yellow: #88642c;
+  --color-yellow-soft: #faf4e7;
+  /* 题型颜色：使用更明亮的独立色值，不与训练价值颜色混用。 */
+  --color-question-red: #d63f4b;
+  --color-question-yellow: #a96500;
+  --color-question-blue: #1976c9;
+  --color-question-green: #16865f;
+  /* 训练价值颜色：筛选选项与题目标签共用同一套默认值。 */
+--color-level-red: #a34c43;     /* 赭石红 */
+--color-level-orange: #ba7a52;  /* 陶土橙 */
+--color-level-yellow: #c1a869;  /* 麦秆黄 */
+--color-level-green: #6b8a60;   /* 苔藓绿 */
+--color-level-cyan: #5c8086;    /* 灰青 */
+--color-level-blue: #566b8c;    /* 烟蓝 */
+--color-level-purple: #765c82;  /* 暮紫 */
+  --color-level-black: #252a30;
+  --color-level-white: #ffffff;
+  --color-level-white-outline: #788692;
+  --font-ui: "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", STSong, SimSun, serif;
+  --font-code: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --content-width: 1768px;
+  --radius-small: 3px;
+}
+
+/* 训练价值映射：筛选选项与题目标签统一从这里读取颜色。 */
+[data-level-color="red"],
+[data-question-value="red"] {
+  --training-value-color: var(--color-level-red, #b94149);
+}
+
+[data-level-color="orange"],
+[data-question-value="orange"] {
+  --training-value-color: var(--color-level-orange, #bb5e1d);
+}
+
+[data-level-color="yellow"],
+[data-question-value="yellow"] {
+  --training-value-color: var(--color-level-yellow, #8c6b00);
+}
+
+[data-level-color="green"],
+[data-question-value="green"] {
+  --training-value-color: var(--color-level-green, #2f7d57);
+}
+
+[data-level-color="cyan"],
+[data-question-value="cyan"] {
+  --training-value-color: var(--color-level-cyan, #177a80);
+}
+
+[data-level-color="blue"],
+[data-question-value="blue"] {
+  --training-value-color: var(--color-level-blue, #2f67a4);
+}
+
+[data-level-color="purple"],
+[data-question-value="purple"] {
+  --training-value-color: var(--color-level-purple, #7050a0);
+}
+
+[data-level-color="black"],
+[data-question-value="black"] {
+  --training-value-color: var(--color-level-black, #252a30);
+}
+
+[data-level-color="white"],
+[data-question-value="white"] {
+  --training-value-color: var(--color-level-white, #ffffff);
+  --training-value-text-shadow:
+    -1px -1px 0 var(--color-level-white-outline, #788692),
+    1px -1px 0 var(--color-level-white-outline, #788692),
+    -1px 1px 0 var(--color-level-white-outline, #788692),
+    1px 1px 0 var(--color-level-white-outline, #788692);
+  --training-value-dot-shadow: 0 0 0 1px var(--color-level-white-outline, #788692);
+}

@@ -1,0 +1,567 @@
+/* ==================== 中等桌面适配 ==================== */
+
+@media (max-width: 1480px) {
+  .bank-header-content {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 38px;
+  }
+
+  .bank-header-stats > div {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .bank-result-problem-list-heading,
+  .bank-result-problem-panel-view-item {
+    grid-template-columns: 50px 72px minmax(330px, 1fr) 220px 172px 136px 30px;
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+}
+
+@media (max-width: 1200px) {
+  body > main {
+    width: min(calc(100% - 48px), var(--content-width));
+  }
+
+  .bank-header-content {
+    grid-template-columns: minmax(0, 1fr) 350px;
+    gap: 28px;
+  }
+
+  .bank-header-title p {
+    font-size: 18px;
+  }
+
+  .bank-header-stats > div {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+
+  .bank-filter-search-row {
+    grid-template-columns: minmax(260px, 1fr) 250px 134px;
+  }
+
+  .bank-result-problem-list-heading,
+  .bank-result-problem-panel-view-item {
+    grid-template-columns: 46px 64px minmax(300px, 1fr) 178px 146px 120px 28px;
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .bank-result-problem-panel-view-item-summary {
+    padding-right: 20px;
+  }
+
+  .bank-result-problem-panel-view-card-header {
+    grid-template-columns: 36px minmax(280px, 1fr) 190px 112px;
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  #preview-view.is-selection-hidden:not(.is-minimal-display) .bank-result-problem-panel-view-card-header {
+    grid-template-columns: minmax(280px, 1fr) 190px 112px;
+    grid-template-areas: "summary tags value";
+  }
+}
+
+/* ==================== 平板适配 ==================== */
+
+@media (max-width: 980px) {
+  .bank-header-content {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .bank-header-stats {
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .bank-filter-group {
+    grid-template-columns: 105px minmax(0, 1fr);
+  }
+
+  .bank-filter-options button {
+    font-size: 17px;
+  }
+
+  .bank-filter-search-row {
+    grid-template-columns: minmax(240px, 1fr) 220px 130px;
+    gap: 14px;
+  }
+
+  .bank-result-toolbar-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bank-result-toolbar-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* 平板端改用分层题目行，避免把桌面列强行压缩。 */
+  .bank-result-problem-list-heading {
+    display: none;
+  }
+
+  .bank-result-problem-panel-view-item {
+    grid-template-columns: 40px 48px minmax(0, 1fr) auto auto 30px;
+    grid-template-areas:
+      "select status summary summary summary open"
+      ". . tags source value .";
+    gap: 12px 16px;
+    min-height: 0;
+    padding: 20px 22px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .bank-result-problem-panel-view-item + .bank-result-problem-panel-view-item {
+    border-top-color: var(--color-border-light);
+  }
+
+  .bank-result-problem-select {
+    grid-area: select;
+  }
+
+  .bank-result-problem-panel-view-item-status {
+    grid-area: status;
+  }
+
+  .bank-result-problem-panel-view-item-summary {
+    grid-area: summary;
+    padding-right: 0;
+  }
+
+  .bank-result-problem-panel-view-item-tags {
+    grid-area: tags;
+  }
+
+  .bank-result-problem-panel-view-item-source {
+    grid-area: source;
+  }
+
+  .bank-result-problem-panel-view-item-value {
+    grid-area: value;
+    align-self: center;
+  }
+
+  .bank-result-problem-open {
+    grid-area: open;
+  }
+
+  .bank-result-problem-panel-view-card-header {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "select summary value"
+      ". tags tags";
+    gap: 12px 16px;
+  }
+
+  #preview-view.is-selection-hidden:not(.is-minimal-display) .bank-result-problem-panel-view-card-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "summary value"
+      "tags tags";
+  }
+
+  .bank-result-problem-panel-view-card-header .bank-result-problem-select {
+    grid-area: select;
+  }
+
+  .bank-result-problem-panel-view-card-summary {
+    grid-area: summary;
+  }
+
+  .bank-result-problem-panel-view-card-tags {
+    grid-area: tags;
+  }
+
+  .bank-result-problem-panel-view-card-value {
+    grid-area: value;
+  }
+
+  .bank-result-problem-panel-view-card-content {
+    padding-right: 42px;
+    padding-left: 42px;
+  }
+}
+
+/* ==================== 手机适配 ==================== */
+
+@media (max-width: 700px) {
+  body > main {
+    width: min(calc(100% - 24px), var(--content-width));
+    padding-top: 24px;
+    padding-bottom: 38px;
+  }
+
+  .bank-breadcrumb {
+    font-size: 15px;
+  }
+
+  .bank-header-content {
+    margin-top: 10px;
+    gap: 22px;
+  }
+
+  .bank-header-title h1 {
+    font-size: 34px;
+  }
+
+  .bank-header-title p {
+    margin-top: 7px;
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .bank-header-stats {
+    max-width: none;
+    min-height: 84px;
+  }
+
+  .bank-header-stats > div {
+    padding: 12px 10px 9px;
+  }
+
+  .bank-header-stats dt {
+    font-size: 13px;
+  }
+
+  .bank-header-stats dd {
+    font-size: 25px;
+  }
+
+  .bank-filter-panel {
+    margin-top: 28px;
+  }
+
+  .bank-filter-panel-header {
+    min-height: 0;
+    padding: 18px 18px 17px;
+    align-items: flex-start;
+  }
+
+  .bank-filter-panel-header h2 {
+    font-size: 22px;
+  }
+
+  .bank-filter-panel-header p {
+    font-size: 15px;
+  }
+
+  .bank-filter-clear {
+    padding-left: 10px;
+    font-size: 16px;
+  }
+
+  .bank-filter-group {
+    min-height: 0;
+    padding: 15px 18px 17px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .bank-filter-group-label {
+    font-size: 17px;
+  }
+
+  .bank-filter-options {
+    gap: 7px;
+  }
+
+  .bank-filter-options button {
+    min-height: 40px;
+    padding: 6px 11px;
+    font-size: 15px;
+  }
+
+  .bank-filter-search-row {
+    min-height: 0;
+    padding: 19px 18px 20px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 15px;
+  }
+
+  .bank-filter-panel-item label {
+    margin-bottom: 6px;
+    font-size: 16px;
+  }
+
+  .bank-filter-panel-item input,
+  .bank-filter-panel-item select,
+  .bank-filter-submit {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .bank-results-panel {
+    margin-top: 24px;
+  }
+
+  .bank-result-toolbar-panel {
+    min-height: 0;
+    padding: 18px;
+    gap: 16px;
+  }
+
+  .bank-result-heading {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+
+  .bank-result-heading h2 {
+    font-size: 22px;
+  }
+
+  .bank-result-heading p {
+    font-size: 15px;
+  }
+
+  .bank-result-toolbar-controls {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bank-display-filter,
+  .bank-header-view-switch,
+  .bank-sort-control {
+    width: 100%;
+  }
+
+  .bank-display-filter-toggle {
+    width: 100%;
+  }
+
+  .bank-header-view-switch-button {
+    min-width: 0;
+    min-height: 44px;
+    flex: 1 1 50%;
+    font-size: 16px;
+  }
+
+  .bank-sort-control select {
+    min-height: 44px;
+    flex: 1;
+    font-size: 16px;
+  }
+
+  .bank-batch-selection-toolbar:not([hidden]) {
+    padding: 12px 18px;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+  }
+
+  .bank-batch-selection-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .bank-batch-selection-actions button {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .bank-result-problem-panel-view-item {
+    grid-template-columns: 34px 42px minmax(0, 1fr) 28px;
+    grid-template-areas:
+      "select status summary open"
+      ". . tags tags"
+      ". . source source"
+      ". . value value";
+    gap: 11px 10px;
+    padding: 17px 15px;
+  }
+
+  .bank-result-problem-panel-view-item-status {
+    width: 32px;
+    height: 32px;
+    font-size: 22px;
+  }
+
+  .bank-result-problem-panel-view-item-summary h3,
+  .bank-result-problem-panel-view-card-summary h3 {
+    font-size: 18px;
+  }
+
+  .bank-problem-meta,
+  .bank-problem-detail {
+    font-size: 13px;
+  }
+
+  .bank-result-problem-panel-view-item-source {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .bank-result-problem-panel-view-item-source strong {
+    font-size: 17px;
+  }
+
+  .bank-result-problem-panel-view-card-header {
+    padding: 17px 15px;
+    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-areas:
+      "select summary"
+      ". tags"
+      ". value";
+    gap: 10px;
+  }
+
+  #preview-view:not([hidden]) {
+    padding: 10px 0 0;
+    gap: 10px;
+  }
+
+  #preview-view.is-selection-hidden:not(.is-minimal-display) .bank-result-problem-panel-view-card-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "summary"
+      "tags"
+      "value";
+  }
+
+  .bank-result-problem-panel-view-card-content {
+    min-height: 170px;
+    padding: 26px 20px 30px;
+  }
+
+  .bank-result-problem-panel-view-card-content pre {
+    font-size: 16px;
+    line-height: 1.9;
+  }
+
+  .bank-result-problem-panel-view-card-footer {
+    padding: 14px 16px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bank-result-problem-panel-view-card-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 430px) {
+  .bank-header-title h1 {
+    font-size: 30px;
+  }
+
+  .bank-header-stats dt {
+    white-space: normal;
+  }
+
+  .bank-header-stats dd {
+    font-size: 22px;
+  }
+
+  .bank-filter-panel-header {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .bank-filter-clear {
+    min-height: 30px;
+    padding: 0;
+  }
+
+  .bank-result-problem-panel-view-item {
+    grid-template-columns: 31px minmax(0, 1fr) 27px;
+    grid-template-areas:
+      "select summary open"
+      "status summary open"
+      ". tags tags"
+      ". source source"
+      ". value value";
+  }
+
+  .bank-result-problem-panel-view-card-actions {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .bank-problem-export-menu {
+    right: 50%;
+    transform: translateX(50%);
+  }
+}
+
+/* 用户开启“减少动态效果”时，将过渡压缩到几乎不可见。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==================== 打印适配 ==================== */
+
+/* 批量打印时只保留选中的预览题目。 */
+@media print {
+  body {
+    color: #000000;
+    background: #ffffff;
+  }
+
+  .bank-header,
+  .bank-filter-panel,
+  .bank-result-toolbar-panel,
+  .bank-batch-selection-toolbar,
+  #list-view,
+  .bank-pagination,
+  .bank-operation-feedback {
+    display: none !important;
+  }
+
+  body > main {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .bank-results-panel {
+    margin: 0;
+    overflow: visible;
+    border: 0;
+  }
+
+  #preview-view:not([hidden]) {
+    padding: 0;
+    gap: 0;
+    background: #ffffff;
+  }
+
+  .bank-result-problem-panel-view-card {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body.is-printing-selection #preview-view,
+  body.is-printing-single #preview-view {
+    display: block !important;
+  }
+
+  body.is-printing-selection .bank-result-problem-panel-view-card,
+  body.is-printing-single .bank-result-problem-panel-view-card {
+    display: none !important;
+    break-inside: avoid;
+  }
+
+  body.is-printing-selection .bank-result-problem-panel-view-card.is-selected-for-print,
+  body.is-printing-single .bank-result-problem-panel-view-card.is-selected-for-print {
+    display: block !important;
+  }
+
+  .bank-result-problem-panel-view-card-footer,
+  .bank-result-problem-select {
+    display: none !important;
+  }
+}

@@ -1,0 +1,861 @@
+/* ==================== 左侧题面与选项 ==================== */
+.content-panel {
+  min-height: 320px;
+  padding: 36px 50px 42px; /* 与题库完整模式的题面留白保持一致 */
+  color: #172b3c;
+}
+
+.content-panel-question {
+  min-height: 170px;
+  font-family: var(--font-display, "Songti SC", STSong, SimSun, serif); /* 题面沿用题库页面的衬线字体 */
+  font-size: 15px;
+  line-height: 2;
+}
+
+.content-panel-question pre {
+  overflow: visible;
+  color: inherit;
+  font: inherit;
+  white-space: pre-wrap; /* 窄屏时允许题面按原换行继续折行 */
+  word-break: break-word;
+}
+
+/* ==================== 独立演算草稿卡片 ==================== */
+.draft-panel {
+  min-width: 0;
+  padding: 22px 24px 20px;
+}
+
+.draft-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.draft-panel-header h2 {
+  color: var(--text-main);
+  font-family: var(--font-display, "Songti SC", STSong, SimSun, serif);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.draft-panel-header p {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-size: 12px;
+}
+
+.draft-save-state {
+  flex: 0 0 auto;
+  padding-top: 2px;
+  color: var(--text-muted);
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-size: 12px;
+}
+
+.draft-save-state[data-state="saved"] {
+  color: var(--color-question-green, #16865f);
+}
+
+.draft-save-state[data-state="error"] {
+  color: var(--color-question-red, #d63f4b);
+}
+
+/* ==================== 三种编辑模式切换 ==================== */
+.draft-mode-tabs {
+  display: flex;
+  margin-top: 18px;
+  align-items: flex-end;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border, #cbd6e0);
+}
+
+.draft-mode-tab {
+  min-height: 36px;
+  margin-bottom: -1px;
+  padding: 7px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--text-muted);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.draft-mode-tab:not(:disabled):hover {
+  border-color: transparent;
+  border-bottom-color: #9bb2c5;
+  color: var(--primary-dark);
+  background: transparent;
+}
+
+.draft-mode-tab.is-active,
+.draft-mode-tab.is-active:not(:disabled):hover {
+  border-bottom-color: var(--primary-dark);
+  color: var(--primary-dark);
+  background: transparent;
+}
+
+.draft-mode-panels {
+  min-width: 0;
+  margin-top: 14px;
+}
+
+.draft-mode-panel {
+  min-width: 0;
+}
+
+.draft-mode-hint {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* ==================== 图文混排编辑器 ==================== */
+.draft-rich-toolbar,
+.draft-drawing-toolbar {
+  display: flex;
+  min-height: 42px;
+  padding: 5px 7px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  background: var(--color-blue-050, #f3f7fa);
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-radius: var(--radius-small, 3px) var(--radius-small, 3px) 0 0;
+}
+
+.draft-rich-toolbar button,
+.draft-drawing-toolbar button {
+  min-width: 32px;
+  min-height: 30px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.draft-toolbar-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 3px;
+  background: var(--color-border, #cbd6e0);
+}
+
+.draft-toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+#draft-insert-formula {
+  min-width: 68px;
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
+#draft-insert-formula.is-active {
+  border-color: var(--color-blue-700, #2d6798);
+  background: var(--color-blue-100, #e8f1f8);
+}
+
+#draft-insert-formula::first-letter {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+/* 新增：公式功能区参照 Word 分组排列，所有按钮直接写入当前公式。 */
+.draft-equation-ribbon {
+  display: flex;
+  min-width: 0;
+  padding: 7px 8px 5px;
+  align-items: stretch;
+  gap: 7px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  background: #ffffff;
+  border-right: 1px solid var(--color-border, #cbd6e0);
+  border-bottom: 1px solid var(--color-border, #cbd6e0);
+  border-left: 1px solid var(--color-border, #cbd6e0);
+  scrollbar-width: thin;
+}
+
+.draft-equation-group {
+  display: grid;
+  flex: 0 0 auto;
+  min-width: max-content;
+  padding: 0 8px 2px;
+  grid-template-rows: 1fr auto;
+  border-right: 1px solid #d8e0e7;
+}
+
+.draft-equation-group:last-child {
+  border-right: 0;
+}
+
+.draft-equation-buttons {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, 27px);
+  gap: 3px;
+}
+
+.draft-equation-buttons button {
+  min-width: 34px;
+  height: 27px;
+  padding: 1px 6px;
+  border-color: #aebbc6;
+  border-radius: 0;
+  color: #263d50;
+  background: linear-gradient(#ffffff, #f5f7f9);
+  font: 15px/1 Georgia, "Times New Roman", serif;
+}
+
+.draft-equation-buttons button:not(:disabled):hover,
+.draft-equation-buttons button:focus-visible {
+  border-color: #6f8ca4;
+  color: var(--primary-dark);
+  background: var(--color-blue-100, #e8f1f8);
+}
+
+.draft-equation-buttons-structure button {
+  min-width: 40px;
+  font-size: 18px;
+}
+
+.draft-equation-group-title {
+  align-self: end;
+  padding-top: 4px;
+  color: #617487;
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+}
+
+.draft-equation-fraction {
+  display: inline-grid;
+  grid-template-rows: auto 1px auto;
+  place-items: center;
+  font-size: 8px;
+  line-height: 8px;
+}
+
+.draft-equation-fraction i {
+  display: block;
+  width: 15px;
+  height: 1px;
+  background: currentColor;
+}
+
+.draft-rich-editor {
+  min-height: 250px;
+  padding: 15px 16px;
+  overflow-wrap: anywhere;
+  color: var(--text-main);
+  background: #ffffff;
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-small, 3px) var(--radius-small, 3px);
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-size: 14px;
+  line-height: 1.8;
+  outline: none;
+}
+
+.draft-rich-editor:empty::before {
+  color: #8799a8;
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.draft-rich-editor:focus {
+  border-color: var(--color-blue-700, #2d6798);
+  box-shadow: 0 0 0 2px rgba(45, 103, 152, 0.13);
+}
+
+.draft-rich-editor p,
+.draft-rich-editor div,
+.draft-rich-editor ul,
+.draft-rich-editor ol {
+  margin: 0 0 8px;
+}
+
+.draft-rich-editor ul,
+.draft-rich-editor ol {
+  padding-left: 24px;
+}
+
+/* MathLive 公式作为行内对象嵌入正文，外观接近 Word 中的公式块。 */
+.draft-inline-formula {
+  --caret-color: var(--primary-dark);
+  --selection-background-color: var(--color-blue-100, #e8f1f8);
+  --selection-color: var(--text-main);
+  --primary: var(--primary-dark);
+
+  display: inline-block;
+  min-width: 64px;
+  min-height: 34px;
+  margin: 1px 4px;
+  padding: 2px 7px;
+  vertical-align: middle;
+  color: var(--text-main);
+  background: #fbfcfd;
+  border: 1px solid #bdccd8;
+  border-radius: var(--radius-small, 3px);
+  font-size: 17px;
+}
+
+.draft-inline-formula:focus-within {
+  border-color: var(--color-blue-700, #2d6798);
+  outline: 2px solid rgba(45, 103, 152, 0.14);
+  outline-offset: 1px;
+}
+
+/* 修改：公式输入完全使用常驻功能区，隐藏 MathLive 自带菜单与弹出键盘入口。 */
+.draft-inline-formula::part(menu-toggle),
+.draft-inline-formula::part(virtual-keyboard-toggle) {
+  display: none;
+}
+
+/* ==================== LaTeX 双栏编辑器 ==================== */
+.draft-latex-toolbar {
+  display: flex;
+  min-height: 38px;
+  margin-bottom: 10px;
+  padding: 4px 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  background: var(--color-blue-050, #f3f7fa);
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-radius: var(--radius-small, 3px);
+}
+
+.draft-latex-toolbar button {
+  min-height: 28px;
+  padding: 3px 9px;
+  font-size: 12px;
+}
+
+.draft-latex-toolbar > span {
+  margin-left: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.draft-latex-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.draft-latex-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.draft-latex-column label,
+.draft-latex-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#draft-latex-source {
+  width: 100%;
+  min-height: 270px;
+  padding: 12px 13px;
+  resize: vertical;
+  color: var(--text-main);
+  background: #fbfcfd;
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-radius: var(--radius-small, 3px);
+  font: 13px/1.7 var(--font-code, "SFMono-Regular", Consolas, monospace);
+  tab-size: 2;
+}
+
+#draft-latex-source::placeholder {
+  color: #8799a8;
+}
+
+#draft-latex-source:focus {
+  border-color: var(--color-blue-700, #2d6798);
+  outline: 2px solid rgba(45, 103, 152, 0.14);
+  outline-offset: 1px;
+}
+
+#draft-latex-preview {
+  display: block;
+  width: 100%;
+  min-height: 270px;
+  padding: 16px;
+  overflow: auto;
+  color: var(--text-main);
+  background: #ffffff;
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-radius: var(--radius-small, 3px);
+  font-size: 17px;
+}
+
+#draft-latex-preview[data-empty="true"]::before {
+  color: #8799a8;
+  content: "输入 LaTeX 后在这里预览";
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-size: 13px;
+}
+
+.draft-latex-render-block {
+  min-width: max-content;
+  margin: 0 0 13px;
+  text-align: center;
+}
+
+.draft-latex-render-block:last-child {
+  margin-bottom: 0;
+}
+
+.draft-latex-render-block mjx-container {
+  margin: 0 !important;
+}
+
+.draft-latex-error {
+  padding: 10px 12px;
+  color: var(--color-question-red, #d63f4b);
+  background: #fff7f7;
+  border: 1px solid #efc6ca;
+  border-radius: var(--radius-small, 3px);
+  font: 12px/1.6 var(--font-code, "SFMono-Regular", Consolas, monospace);
+  white-space: pre-wrap;
+}
+
+/* ==================== 手写画板 ==================== */
+.draft-drawing-toolbar {
+  position: relative;
+  z-index: 3;
+  border-radius: var(--radius-small, 3px) var(--radius-small, 3px) 0 0;
+}
+
+.draft-drawing-toolbar button.is-active {
+  border-color: var(--color-blue-700, #2d6798);
+  color: var(--primary-dark);
+  background: var(--color-blue-100, #e8f1f8);
+}
+
+.draft-drawing-color,
+.draft-drawing-width {
+  display: inline-flex;
+  min-height: 30px;
+  padding: 2px 6px;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 修改：常用颜色使用 Word 式方形标准色，保留 RGB 取色器作为自定义入口。 */
+.draft-color-swatches {
+  display: inline-flex;
+  min-height: 30px;
+  padding: 3px 4px;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid #c5d0da;
+}
+
+.draft-drawing-toolbar .draft-color-swatch {
+  position: relative;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border: 1px solid #aeb8c1;
+  border-radius: 0;
+  background: var(--draft-swatch-color);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38);
+}
+
+.draft-drawing-toolbar .draft-color-swatch:hover {
+  border-color: #5f778d;
+  background: var(--draft-swatch-color);
+  box-shadow: 0 0 0 1px #5f778d;
+}
+
+.draft-drawing-toolbar .draft-color-swatch.is-active {
+  border-color: #ffffff;
+  background: var(--draft-swatch-color);
+  box-shadow: 0 0 0 2px #f08a24;
+}
+
+.draft-drawing-toolbar .draft-color-swatch-light {
+  box-shadow: inset 0 0 0 1px #d5dce2;
+}
+
+#draft-ink-color {
+  width: 28px;
+  height: 24px;
+  padding: 1px;
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-radius: 2px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+#draft-ink-width {
+  width: 88px;
+  accent-color: var(--primary-dark);
+}
+
+.draft-canvas-zoom {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 2px;
+}
+
+.draft-canvas-zoom button {
+  min-width: 28px;
+  padding-right: 6px;
+  padding-left: 6px;
+}
+
+#draft-zoom-value {
+  min-width: 48px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-align: center;
+}
+
+#draft-zoom-reset {
+  min-width: 42px;
+}
+
+/* 修改：无边画布只通过拖拽导航，浏览器滚动条保持隐藏。 */
+.draft-canvas-viewport {
+  position: relative;
+  width: 100%;
+  height: clamp(520px, 64vh, 680px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #e9eef2;
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-small, 3px) var(--radius-small, 3px);
+  scrollbar-width: none;
+  outline: none;
+}
+
+.draft-canvas-viewport::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.draft-canvas-viewport:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--color-blue-700, #2d6798);
+}
+
+.draft-canvas-board {
+  position: relative;
+  width: 3200px;
+  height: 2200px;
+  overflow: hidden;
+  background-color: #ffffff;
+  background-image: radial-gradient(#d7e0e7 1px, transparent 1px);
+  background-position: 0 0;
+  background-size: var(--draft-grid-size, 24px) var(--draft-grid-size, 24px);
+  box-shadow: inset 0 0 0 1px rgba(174, 189, 202, 0.55);
+}
+
+.draft-canvas-board[data-drawing-tool="move"] {
+  cursor: grab;
+}
+
+.draft-canvas-board.is-panning {
+  cursor: grabbing;
+}
+
+.draft-canvas-images,
+#draft-handwriting-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.draft-canvas-images {
+  z-index: 1;
+  pointer-events: none;
+}
+
+#draft-handwriting-canvas {
+  z-index: 2;
+  display: block;
+  cursor: none;
+  touch-action: none;
+}
+
+.draft-canvas-board[data-drawing-tool="move"] #draft-handwriting-canvas {
+  pointer-events: none;
+}
+
+/* 插入图片位于笔迹下方；移动模式中可选中、拖动与缩放。 */
+.draft-board-image {
+  position: absolute;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  border: 2px solid transparent;
+  border-radius: 5px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.draft-canvas-board[data-drawing-tool="move"] .draft-board-image {
+  cursor: move;
+  pointer-events: auto;
+}
+
+.draft-board-image.is-selected {
+  border-color: var(--color-blue-700, #2d6798);
+  box-shadow: 0 0 0 2px rgba(45, 103, 152, 0.15);
+}
+
+.draft-board-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.draft-board-image-delete,
+.draft-board-image-resize {
+  position: absolute;
+  display: none;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  color: #ffffff;
+  background: var(--primary-dark);
+  box-shadow: 0 1px 4px rgba(9, 39, 68, 0.24);
+  font: 15px/1 var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+}
+
+.draft-board-image.is-selected .draft-board-image-delete,
+.draft-board-image.is-selected .draft-board-image-resize {
+  display: flex;
+}
+
+.draft-board-image-delete {
+  top: -13px;
+  right: -13px;
+}
+
+.draft-board-image-resize {
+  right: -13px;
+  bottom: -13px;
+  cursor: nwse-resize;
+}
+
+/* 自绘双层圆形指针不会随墨水颜色变得不可见，橡皮范围也可直接预览。 */
+.draft-canvas-cursor {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  display: block;
+  width: var(--draft-cursor-size, 10px);
+  height: var(--draft-cursor-size, 10px);
+  border: 2px solid #173a56;
+  border-radius: 50%;
+  background: var(--draft-cursor-color, #000000);
+  box-shadow: 0 0 0 1px #ffffff, 0 1px 3px rgba(9, 39, 68, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.draft-canvas-cursor.is-visible {
+  opacity: 1;
+}
+
+.draft-canvas-cursor.is-eraser {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+/* ==================== 草稿底部操作 ==================== */
+.draft-panel-footer {
+  display: flex;
+  margin-top: 15px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.draft-action-status {
+  min-width: 0;
+  color: var(--text-muted);
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.draft-action-status[data-state="success"] {
+  color: var(--color-question-green, #16865f);
+}
+
+.draft-action-status[data-state="warning"],
+.draft-action-status[data-state="error"] {
+  color: var(--color-question-red, #d63f4b);
+}
+
+.draft-panel-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.draft-panel-actions label {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+#draft-export-format {
+  min-height: 32px;
+  padding: 4px 28px 4px 9px;
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-radius: var(--radius-small, 3px);
+  color: var(--text-secondary);
+  background: #ffffff;
+  font: 12px var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+}
+
+#draft-export-format:focus-visible {
+  outline: 2px solid var(--color-blue-700, #2d6798);
+  outline-offset: 1px;
+}
+
+.draft-panel-actions button {
+  min-height: 32px;
+  padding: 4px 11px;
+  font-size: 13px;
+}
+
+/* 发布是草稿区的主要操作，使用网站主要蓝色。 */
+#draft-publish {
+  border-color: var(--primary-dark);
+  color: #ffffff;
+  background: var(--primary-dark);
+}
+
+#draft-publish:not(:disabled):hover {
+  border-color: #0b3b63;
+  color: #ffffff;
+  background: #0b3b63;
+}
+
+#draft-publish:disabled,
+#draft-export:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+/* ==================== 图片与 PDF 共用的离屏导出纸张 ==================== */
+.draft-export-sheet {
+  position: fixed;
+  top: 0;
+  left: -100000px;
+  z-index: -1;
+  width: 794px;
+  padding: 52px 58px 58px;
+  color: #172b3c;
+  background: #ffffff;
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", sans-serif);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.draft-export-sheet h1 {
+  color: #092744;
+  font-family: var(--font-display, "Songti SC", STSong, SimSun, serif);
+  font-size: 25px;
+  line-height: 1.45;
+}
+
+.draft-export-meta {
+  margin-top: 4px;
+  color: #657c90;
+  font-size: 12px;
+}
+
+.draft-export-section {
+  margin-top: 28px;
+}
+
+.draft-export-section h2 {
+  margin-bottom: 10px;
+  padding-bottom: 7px;
+  color: #104875;
+  border-bottom: 1px solid #dce3e9;
+  font-family: var(--font-display, "Songti SC", STSong, SimSun, serif);
+  font-size: 18px;
+}
+
+.draft-export-rich p,
+.draft-export-rich div,
+.draft-export-rich ul,
+.draft-export-rich ol {
+  margin: 0 0 9px;
+}
+
+.draft-export-rich ul,
+.draft-export-rich ol {
+  padding-left: 25px;
+}
+
+.draft-export-formula {
+  display: inline-block;
+  margin: 0 3px;
+  vertical-align: middle;
+}
+
+.draft-export-latex-source {
+  margin-top: 12px;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+  color: #365a78;
+  background: #f3f7fa;
+  border-left: 3px solid #2d6798;
+  font: 12px/1.65 var(--font-code, "SFMono-Regular", Consolas, monospace);
+  white-space: pre-wrap;
+}
+
+.draft-export-latex-render {
+  min-height: 62px;
+  padding: 15px 4px 3px;
+  font-size: 20px;
+}
+
+.draft-export-handwriting {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #dce3e9;
+}

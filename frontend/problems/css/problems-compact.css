@@ -1,0 +1,700 @@
+/* ==================== 题库页面：永久紧凑模式 ==================== */
+
+/*
+ * 请把本文件放在其余题库 CSS 之后加载。
+ * 本文件只覆盖尺寸、间距和排版密度，不修改配色与交互逻辑。
+ */
+
+:root {
+  --content-width: 1440px;
+}
+
+body {
+  font-size: 14px;
+}
+
+body > main {
+  width: min(calc(100% - 48px), var(--content-width));
+  padding-top: 28px;
+  padding-bottom: 42px;
+}
+
+/* ==================== 页面标题与统计 ==================== */
+
+.bank-breadcrumb {
+  gap: 5px;
+  font-size: 14px;
+}
+
+.bank-header-content {
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 40px;
+  margin-top: 9px;
+}
+
+.bank-header-title h1 {
+  font-size: clamp(32px, 2.2vw, 38px);
+}
+
+.bank-header-title p {
+  margin-top: 2px;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.bank-header-stats {
+  min-height: 80px;
+}
+
+.bank-header-stats > div {
+  padding: 11px 18px 9px;
+}
+
+.bank-header-stats dt {
+  font-size: 13px;
+}
+
+.bank-header-stats dd {
+  margin-top: 2px;
+  font-size: 25px;
+}
+
+/* ==================== 筛选面板 ==================== */
+
+.bank-filter-panel {
+  margin-top: 28px;
+}
+
+.bank-filter-panel-header {
+  min-height: 76px;
+  padding: 13px 24px 12px;
+  gap: 20px;
+}
+
+.bank-filter-panel-header h2 {
+  font-size: 20px;
+}
+
+.bank-filter-panel-header p {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.bank-filter-header-actions {
+  gap: 14px;
+}
+
+.bank-filter-multiple-control {
+  gap: 8px;
+  font-size: 14px;
+}
+
+.bank-filter-multiple-switch {
+  width: 34px;
+  height: 20px;
+}
+
+.bank-filter-multiple-switch::after {
+  width: 14px;
+  height: 14px;
+}
+
+.bank-filter-multiple-input:checked + .bank-filter-multiple-switch::after {
+  transform: translateX(14px);
+}
+
+.bank-filter-clear {
+  min-height: 34px;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.bank-filter-group {
+  min-height: 56px;
+  padding: 9px 24px;
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+
+.bank-filter-group-label {
+  font-size: 15px;
+}
+
+.bank-filter-options {
+  gap: 5px 7px;
+}
+
+.bank-filter-options button {
+  min-height: 34px;
+  padding: 5px 12px;
+  font-size: 14px;
+}
+
+.bank-filter-options .bank-filter-more {
+  min-height: 30px;
+  padding: 4px 8px;
+  gap: 5px;
+  font-size: 13px;
+}
+
+.bank-filter-options .bank-filter-more::after {
+  width: 5px;
+  height: 5px;
+}
+
+.bank-filter-more-count {
+  min-width: 18px;
+  height: 18px;
+  padding-right: 4px;
+  padding-left: 4px;
+  font-size: 11px;
+}
+
+.bank-filter-level-options button[data-level-color] {
+  gap: 6px;
+}
+
+.bank-filter-level-options button[data-level-color]::before {
+  width: 8px;
+  height: 8px;
+  flex-basis: 8px;
+}
+
+.bank-filter-panel .bank-filter-search-row {
+  min-height: 90px;
+  padding: 15px 24px 17px;
+  grid-template-columns: minmax(260px, 1fr) 116px;
+  gap: 14px;
+}
+
+.bank-filter-panel-item label {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.bank-filter-panel-item input,
+.bank-filter-submit {
+  min-height: 40px;
+  font-size: 14px;
+}
+
+.bank-filter-panel-item input {
+  padding: 7px 11px;
+}
+
+.bank-filter-submit {
+  padding: 7px 14px;
+}
+
+/* ==================== “更多”小窗 ==================== */
+
+.bank-filter-popover {
+  top: calc(100% + 7px);
+  width: min(620px, calc(100vw - 56px));
+}
+
+.bank-filter-popover-header {
+  min-height: 66px;
+  padding: 12px 16px 10px;
+  gap: 15px;
+}
+
+.bank-filter-popover-header h3 {
+  font-size: 16px;
+}
+
+.bank-filter-popover-header p {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bank-filter-popover-close {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  font-size: 21px;
+}
+
+.bank-filter-catalog-list {
+  max-height: 300px;
+  padding: 12px 14px;
+  gap: 8px;
+}
+
+.bank-filter-catalog-item {
+  min-height: 62px;
+  padding: 5px;
+  gap: 3px;
+}
+
+.bank-filter-catalog-choice {
+  min-height: 30px;
+  padding: 4px 7px;
+  font-size: 13px;
+}
+
+.bank-filter-pin-control,
+.bank-filter-pin-fixed {
+  min-height: 22px;
+  padding: 1px 5px;
+  font-size: 11px;
+}
+
+.bank-filter-pin-control input {
+  width: 13px;
+  height: 13px;
+}
+
+.bank-filter-popover-footer {
+  min-height: 44px;
+  padding: 7px 14px;
+  font-size: 12px;
+}
+
+.bank-filter-popover-footer button {
+  min-height: 30px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+/* ==================== 结果工具栏 ==================== */
+
+.bank-results-panel {
+  margin-top: 28px;
+}
+
+.bank-result-toolbar-panel {
+  min-height: 72px;
+  padding: 13px 20px;
+  gap: 20px;
+}
+
+.bank-result-heading {
+  gap: 12px;
+}
+
+.bank-result-heading h2 {
+  font-size: 20px;
+}
+
+.bank-result-heading p,
+.bank-sort-control {
+  font-size: 14px;
+}
+
+.bank-result-toolbar-controls {
+  gap: 15px;
+}
+
+.bank-display-filter-toggle {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.bank-header-view-switch-button {
+  min-width: 70px;
+  min-height: 38px;
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+.bank-sort-control {
+  gap: 8px;
+}
+
+.bank-sort-control select {
+  width: 140px;
+  min-height: 38px;
+  padding: 6px 32px 6px 11px;
+  font-size: 14px;
+}
+
+.bank-batch-selection-toolbar:not([hidden]) {
+  min-height: 48px;
+  padding: 7px 20px;
+  gap: 17px;
+}
+
+.bank-batch-selection-actions button {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+/* ==================== 紧凑题目列表 ==================== */
+
+.bank-result-problem-list-heading,
+.bank-result-problem-panel-view-item {
+  grid-template-columns: 46px 64px minmax(340px, 1fr) 210px 150px 120px 30px;
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+.bank-result-problem-list-heading {
+  min-height: 48px;
+  font-size: 13px;
+}
+
+.bank-result-problem-panel-view-item {
+  min-height: 88px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.bank-result-problem-select {
+  width: 24px;
+  min-height: 28px;
+}
+
+.bank-result-problem-select-checkbox {
+  width: 16px;
+  height: 16px;
+}
+
+.bank-result-problem-panel-view-item-status {
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+}
+
+.bank-result-problem-panel-view-item.is-complete .bank-result-problem-panel-view-item-status {
+  font-size: 19px;
+}
+
+.bank-result-problem-panel-view-item-summary {
+  padding-right: 20px;
+}
+
+.bank-problem-meta,
+.bank-problem-detail {
+  font-size: 12px;
+}
+
+.bank-result-problem-panel-view-item-summary h3,
+.bank-result-problem-panel-view-card-summary h3 {
+  margin-top: 3px;
+  font-size: 16px;
+}
+
+.bank-result-problem-panel-view-item-tags,
+.bank-result-problem-panel-view-card-tags {
+  gap: 5px;
+}
+
+.bank-result-problem-panel-view-item-tags > span,
+.bank-result-problem-panel-view-card-tags > span {
+  min-height: 24px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.bank-result-problem-panel-view-item-source strong {
+  font-size: 16px;
+}
+
+.bank-result-problem-panel-view-item-source span {
+  margin-top: 1px;
+  font-size: 12px;
+}
+
+.bank-result-problem-panel-view-item-value,
+.bank-result-problem-panel-view-card-value {
+  font-size: 13px;
+}
+
+.bank-result-problem-panel-view-item-value > span,
+.bank-result-problem-panel-view-card-value > span {
+  gap: 6px;
+}
+
+.bank-result-problem-panel-view-item-value > span::before,
+.bank-result-problem-panel-view-card-value > span::before {
+  width: 7px;
+  height: 7px;
+}
+
+.bank-result-problem-open {
+  width: 28px;
+  height: 28px;
+  font-size: 23px;
+}
+
+/* ==================== 紧凑题面预览 ==================== */
+
+.bank-result-problem-panel-view-card-header {
+  min-height: 74px;
+  padding: 14px 20px;
+  grid-template-columns: 32px minmax(280px, 1fr) 200px 110px;
+  grid-template-areas: "select summary tags value";
+  gap: 14px;
+}
+
+#preview-view.is-selection-hidden:not(.is-minimal-display) .bank-result-problem-panel-view-card-header {
+  grid-template-columns: minmax(280px, 1fr) 200px 110px;
+  grid-template-areas: "summary tags value";
+}
+
+.bank-result-problem-panel-view-card-content {
+  min-height: 160px;
+  padding: 26px 50px 30px;
+}
+
+.bank-result-problem-panel-view-card-content pre {
+  font-size: 15px;
+  line-height: 1.85;
+}
+
+.bank-result-problem-panel-view-card-footer {
+  min-height: 54px;
+  padding: 9px 20px;
+  gap: 14px;
+  font-size: 12px;
+}
+
+.bank-result-problem-panel-view-card-footer a,
+.bank-result-problem-panel-view-card-footer button {
+  min-height: 32px;
+  padding: 5px 10px;
+}
+
+.bank-result-problem-panel-view-card-actions {
+  gap: 7px;
+}
+
+/* ==================== 分页 ==================== */
+
+.bank-pagination {
+  margin-top: 18px;
+}
+
+.bank-pagination a,
+.bank-pagination button {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+/* ==================== 小屏适配 ==================== */
+
+@media (max-width: 1200px) {
+  body > main {
+    width: min(calc(100% - 36px), var(--content-width));
+  }
+
+  .bank-header-content {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 28px;
+  }
+
+  .bank-result-problem-list-heading,
+  .bank-result-problem-panel-view-item {
+    grid-template-columns: 40px 54px minmax(300px, 1fr) 170px 128px 102px 28px;
+  }
+}
+
+@media (max-width: 980px) {
+  .bank-header-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bank-header-stats {
+    width: 100%;
+    max-width: 460px;
+  }
+
+  .bank-filter-group {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+
+  .bank-result-problem-list-heading,
+  .bank-result-problem-panel-view-item {
+    grid-template-columns: 36px 46px minmax(0, 1fr) auto auto 28px;
+  }
+
+  .bank-result-problem-list-heading-tags,
+  .bank-result-problem-panel-view-item-tags {
+    display: none;
+  }
+
+  .bank-result-problem-panel-view-card-header {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+  }
+
+  #preview-view.is-selection-hidden:not(.is-minimal-display) .bank-result-problem-panel-view-card-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "summary value"
+      "tags tags";
+  }
+}
+
+@media (max-width: 700px) {
+  body {
+    font-size: 14px;
+  }
+
+  body > main {
+    width: min(calc(100% - 24px), var(--content-width));
+    padding-top: 22px;
+    padding-bottom: 32px;
+  }
+
+  .bank-header-title h1 {
+    font-size: 30px;
+  }
+
+  .bank-header-title p {
+    margin-top: 5px;
+    font-size: 14px;
+  }
+
+  .bank-header-stats {
+    min-height: 74px;
+  }
+
+  .bank-header-stats > div {
+    padding: 10px 9px 8px;
+  }
+
+  .bank-header-stats dt {
+    font-size: 12px;
+  }
+
+  .bank-header-stats dd {
+    font-size: 22px;
+  }
+
+  .bank-filter-panel {
+    margin-top: 22px;
+  }
+
+  .bank-filter-panel-header {
+    min-height: 0;
+    padding: 14px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bank-filter-panel-header h2 {
+    font-size: 19px;
+  }
+
+  .bank-filter-panel-header p {
+    font-size: 13px;
+  }
+
+  .bank-filter-header-actions {
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .bank-filter-clear {
+    min-height: 38px;
+  }
+
+  .bank-filter-group {
+    min-height: 0;
+    padding: 12px 14px 14px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .bank-filter-options button {
+    min-height: 40px;
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  .bank-filter-popover {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: calc(100dvh - 24px);
+  }
+
+  .bank-filter-panel .bank-filter-search-row {
+    min-height: 0;
+    padding: 14px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .bank-filter-panel-item input,
+  .bank-filter-submit {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .bank-results-panel {
+    margin-top: 22px;
+  }
+
+  .bank-result-toolbar-panel {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .bank-header-view-switch-button,
+  .bank-sort-control select {
+    min-height: 40px;
+  }
+
+  .bank-result-problem-list-heading,
+  .bank-result-problem-panel-view-item {
+    grid-template-columns: 32px 38px minmax(0, 1fr) 26px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .bank-result-problem-panel-view-item {
+    min-height: 78px;
+  }
+
+  .bank-result-problem-panel-view-card-header {
+    padding: 12px;
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
+  #preview-view.is-selection-hidden:not(.is-minimal-display) .bank-result-problem-panel-view-card-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "summary"
+      "tags"
+      "value";
+  }
+
+  .bank-result-problem-panel-view-card-content {
+    min-height: 140px;
+    padding: 22px 18px 26px;
+  }
+
+  .bank-result-problem-panel-view-card-content pre {
+    font-size: 14px;
+  }
+
+  .bank-result-problem-panel-view-card-footer {
+    padding: 9px 12px;
+  }
+}
+
+@media (max-width: 500px) {
+  .bank-filter-header-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bank-filter-popover-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bank-filter-popover-footer button {
+    width: 100%;
+  }
+}

@@ -1,0 +1,109 @@
+/* ==================== 全局变量与基础样式 ==================== */
+
+/* 题目页面继续使用原变量名，并统一映射到题库页面的全站设计变量。 */
+:root {
+  --page-bg: var(--color-canvas, #eef1f4); /* 页面默认背景 */
+  --card-bg: var(--color-surface, #ffffff); /* 卡片默认背景 */
+  --text-main: var(--color-ink, #0c2134); /* 主要文字颜色 */
+  --text-secondary: var(--color-ink-secondary, #365a78); /* 次要文字颜色 */
+  --text-muted: var(--color-ink-muted, #657c90); /* 提示文字颜色 */
+  --line: var(--color-border-light, #dce3e9); /* 分隔线颜色 */
+  --primary: var(--color-blue-800, #1d5687); /* 网站主要蓝色 */
+  --primary-dark: var(--color-blue-900, #104875); /* 鼠标悬停时使用的深蓝色 */
+  --primary-soft: var(--color-blue-050, #f3f7fa); /* 浅蓝色背景 */
+  --danger: var(--color-red, #984b4d); /* 错误或警告使用的红色 */
+  --radius: 4px; /* 卡片常用圆角 */
+  --question-content-width: 1440px; /* 与题库紧凑模式保持相同的内容宽度 */
+}
+
+/* 星号会选中页面中的所有 HTML 元素和伪元素。 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box; /* 让宽高包含内边距和边框，尺寸更容易计算 */
+}
+
+/* html 表示整个 HTML 文档。 */
+html {
+  color-scheme: light; /* 告诉浏览器此页面使用浅色模式 */
+  scroll-behavior: smooth; /* 页面内跳转时使用平滑滚动 */
+}
+
+/* body 表示网页中所有可见内容的外层容器。 */
+body {
+  min-width: 320px; /* 页面最窄保持 320 像素，避免内容挤得太窄 */
+  min-height: 100vh; /* 页面至少占满整个浏览器窗口的高度 */
+  margin: 0; /* 删除浏览器默认的页面外边距 */
+  color: var(--text-main); /* 使用题库页面的深蓝黑主文字 */
+  background: var(--page-bg); /* 使用题库页面的纯色浅灰背景 */
+  font-family: var(--font-ui, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif); /* 沿用题库页面字体 */
+  font-size: 14px; /* 与题库紧凑模式保持相同的默认字号 */
+  line-height: 1.55; /* 与题库页面保持相同的正文行高 */
+  -webkit-font-smoothing: antialiased; /* 改善浅色背景上的文字显示 */
+  text-rendering: optimizeLegibility; /* 优化文字字距与连字 */
+}
+
+/* 清除标题、段落和题面代码块的浏览器默认外边距。 */
+h1,
+h2,
+h3,
+p,
+pre {
+  margin: 0;
+}
+
+/* a 会选中页面中的所有链接。 */
+a {
+  color: var(--primary); /* 使用题库页面的主要蓝色 */
+  text-decoration: none; /* 去掉链接默认下划线 */
+  transition: color 120ms ease; /* 让链接颜色变化更平滑 */
+}
+
+/* :hover 表示鼠标正停留在链接上。 */
+a:hover {
+  color: var(--primary-dark); /* 鼠标悬停时把链接变成深蓝色 */
+}
+
+/* button 会选中页面中的所有按钮。 */
+button {
+  min-height: 34px; /* 使用题库紧凑模式的按钮高度 */
+  padding: 5px 12px; /* 保持紧凑的按钮内部留白 */
+  border: 1px solid var(--color-border, #cbd6e0); /* 使用题库页面的边框颜色 */
+  border-radius: var(--radius-small, 3px); /* 使用题库页面的小圆角 */
+  color: var(--text-secondary); /* 使用次要文字颜色 */
+  background: var(--card-bg); /* 使用纯白按钮背景 */
+  font: inherit; /* 继承父元素的字体设置 */
+  cursor: pointer; /* 鼠标停在按钮上时显示手形指针 */
+  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease; /* 平滑改变按钮状态 */
+}
+
+/* :hover 表示鼠标正停留在可用按钮上。 */
+button:not(:disabled):hover {
+  border-color: #aebfce; /* 使用题库页面的蓝灰色悬停边框 */
+  color: var(--primary-dark); /* 把按钮文字变成深蓝色 */
+  background: var(--primary-soft); /* 把按钮背景变成浅蓝色 */
+}
+
+/* :active 表示按钮正在被鼠标按下。 */
+button:not(:disabled):active {
+  border-color: var(--color-blue-700, #2d6798); /* 按下时加深边框 */
+  background: var(--color-blue-100, #e8f1f8); /* 按下时加深背景 */
+}
+
+/* :focus-visible 表示使用键盘选中了按钮或链接。 */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-blue-700, #2d6798); /* 显示清晰的蓝色轮廓 */
+  outline-offset: 2px; /* 让轮廓与元素之间留出距离 */
+}
+
+/* hidden 属性存在时，内容不参与页面布局。 */
+[hidden] {
+  display: none !important;
+}
+
+/* 选中文字时沿用题库页面的浅蓝色反馈。 */
+::selection {
+  color: var(--primary-dark);
+  background: #d7e7f3;
+}

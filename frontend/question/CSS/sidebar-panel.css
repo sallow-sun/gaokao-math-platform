@@ -1,0 +1,232 @@
+/* ==================== 右侧信息、答案、标签和推荐栏 ==================== */
+.information-panel,
+.answer-panel,
+.tag-panel,
+.discussion-panel,
+.collection-panel,
+.recommendation-panel {
+  padding: 14px 18px 11px;
+}
+
+/* ==================== 每栏小标题 ==================== */
+.sidebar h2 {
+  width: fit-content; /* h2 宽度等于文字宽度 */
+  color: var(--text-main);
+  font-family: var(--font-display, "Songti SC", STSong, SimSun, serif);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+/* ==================== information-panel ==================== */
+.information-panel > p:not(.information-panel-actions) {
+  display: flex;
+  min-height: 31px;
+  padding: 5px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.information-panel-title {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.information-panel-content {
+  color: var(--text-main);
+  text-align: right;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* 训练价值颜色与题库筛选项、题目标签共用 themes.css 中的映射。 */
+#information-panel-value[data-question-value] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--training-value-color, var(--text-secondary));
+  font-weight: 700;
+  text-shadow: var(--training-value-text-shadow, none);
+}
+
+#information-panel-value[data-question-value]::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: var(--training-value-dot-shadow, none);
+  content: "";
+}
+
+.information-panel-actions {
+  display: flex; /* 让操作项按照从左到右的顺序排列 */
+  flex-wrap: wrap; /* 当前行放不下完整操作项时，将整个操作项移到下一行 */
+  justify-content: flex-start; /* 每一行都从左侧开始排列 */
+  gap: 9px 16px; /* 第一项控制行距，第二项控制同一行的项目间距 */
+  margin-top: 13px; /* 保留操作区与上方题目信息的距离 */
+  padding-top: 11px;
+}
+
+.information-panel-action {
+  appearance: none; /* 清除 button 的浏览器默认外观 */
+  display: inline-flex; /* 让每个操作项按自身文字宽度参与横向排列 */
+  flex: 0 0 auto; /* 禁止操作项被压窄，避免中文逐字向下堆叠 */
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: max-content;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  color: var(--primary);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  word-break: keep-all;
+  cursor: pointer;
+}
+
+.information-panel-action:hover {
+  color: var(--primary-dark);
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ==================== sidebar-panel-header&link&toggle ==================== */
+.sidebar-panel-header {
+  display: flex; /* 让标题和入口链接位于同一行 */
+  padding-bottom: 8px;
+  align-items: center;
+  justify-content: space-between; /* 标题靠左，入口链接靠右 */
+  gap: 16px;
+  border-bottom: 1px solid var(--color-border-light, #dce3e9);
+}
+
+/* “进入讨论版”等入口链接。 */
+.sidebar-panel-link {
+  flex: 0 0 auto;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.sidebar-panel-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ==================== 通用展开/收起按钮 ==================== */
+.sidebar-panel-toggle {
+  appearance: none; /* 清除浏览器的默认按钮样式 */
+  display: flex;
+  width: 100%;
+  min-height: 30px;
+  margin-top: 7px;
+  padding: 5px 8px 1px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--radius-small, 3px);
+  color: var(--text-muted);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.sidebar-panel-arrow {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-3px) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.sidebar-panel-toggle[aria-expanded="true"] .sidebar-panel-arrow {
+  transform: translateY(3px) rotate(225deg);
+}
+
+.sidebar-panel-toggle:hover {
+  border-color: transparent;
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+}
+
+/* ==================== 所有侧栏卡片共用的展开内容区域 ==================== */
+.sidebar-panel-content {
+  margin-top: 10px;
+  padding: 2px 0 3px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  animation: sidebar-panel-expand 0.18s ease-out;
+}
+
+/* 收录信息与推荐题目使用统一的浅色列表项。 */
+.sidebar-panel-item {
+  display: block;
+  min-width: 0;
+  padding: 7px 9px;
+  color: var(--text-secondary);
+  background: #f9fbfc;
+  border-left: 2px solid var(--primary);
+  border-radius: 2px;
+  line-height: 1.55;
+}
+
+/* 标签项沿用题库结果列表中的浅底描边样式。 */
+.sidebar-panel-tag {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 26px;
+  padding: 3px 8px;
+  align-items: center;
+  color: var(--text-secondary);
+  background: #f9fbfc;
+  border: 1px solid #c4d2de;
+  border-radius: 2px;
+  line-height: 1.4;
+}
+
+/* 所有暂无内容状态共用居中灰色提示。 */
+.sidebar-panel-empty {
+  padding: 8px 0;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* 所有展开区域共用同一个入场动画。 */
+@keyframes sidebar-panel-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 用户关闭动画时，不播放展开区域的入场动画。 */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-panel-content {
+    animation: none;
+  }
+}

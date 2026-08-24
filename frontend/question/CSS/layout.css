@@ -1,0 +1,47 @@
+/* ==================== 页面容器与左右两栏 ==================== */
+
+.page-container {
+  width: min(calc(100% - 48px), var(--question-content-width)); /* 与题库紧凑模式保持相同宽度 */
+  min-width: 0;
+  margin-inline: auto;
+  padding: 28px 0 42px; /* 与题库紧凑模式保持相同的上下留白 */
+}
+
+.page-container > article {
+  width: 100%;
+}
+
+.page-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); /* 题面为主栏，侧栏保持可读宽度 */
+  align-items: start;
+  gap: 16px;
+}
+
+.content-panel {
+  min-width: 0;
+}
+
+/* 题面与草稿在左栏上下排列，并分别使用独立卡片。 */
+.main-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 题面和侧栏卡片统一使用题库页面的白底、细边框与小圆角。 */
+.content-panel,
+.draft-panel,
+.sidebar > section {
+  background: var(--card-bg);
+  border: 1px solid var(--color-border, #cbd6e0);
+  border-radius: var(--radius);
+}

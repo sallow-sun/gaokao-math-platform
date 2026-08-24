@@ -1,0 +1,227 @@
+/* ==================== 平板与手机适配：必须最后引入 ==================== */
+
+@media (max-width: 980px) {
+  .page-layout {
+    grid-template-columns: minmax(0, 1fr); /* 平板尺寸改为单栏，避免侧栏过窄 */
+  }
+}
+
+@media (max-width: 760px) {
+  .page-container {
+    width: calc(100% - 24px);
+    padding-top: 22px;
+    padding-bottom: 32px;
+  }
+
+  .header-panel {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-areas:
+      "title title"
+      "stats actions";
+    gap: 14px 12px;
+    padding: 16px 14px;
+  }
+
+  /* 窄屏时先让标题独占整行。 */
+  .header-panel-title {
+    gap: 6px 8px;
+  }
+
+  .header-panel-title-name {
+    font-size: 18px;
+  }
+
+  .header-panel-stats {
+    justify-self: start;
+    width: max-content;
+  }
+
+  .header-panel-stats-item {
+    min-width: 54px;
+    padding: 0 8px;
+  }
+
+  .header-panel-button {
+    justify-self: end;
+  }
+
+  .content-panel {
+    min-height: 240px;
+    padding: 24px 20px 28px;
+  }
+
+  .draft-panel {
+    padding: 20px;
+  }
+
+  .content-panel-question {
+    min-height: 140px;
+  }
+}
+
+@media (max-width: 560px) {
+  .header-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "stats"
+      "actions";
+  }
+
+  .header-panel-stats {
+    width: 100%;
+  }
+
+  .header-panel-stats-item {
+    min-width: 0;
+    padding: 0 5px;
+  }
+
+  .header-panel-button {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .header-panel-button button {
+    flex: 1;
+  }
+
+  .draft-panel-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .draft-panel-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  #draft-export,
+  #draft-publish {
+    flex: 1;
+  }
+
+  .draft-latex-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #draft-latex-source,
+  #draft-latex-preview {
+    min-height: 220px;
+  }
+
+  .draft-latex-toolbar > span {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 430px) {
+  .header-panel-title-name {
+    font-size: 16px;
+  }
+
+  .content-panel-question {
+    min-height: 120px;
+    font-size: 14px;
+  }
+
+  .draft-panel-header {
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .draft-panel {
+    padding: 17px 14px;
+  }
+
+  .draft-mode-tab {
+    flex: 1;
+    padding-right: 7px;
+    padding-left: 7px;
+  }
+
+  .draft-rich-editor {
+    min-height: 220px;
+    padding: 13px;
+  }
+
+  .draft-equation-ribbon {
+    padding-right: 4px;
+    padding-left: 4px;
+    scrollbar-width: none;
+  }
+
+  .draft-equation-ribbon::-webkit-scrollbar {
+    display: none;
+  }
+
+  .draft-toolbar-divider {
+    display: none;
+  }
+
+  .draft-drawing-toolbar {
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .draft-drawing-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .draft-toolbar-spacer {
+    display: none;
+  }
+
+  .draft-drawing-width {
+    flex: 0 0 auto;
+  }
+
+  #draft-ink-width {
+    width: min(96px, 28vw);
+  }
+
+  .draft-color-swatches {
+    flex: 0 0 auto;
+  }
+
+  .draft-canvas-zoom {
+    flex: 0 0 auto;
+  }
+
+  .draft-canvas-viewport {
+    height: min(62vh, 520px);
+    min-height: 430px;
+  }
+
+  .draft-panel-actions label {
+    width: 100%;
+  }
+
+  #draft-export-format {
+    flex: 1 1 100%;
+  }
+
+  .information-panel,
+  .answer-panel,
+  .tag-panel,
+  .discussion-panel,
+  .collection-panel,
+  .recommendation-panel {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

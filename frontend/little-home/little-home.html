@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="mathverse 高考数学网站极简首页">
+  <title>mathverse</title>
+
+  <!-- 极简首页样式：先加载全站主题，再加载当前页面样式。 -->
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/home.css">
+
+  <!-- 极简首页交互脚本：不依赖第三方库，可直接在本地打开使用。 -->
+  <script src="js/home.js" defer></script>
+</head>
+
+<!--
+  页面地址配置：
+  1. 普通版主页地址写在 data-normal-home-url 中。
+  2. 随机跳题的题号以英文逗号分隔，题目页格式写在 data-random-problem-url-template 中。
+-->
+<body
+  data-normal-home-url="home.html"
+  data-random-problem-ids="P10001,P10002"
+  data-random-problem-url-template="question.html?id={problemId}"
+>
+  <!----------- 主页模式切换。 ----------->
+  <header class="home-mode-header">
+    <label class="home-mode-control">
+      <span class="home-mode-label">极简</span>
+      <input
+        class="home-mode-input"
+        type="checkbox"
+        role="switch"
+        data-home-mode-toggle
+        aria-label="切换至普通版主页"
+      >
+      <span class="home-mode-switch" aria-hidden="true"></span>
+    </label>
+  </header>
+
+  <!----------- 文本 Logo 和题库搜索。 ----------->
+  <main class="home-main">
+    <section class="home-search-panel" aria-labelledby="home-logo">
+      <!-- 文本 Logo：确定正式名称后，直接修改这里的文字即可。 -->
+      <h1 id="home-logo" class="home-logo">mathverse</h1>
+
+      <!-- 搜索目标：接入后端时，可修改 action、method 和输入框 name。 -->
+      <form class="home-search-form" role="search" action="problems.html" method="get">
+        <label class="visually-hidden" for="home-search-input">搜索题目、知识点或试卷</label>
+        <span class="home-search-icon" aria-hidden="true"></span>
+        <input
+          id="home-search-input"
+          class="home-search-input"
+          type="search"
+          name="keyword"
+          placeholder="搜索题目、知识点或试卷"
+          autocomplete="off"
+          enterkeyhint="search"
+          required
+          autofocus
+        >
+        <button class="visually-hidden" type="submit">搜索</button>
+      </form>
+
+      <!----------- 搜索框下方快捷按钮。 ----------->
+      <div class="home-search-actions" role="group" aria-label="首页快捷入口">
+        <a class="home-text-button" href="../problems/problems.html">题库</a>
+        <button class="home-text-button" type="button" data-random-problem>随机跳题</button>
+      </div>
+    </section>
+  </main>
+
+  <!----------- 页面底栏和界面设置。 ----------->
+  <footer class="home-footer">
+    <a class="home-footer-link" href="about.html">About</a>
+
+    <div class="home-settings">
+      <button
+        class="home-footer-link home-settings-toggle"
+        type="button"
+        data-settings-toggle
+        aria-expanded="false"
+        aria-controls="home-settings-menu"
+      >Settings</button>
+
+      <!-- 设置菜单向上展开；新增设置时，可继续在此区域添加按钮或链接。 -->
+      <div id="home-settings-menu" class="home-settings-menu" role="menu" data-settings-menu hidden>
+        <button class="home-settings-item" type="button" role="menuitem" data-background-picker>更换背景</button>
+        <a class="home-settings-item" href="help.html" role="menuitem">使用帮助</a>
+        <button
+          class="home-settings-item home-settings-theme"
+          type="button"
+          role="menuitem"
+          data-theme-toggle
+          aria-pressed="false"
+        >夜间模式：关</button>
+      </div>
+    </div>
+
+    <!-- 背景图片只在本机读取，不会上传到网站。 -->
+    <input class="visually-hidden" type="file" accept="image/*" data-background-input tabindex="-1">
+    <p class="visually-hidden" aria-live="polite" data-home-status></p>
+  </footer>
+</body>
+</html>

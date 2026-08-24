@@ -1,0 +1,19 @@
+Mathverse Quill editor third-party components
+
+Quill 1.3.7
+Source: https://www.npmjs.com/package/quill/v/1.3.7
+License: BSD-3-Clause (see QUILL-LICENSE.txt)
+
+quill-mathlive-blot 1.5.0
+Source: https://www.npmjs.com/package/quill-mathlive-blot/v/1.5.0
+License: GPL-3.0 (see QUILL-MATHLIVE-BLOT-GPL-3.0.txt)
+The unminified plugin source included in this package is under
+source/quill-mathlive-blot-1.5.0/.
+
+MathLive 0.55.0 (dependency of quill-mathlive-blot)
+Source: https://www.npmjs.com/package/mathlive/v/0.55.0
+License: MIT (see MATHLIVE-0.55-LICENSE.txt)
+
+The Mathverse compatibility adapter source is included at
+source/quill-editor-entry.js. The browser bundle is produced with esbuild
+using the dependency versions above.
