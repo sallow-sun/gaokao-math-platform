@@ -1,0 +1,470 @@
+/* ==================== 极简首页基础 ==================== */
+
+.home-page,
+.home-page *,
+.home-page *::before,
+.home-page *::after {
+  box-sizing: border-box;
+}
+
+.home-page {
+  color-scheme: light;
+}
+
+/* 夜间模式只覆盖本页使用到的全站变量，不改动题库的默认配色。 */
+.home-page[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #17222c;
+  --color-surface: #1d2933;
+  --color-paper: #111920;
+  --color-ink: #edf3f7;
+  --color-ink-secondary: #bfd0dc;
+  --color-ink-muted: #9eb0be;
+  --color-border: #4c5f6e;
+  --color-border-light: #354754;
+  --color-blue-900: #9dc4e1;
+  --color-blue-700: #79a9cc;
+  --color-blue-100: #283c4b;
+  --color-blue-050: #22313d;
+}
+
+.home-page {
+  --home-background-image: none;
+  --home-background-overlay: transparent;
+  --home-footer-background: var(--color-canvas);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+  background-image: var(--home-background-image);
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  font-family: var(--font-ui);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 自定义背景上增加轻微遮罩，保证 Logo、搜索框和文字始终清晰。 */
+.home-page::before {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: var(--home-background-overlay);
+}
+
+.home-page.has-background {
+  --home-background-overlay: rgb(253 253 252 / 48%);
+  --home-footer-background: rgb(238 241 244 / 88%);
+}
+
+.home-page[data-theme="dark"].has-background {
+  --home-background-overlay: rgb(9 15 20 / 58%);
+  --home-footer-background: rgb(23 34 44 / 88%);
+}
+
+.home-page h1 {
+  margin: 0;
+}
+
+.home-page button,
+.home-page input {
+  color: inherit;
+  font: inherit;
+}
+
+.home-page a {
+  color: inherit;
+}
+
+.home-page button,
+.home-page input,
+.home-page label {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-page ::selection {
+  color: var(--color-blue-900);
+  background: #d7e7f3;
+}
+
+/* 仅供辅助技术读取的文字不参与页面布局。 */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ==================== 主页模式切换 ==================== */
+
+.home-mode-header {
+  position: fixed;
+  top: 26px;
+  right: 32px;
+  z-index: 10;
+}
+
+.home-mode-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.home-mode-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.home-mode-switch {
+  position: relative;
+  display: inline-flex;
+  box-sizing: border-box;
+  width: 38px;
+  height: 22px;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 2px;
+  border: 1px solid #b8c5cf;
+  border-radius: 999px;
+  background: #dfe5ea;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.home-mode-switch::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(30 50 65 / 24%);
+  transition: transform 160ms ease;
+}
+
+.home-mode-control:hover .home-mode-switch {
+  border-color: #8fa6b8;
+}
+
+.home-mode-input:checked + .home-mode-switch {
+  border-color: var(--color-blue-900);
+  background: var(--color-blue-900);
+}
+
+.home-mode-input:checked + .home-mode-switch::after {
+  transform: translateX(16px);
+}
+
+.home-mode-input:focus-visible + .home-mode-switch {
+  outline: 3px solid rgb(16 72 117 / 24%);
+  outline-offset: 2px;
+}
+
+/* ==================== 文本 Logo 和搜索框 ==================== */
+
+.home-main {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  padding: 88px 20px 64px;
+  place-items: center;
+}
+
+.home-search-panel {
+  width: min(720px, 100%);
+  text-align: center;
+  transform: translateY(-6vh);
+}
+
+.home-logo {
+  color: var(--color-blue-900);
+  font-family: var(--font-display);
+  font-size: clamp(52px, 7vw, 76px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.015em;
+}
+
+.home-search-form {
+  display: flex;
+  min-height: 58px;
+  margin-top: 38px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: 0 6px 18px rgb(19 48 73 / 9%);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.home-search-form:hover {
+  border-color: #aebfce;
+  box-shadow: 0 8px 22px rgb(19 48 73 / 13%);
+}
+
+.home-search-form:focus-within {
+  border-color: var(--color-blue-700);
+  box-shadow: 0 0 0 3px rgb(45 103 152 / 14%), 0 8px 22px rgb(19 48 73 / 12%);
+}
+
+/* 搜索图标使用 CSS 绘制，页面无需额外图片资源。 */
+.home-search-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid var(--color-ink-muted);
+  border-radius: 50%;
+  opacity: 0.76;
+}
+
+.home-search-icon::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  bottom: -3px;
+  width: 7px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-ink-muted);
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+
+.home-search-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--color-ink);
+  background: transparent;
+  font-size: 17px;
+}
+
+.home-search-input::placeholder {
+  color: #8799a9;
+}
+
+.home-search-input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+/* ==================== 搜索快捷按钮 ==================== */
+
+.home-search-actions {
+  display: flex;
+  margin-top: 28px;
+  justify-content: center;
+  gap: 12px;
+}
+
+.home-text-button {
+  display: inline-flex;
+  min-width: 112px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: color-mix(in srgb, var(--color-ink) 75%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 50%, transparent);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.home-text-button:hover {
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-canvas) 75%, transparent);
+  box-shadow: 0 1px 2px rgb(19 48 73 / 10%);
+}
+
+.home-text-button:focus-visible,
+.home-footer-link:focus-visible,
+.home-settings-item:focus-visible {
+  outline: 3px solid rgb(45 103 152 / 24%);
+  outline-offset: 2px;
+}
+
+/* ==================== 页面底栏和设置菜单 ==================== */
+
+.home-footer {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  background: var(--home-footer-background);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.home-footer-link {
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.home-footer-link:hover,
+.home-settings-toggle[aria-expanded="true"] {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.home-settings {
+  position: relative;
+}
+
+.home-settings-menu {
+  position: absolute;
+  right: -8px;
+  bottom: calc(100% + 15px);
+  width: 220px;
+  overflow: hidden;
+  padding: 7px 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgb(13 35 52 / 18%);
+}
+
+.home-settings-menu[hidden] {
+  display: none;
+}
+
+.home-settings-item {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-ink);
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.home-settings-item:hover {
+  background: var(--color-blue-050);
+}
+
+.home-settings-theme {
+  margin-top: 6px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+/* ==================== 响应式适配 ==================== */
+
+@media (max-width: 640px) {
+  .home-mode-header {
+    top: 18px;
+    right: 16px;
+  }
+
+  .home-main {
+    padding-bottom: 46px;
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .home-search-panel {
+    transform: translateY(-4vh);
+  }
+
+  .home-logo {
+    font-size: clamp(46px, 15vw, 60px);
+  }
+
+  .home-search-form {
+    min-height: 54px;
+    margin-top: 30px;
+    padding: 0 18px;
+  }
+
+  .home-search-input {
+    min-height: 52px;
+    font-size: 16px;
+  }
+
+  .home-search-actions {
+    margin-top: 24px;
+  }
+
+  .home-text-button {
+    min-width: 104px;
+    min-height: 38px;
+    padding-right: 15px;
+    padding-left: 15px;
+    font-size: 14px;
+  }
+
+  .home-footer {
+    min-height: 50px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .home-settings-menu {
+    right: -4px;
+    bottom: calc(100% + 11px);
+    width: min(220px, calc(100vw - 32px));
+  }
+}
+
+@media (max-height: 520px) {
+  .home-search-panel {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-mode-switch,
+  .home-mode-switch::after,
+  .home-search-form,
+  .home-text-button {
+    transition: none;
+  }
+}
