@@ -1,494 +1,878 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="description"
-    content="数海题库"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="按年份、来源、题型与训练价值筛选高考数学真题和精选题">
   <title>题库 - 数海 MathSea</title>
 
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='problems/css/problems-base.css') }}"
-  >
+  <link rel="stylesheet" href="{{ url_for('static', filename='problems/css/problems-base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='problems/css/problems-layout.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='problems/css/problems-header-panel.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='problems/css/problems-filter-panel.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='problems/css/problems-content-panel.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='problems/css/problems-responsive.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='problems/css/themes.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='problems/css/problems-compact.css') }}">
 
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='problems/css/problems-layout.css') }}"
-  >
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["\\(", "\\)"], ["$", "$"]],
+        displayMath: [["\\[", "\\]"], ["$$", "$$"]],
+        processEscapes: true
+      },
+      svg: { fontCache: "local" },
+      options: { enableMenu: false }
+    };
+  </script>
+  <script src="{{ url_for('static', filename='question/vendor/mathjax/tex-svg.js') }}" defer></script>
 
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='problems/css/problems-header-panel.css') }}"
-  >
+  <script src="{{ url_for('static', filename='problems/js/problems.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='problems/js/problems-filter.js') }}" defer></script>
 
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='problems/css/problems-filter-panel.css') }}"
-  >
+  <style>
+    .bank-filter-tags {
+      min-width: 0;
+    }
 
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='problems/css/problems-content-panel.css') }}"
-  >
+    .bank-filter-tags-label {
+      display: block;
+      margin-bottom: 8px;
+    }
 
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='problems/css/problems-responsive.css') }}"
-  >
+    .bank-filter-tag-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .bank-filter-tag-choice {
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .bank-filter-tag-choice input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .bank-filter-tag-choice span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid #d8dde3;
+      border-radius: 4px;
+      background: #fff;
+      color: #555;
+      transition: .15s ease;
+    }
+
+    .bank-filter-tag-choice input:checked + span {
+      border-color: #3498db;
+      background: #edf7fd;
+      color: #2586c4;
+    }
+  </style>
 </head>
 
 <body>
-  {% set current_sort = sort|default("oldest", true) %}
-
-  <!-- 顶部导航 -->
-  <header>
-    <a
-      id="header-return"
-      href="{{ url_for('index') }}"
-    >
-      ← 返回
-    </a>
-
-    <span id="header-location">题库</span>
-
-    {% if current_user %}
-      {% set avatar = current_user["avatar"] %}
-
-      <a
-      id="header-user"
-      href="{{ url_for(
-          'user_page',
-          user_id=current_user['id']
-        ) }}"
-        aria-label="进入{{ current_user['username'] }}的个人主页"
-      >
-      {% if avatar
-            and avatar != "userpage/img/default-avatar.png"
-            and avatar != "''" %}
-
-        <img
-          id="header-userimg"
-          src="{{ url_for('static', filename=avatar) }}"
-          alt=""
-          onerror="
-            this.hidden = true;
-            this.nextElementSibling.hidden = false;
-          "
-        >
-
-        <span
-          class="header-user-fallback"
-          aria-hidden="true"
-          hidden
-        >
-          {{ current_user["username"][0]|upper }}
-        </span>
-
-      {% else %}
-
-        <span
-          class="header-user-fallback"
-          aria-hidden="true"
-        >
-          {{ current_user["username"][0]|upper }}
-        </span>
-
-      {% endif %}
-    </a>
-  {% endif %}
-  </header>
-
   <main>
-    <!-- 题库标题 -->
-    <section class="bank-header">
-      <div class="bank-header-title">
-        <h1>题库</h1>
-        <p>长风破浪会有时，直挂云帆济沧海</p>
+    <section class="bank-header" aria-labelledby="bank-page-title">
+      <div class="bank-header-content">
+        <div class="bank-header-title">
+          <h1 id="bank-page-title">高考数学题库</h1>
+          <p>长风破浪会有时，直挂云帆济沧海。</p>
+        </div>
+
+        <div class="bank-header-right">
+          <dl class="bank-header-stats" aria-label="题库概况">
+            <div><dt>已收录</dt><dd>{{ total_count }}</dd></div>
+            <div><dt>真题年份</dt><dd>{{ year_count }}</dd></div>
+            <div><dt>知识专题</dt><dd>{{ tag_count }}</dd></div>
+          </dl>
+
+          {% if current_user %}
+            {% set avatar = current_user["avatar"] %}
+            <a class="bank-header-user"
+               href="{{ url_for('user_page', user_id=current_user['id']) }}"
+               aria-label="进入{{ current_user['username'] }}的个人主页">
+              {% if avatar and avatar != "userpage/img/default-avatar.png" and avatar != "''" %}
+                <img class="bank-header-user-img"
+                     src="{{ url_for('static', filename=avatar) }}"
+                     alt="{{ current_user['username'] }}的头像"
+                     onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                <span class="bank-header-user-fallback" aria-hidden="true" hidden>
+                  {{ current_user["username"][0]|upper }}
+                </span>
+              {% else %}
+                <span class="bank-header-user-fallback" aria-hidden="true">
+                  {{ current_user["username"][0]|upper }}
+                </span>
+              {% endif %}
+            </a>
+          {% endif %}
+        </div>
       </div>
     </section>
 
-    <!-- 筛选区域 -->
-    <section class="bank-filter-panel">
-      <h2 id="bank-filter-panel-title">筛选</h2>
+    <section class="bank-filter-panel" aria-labelledby="bank-filter-panel-title">
+      <header class="bank-filter-panel-header">
+        <div><h2 id="bank-filter-panel-title">筛选</h2></div>
 
-      <form
-        id="problem-filter-form"
-        class="bank-filter-panel-form"
-        method="get"
-        action="{{ url_for('problems_page') }}"
-      >
-        <!-- 关键词 -->
-        <div class="bank-filter-panel-item">
-          <label for="keyword">关键词</label>
+        <div class="bank-filter-header-actions">
+          <label class="bank-filter-multiple-control">
+            <span class="bank-filter-multiple-label">允许多选</span>
+            <input class="bank-filter-multiple-input"
+                   type="checkbox"
+                   role="switch"
+                   data-filter-mode-toggle
+                   aria-label="允许同一筛选行选择多个条件">
+            <span class="bank-filter-multiple-switch" aria-hidden="true"></span>
+          </label>
 
-          <input
-            id="keyword"
-            name="keyword"
-            type="search"
-            value="{{ filters.keyword }}"
-            placeholder="搜索题号、题面、标签、来源或地区"
+          <a class="bank-filter-clear" href="{{ url_for('problems_page') }}">清除全部</a>
+        </div>
+      </header>
+
+      <form id="problem-bank-filter-form"
+            class="bank-filter-panel-form"
+            method="get"
+            action="{{ url_for('problems_page') }}"
+            data-filter-mode="single">
+
+        <input id="filter-year" name="year" type="hidden" value="{{ filters.year }}">
+        <input id="filter-source" name="source" type="hidden" value="{{ filters.source }}">
+        <input id="filter-type" name="type" type="hidden" value="{{ filters.type }}">
+        <input id="filter-level" name="level" type="hidden" value="{{ filters.level }}">
+        <input id="filter-mode" name="filter_mode" type="hidden" value="single">
+
+        <div class="bank-filter-group"
+             data-filter-group="year"
+             data-default-pinned="2026,2025,2024,2023"
+             role="group"
+             aria-labelledby="bank-filter-year-label">
+          <span id="bank-filter-year-label" class="bank-filter-group-label">年份</span>
+
+          <div class="bank-filter-control">
+            <div class="bank-filter-options" data-filter-main="year">
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="year"
+                      data-filter-value=""
+                      aria-pressed="{{ 'true' if not filters.year else 'false' }}"
+                      class="{{ 'is-active' if not filters.year else '' }}">全部</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="year"
+                      data-filter-value="2026"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.year == '2026' else 'false' }}"
+                      class="{{ 'is-active' if filters.year == '2026' else '' }}">2026</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="year"
+                      data-filter-value="2025"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.year == '2025' else 'false' }}"
+                      class="{{ 'is-active' if filters.year == '2025' else '' }}">2025</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="year"
+                      data-filter-value="2024"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.year == '2024' else 'false' }}"
+                      class="{{ 'is-active' if filters.year == '2024' else '' }}">2024</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="year"
+                      data-filter-value="2023"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.year == '2023' else 'false' }}"
+                      class="{{ 'is-active' if filters.year == '2023' else '' }}">2023</button>
+
+              <button type="button"
+                      class="bank-filter-more"
+                      data-filter-more="year"
+                      aria-expanded="false"
+                      aria-controls="bank-filter-year-popover">
+                <span>更多</span>
+                <span class="bank-filter-more-count" data-filter-hidden-count hidden>0</span>
+              </button>
+            </div>
+
+            <div id="bank-filter-year-popover"
+                 class="bank-filter-popover"
+                 data-filter-popover="year"
+                 role="dialog"
+                 aria-modal="false"
+                 aria-labelledby="bank-filter-year-popover-title"
+                 hidden>
+              <header class="bank-filter-popover-header">
+                <div>
+                  <h3 id="bank-filter-year-popover-title">所有年份</h3>
+                  <p>选择年份；勾选“显示在筛选栏”可设为常用项。</p>
+                </div>
+                <button class="bank-filter-popover-close"
+                        type="button"
+                        data-filter-popover-close
+                        aria-label="关闭年份小窗">×</button>
+              </header>
+
+              <div class="bank-filter-catalog-list bank-filter-year-catalog"
+                   data-year-catalog
+                   data-year-start="2026"
+                   data-year-end="1978"></div>
+
+              <footer class="bank-filter-popover-footer">
+                <span>固定设置仅保存在当前浏览器。“全部”始终固定显示。</span>
+                <button type="button" data-filter-popover-close>完成</button>
+              </footer>
+            </div>
+          </div>
+        </div>
+
+        <div class="bank-filter-group"
+             data-filter-group="source"
+             data-default-pinned="national-new-1,national-new-2,national-a,local,mock"
+             role="group"
+             aria-labelledby="bank-filter-source-label">
+          <span id="bank-filter-source-label" class="bank-filter-group-label">来源</span>
+
+          <div class="bank-filter-control">
+            <div class="bank-filter-options" data-filter-main="source">
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="source"
+                      data-filter-value=""
+                      aria-pressed="{{ 'true' if not filters.source else 'false' }}"
+                      class="{{ 'is-active' if not filters.source else '' }}">全部</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="source"
+                      data-filter-value="national-new-1"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.source == 'national-new-1' else 'false' }}"
+                      class="{{ 'is-active' if filters.source == 'national-new-1' else '' }}">新高考Ⅰ卷</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="source"
+                      data-filter-value="national-new-2"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.source == 'national-new-2' else 'false' }}"
+                      class="{{ 'is-active' if filters.source == 'national-new-2' else '' }}">新高考Ⅱ卷</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="source"
+                      data-filter-value="national-a"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.source == 'national-a' else 'false' }}"
+                      class="{{ 'is-active' if filters.source == 'national-a' else '' }}">全国甲卷</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="source"
+                      data-filter-value="local"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.source == 'local' else 'false' }}"
+                      class="{{ 'is-active' if filters.source == 'local' else '' }}">地方题</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="source"
+                      data-filter-value="mock"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.source == 'mock' else 'false' }}"
+                      class="{{ 'is-active' if filters.source == 'mock' else '' }}">模拟题</button>
+
+              <button type="button"
+                      class="bank-filter-more"
+                      data-filter-more="source"
+                      aria-expanded="false"
+                      aria-controls="bank-filter-source-popover">
+                <span>更多</span>
+                <span class="bank-filter-more-count" data-filter-hidden-count hidden>0</span>
+              </button>
+            </div>
+
+            <div id="bank-filter-source-popover"
+                 class="bank-filter-popover"
+                 data-filter-popover="source"
+                 role="dialog"
+                 aria-modal="false"
+                 aria-labelledby="bank-filter-source-popover-title"
+                 hidden>
+              <header class="bank-filter-popover-header">
+                <div>
+                  <h3 id="bank-filter-source-popover-title">所有来源</h3>
+                  <p>选择来源；勾选“显示在筛选栏”可设为常用项。</p>
+                </div>
+                <button class="bank-filter-popover-close"
+                        type="button"
+                        data-filter-popover-close
+                        aria-label="关闭来源小窗">×</button>
+              </header>
+
+              <div class="bank-filter-catalog-list">
+                <div class="bank-filter-catalog-item">
+                  <button type="button"
+                          class="bank-filter-catalog-choice {{ 'is-active' if not filters.source else '' }}"
+                          data-filter-choice
+                          data-filter-field="source"
+                          data-filter-value=""
+                          aria-pressed="{{ 'true' if not filters.source else 'false' }}">全部</button>
+                  <span class="bank-filter-pin-fixed">始终显示</span>
+                </div>
+
+                {% set source_choices = [
+                  ('national-new-1', '新高考Ⅰ卷'),
+                  ('national-new-2', '新高考Ⅱ卷'),
+                  ('national-a', '全国甲卷'),
+                  ('local', '地方题'),
+                  ('mock', '模拟题')
+                ] %}
+
+                {% for value, label in source_choices %}
+                  <div class="bank-filter-catalog-item">
+                    <button type="button"
+                            class="bank-filter-catalog-choice {{ 'is-active' if filters.source == value else '' }}"
+                            data-filter-choice
+                            data-filter-field="source"
+                            data-filter-value="{{ value }}"
+                            aria-pressed="{{ 'true' if filters.source == value else 'false' }}">
+                      {{ label }}
+                    </button>
+
+                    <label class="bank-filter-pin-control">
+                      <input type="checkbox"
+                             data-filter-pin-field="source"
+                             data-filter-pin-value="{{ value }}"
+                             checked>
+                      <span>显示在筛选栏</span>
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+
+              <footer class="bank-filter-popover-footer">
+                <span>固定设置仅保存在当前浏览器。“全部”始终固定显示。</span>
+                <button type="button" data-filter-popover-close>完成</button>
+              </footer>
+            </div>
+          </div>
+        </div>
+
+        <div class="bank-filter-group"
+             data-filter-group="type"
+             data-default-pinned="single-choice,multiple-choice,fill-blank,solution"
+             role="group"
+             aria-labelledby="bank-filter-type-label">
+          <span id="bank-filter-type-label" class="bank-filter-group-label">题型</span>
+
+          <div class="bank-filter-control">
+            <div class="bank-filter-options" data-filter-main="type">
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="type"
+                      data-filter-value=""
+                      aria-pressed="{{ 'true' if not filters.type else 'false' }}"
+                      class="{{ 'is-active' if not filters.type else '' }}">全部</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="type"
+                      data-filter-value="single-choice"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.type == 'single-choice' else 'false' }}"
+                      class="{{ 'is-active' if filters.type == 'single-choice' else '' }}">单选题</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="type"
+                      data-filter-value="multiple-choice"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.type == 'multiple-choice' else 'false' }}"
+                      class="{{ 'is-active' if filters.type == 'multiple-choice' else '' }}">多选题</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="type"
+                      data-filter-value="fill-blank"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.type == 'fill-blank' else 'false' }}"
+                      class="{{ 'is-active' if filters.type == 'fill-blank' else '' }}">填空题</button>
+
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="type"
+                      data-filter-value="solution"
+                      data-filter-pinned-main
+                      aria-pressed="{{ 'true' if filters.type == 'solution' else 'false' }}"
+                      class="{{ 'is-active' if filters.type == 'solution' else '' }}">解答题</button>
+
+              <button type="button"
+                      class="bank-filter-more"
+                      data-filter-more="type"
+                      aria-expanded="false"
+                      aria-controls="bank-filter-type-popover">
+                <span>更多</span>
+                <span class="bank-filter-more-count" data-filter-hidden-count hidden>0</span>
+              </button>
+            </div>
+
+            <div id="bank-filter-type-popover"
+                 class="bank-filter-popover"
+                 data-filter-popover="type"
+                 role="dialog"
+                 aria-modal="false"
+                 aria-labelledby="bank-filter-type-popover-title"
+                 hidden>
+              <header class="bank-filter-popover-header">
+                <div>
+                  <h3 id="bank-filter-type-popover-title">所有题型</h3>
+                  <p>选择题型；勾选“显示在筛选栏”可设为常用项。</p>
+                </div>
+                <button class="bank-filter-popover-close"
+                        type="button"
+                        data-filter-popover-close
+                        aria-label="关闭题型小窗">×</button>
+              </header>
+
+              <div class="bank-filter-catalog-list">
+                <div class="bank-filter-catalog-item">
+                  <button type="button"
+                          class="bank-filter-catalog-choice {{ 'is-active' if not filters.type else '' }}"
+                          data-filter-choice
+                          data-filter-field="type"
+                          data-filter-value=""
+                          aria-pressed="{{ 'true' if not filters.type else 'false' }}">全部</button>
+                  <span class="bank-filter-pin-fixed">始终显示</span>
+                </div>
+
+                {% set type_choices = [
+                  ('single-choice', '单选题'),
+                  ('multiple-choice', '多选题'),
+                  ('fill-blank', '填空题'),
+                  ('solution', '解答题')
+                ] %}
+
+                {% for value, label in type_choices %}
+                  <div class="bank-filter-catalog-item">
+                    <button type="button"
+                            class="bank-filter-catalog-choice {{ 'is-active' if filters.type == value else '' }}"
+                            data-filter-choice
+                            data-filter-field="type"
+                            data-filter-value="{{ value }}"
+                            aria-pressed="{{ 'true' if filters.type == value else 'false' }}">
+                      {{ label }}
+                    </button>
+
+                    <label class="bank-filter-pin-control">
+                      <input type="checkbox"
+                             data-filter-pin-field="type"
+                             data-filter-pin-value="{{ value }}"
+                             checked>
+                      <span>显示在筛选栏</span>
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+
+              <footer class="bank-filter-popover-footer">
+                <span>固定设置仅保存在当前浏览器。“全部”始终固定显示。</span>
+                <button type="button" data-filter-popover-close>完成</button>
+              </footer>
+            </div>
+          </div>
+        </div>
+
+        <div class="bank-filter-group bank-filter-level-group"
+             data-filter-group="level"
+             role="group"
+             aria-labelledby="bank-filter-level-label">
+          <span id="bank-filter-level-label" class="bank-filter-group-label">训练价值</span>
+
+          <div class="bank-filter-options bank-filter-level-options" data-filter-main="level">
+            <button type="button"
+                    data-filter-choice
+                    data-filter-field="level"
+                    data-filter-value=""
+                    aria-pressed="{{ 'true' if not filters.level else 'false' }}"
+                    class="{{ 'is-active' if not filters.level else '' }}">全部</button>
+
+            {% set difficulty_choices = [
+              ('red', 'RED'),
+              ('orange', 'ORANGE'),
+              ('yellow', 'YELLOW'),
+              ('green', 'GREEN'),
+              ('cyan', 'CYAN'),
+              ('blue', 'BLUE'),
+              ('purple', 'PURPLE'),
+              ('black', 'BLACK'),
+              ('white', 'WHITE')
+            ] %}
+
+            {% for value, label in difficulty_choices %}
+              <button type="button"
+                      data-filter-choice
+                      data-filter-field="level"
+                      data-filter-value="{{ value }}"
+                      data-level-color="{{ value }}"
+                      aria-pressed="{{ 'true' if filters.level == value else 'false' }}"
+                      class="{{ 'is-active' if filters.level == value else '' }}">
+                {{ label }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div
+          class="bank-filter-group bank-filter-tag-group"
+          role="group"
+          aria-labelledby="bank-filter-tag-label"
+        >
+          <span
+            id="bank-filter-tag-label"
+            class="bank-filter-group-label"
           >
-        </div>
+            标签
+          </span>
 
-        <!-- 年份 -->
-        <div class="bank-filter-panel-item">
-          <label for="year">年份</label>
+          {% set selected_tags = filters.tags if filters.tags is defined else [] %}
 
-          <select id="year" name="year">
-            <option value="">全部年份</option>
+          <div class="bank-filter-tag-options">
 
-            {% for item in years %}
-              <option
-                value="{{ item.year }}"
-                {% if filters.year == item.year %}selected{% endif %}
-              >
-                {{ item.year }}
-              </option>
+            {% for tag_item in tag_options %}
+              <label class="bank-filter-tag-chip">
+                <input
+                  type="checkbox"
+                  name="tag"
+                  value="{{ tag_item }}"
+                  {% if tag_item in selected_tags %}checked{% endif %}
+                >
+                <span>{{ tag_item }}</span>
+              </label>
             {% endfor %}
-          </select>
+
+          </div>
         </div>
+        <div class="bank-filter-search-row">
+          <div class="bank-filter-panel-item bank-filter-keyword">
+            <label for="keyword">关键词</label>
+            <input id="keyword"
+                   name="keyword"
+                   type="search"
+                   value="{{ filters.keyword }}"
+                   placeholder="搜索题号、题面、来源、地区或知识点">
+          </div>
 
-        <!-- 来源 -->
-        <div class="bank-filter-panel-item">
-          <label for="source">来源</label>
 
-          <select id="source" name="source">
-            <option value="">全部来源</option>
 
-            {% for item in sources %}
-              <option
-                value="{{ item.source }}"
-                {% if filters.source == item.source %}selected{% endif %}
-              >
-                {{ item.source }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- 题型 -->
-        <div class="bank-filter-panel-item">
-          <label for="type">题型</label>
-
-          <select id="type" name="type">
-            <option value="">全部题型</option>
-
-            {% for item in question_types %}
-              <option
-                value="{{ item.question_type }}"
-                {% if filters.type == item.question_type %}selected{% endif %}
-              >
-                {{ item.question_type }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- 标签 -->
-        <div class="bank-filter-panel-item">
-          <label for="tag">标签</label>
-
-          <select id="tag" name="tag">
-            <option value="">全部标签</option>
-
-            {% for tag in tag_options %}
-              <option
-                value="{{ tag }}"
-                {% if filters.tag == tag %}selected{% endif %}
-              >
-                {{ tag }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- 难度 -->
-        <div class="bank-filter-panel-item">
-          <label for="level">难度</label>
-
-          <select id="level" name="level">
-            <option value="">全部难度</option>
-
-            <option
-              value="基础"
-              {% if filters.level == "基础" %}selected{% endif %}
-            >
-              基础
-            </option>
-
-            <option
-              value="典型"
-              {% if filters.level == "典型" %}selected{% endif %}
-            >
-              典型
-            </option>
-
-            <option
-              value="重点"
-              {% if filters.level == "重点" %}selected{% endif %}
-            >
-              重点
-            </option>
-
-            <option
-              value="挑战"
-              {% if filters.level == "挑战" %}selected{% endif %}
-            >
-              挑战
-            </option>
-          </select>
-        </div>
-
-        <!-- 筛选按钮 -->
-        <div class="bank-filter-panel-actions">
-          <button type="submit">
-            应用筛选
-          </button>
-
-          <a
-            class="bank-filter-clear-button"
-            href="{{ url_for('problems_page') }}"
-          >
-            清除筛选
-          </a>
+          <button class="bank-filter-submit" type="button" onclick="this.form.submit()">查找题目</button>
         </div>
       </form>
     </section>
 
-    <!-- 结果数量和排序 -->
-    <section class="bank-result-toolbar-panel">
-      <p>
-        共找到
-
-        <strong id="problem-count">
-          {{ questions|length }}
-        </strong>
-
-        道题目
-      </p>
-
-      <label for="sort-order">
-        排序
-
-        <!--
-          form 属性让这个下拉框属于上方 problem-filter-form。
-          因此筛选和排序始终通过同一个表单提交。
-        -->
-        <select
-          id="sort-order"
-          name="sort"
-          form="problem-filter-form"
-          onchange="this.form.requestSubmit()"
-        >
-          <option
-            value="oldest"
-            {% if current_sort == "oldest" %}selected{% endif %}
-          >
-            最早收录
-          </option>
-
-          <option
-            value="newest"
-            {% if current_sort == "newest" %}selected{% endif %}
-          >
-            最新收录
-          </option>
-
-          <option
-            value="number_asc"
-            {% if current_sort == "number_asc" %}selected{% endif %}
-          >
-            题号从小到大
-          </option>
-
-          <option
-            value="number_desc"
-            {% if current_sort == "number_desc" %}selected{% endif %}
-          >
-            题号从大到小
-          </option>
-
-          <option
-            value="easy-first"
-            {% if current_sort == "easy-first" %}selected{% endif %}
-          >
-            由易到难
-          </option>
-
-          <option
-            value="hard-first"
-            {% if current_sort == "hard-first" %}selected{% endif %}
-          >
-            由难到易
-          </option>
-        </select>
-      </label>
-    </section>
-
-    <!-- 题目列表 -->
-    <section
-      id="list-view"
-      class="bank-result-problem-panel-view"
-      data-empty="{{ 'true' if not questions else 'false' }}"
-    >
-      <!-- 列表标题 -->
-      <div
-        class="bank-result-problem-list-heading"
-        role="row"
-        aria-label="题目列表标题栏"
-      >
-        <span
-          class="bank-result-problem-list-heading-select"
-          aria-hidden="true"
-        ></span>
-
-        <span
-          class="bank-result-problem-list-heading-status"
-          role="columnheader"
-        >
-          状态
-        </span>
-
-        <div
-          class="bank-result-problem-list-heading-summary"
-          role="presentation"
-        >
-          <span role="columnheader">题号</span>
-          <span role="columnheader">年份</span>
-          <span role="columnheader">题目来源</span>
-          <span role="columnheader">题型</span>
+    <section class="bank-results-panel" aria-labelledby="bank-result-title">
+      <header class="bank-result-toolbar-panel">
+        <div class="bank-result-heading">
+          <h2 id="bank-result-title">筛选结果</h2>
+          <p>
+            共
+            <strong id="problem-count" data-total-count="{{ total_count }}">{{ result_count }}</strong>
+            道题目
+          </p>
         </div>
 
-        <span
-          class="bank-result-problem-list-heading-tags"
-          role="columnheader"
-        >
-          标签
-        </span>
+        <div class="bank-result-toolbar-controls">
+          <div class="bank-display-filter">
+            <button type="button"
+                    id="bank-display-filter-toggle"
+                    class="bank-display-filter-toggle"
+                    aria-expanded="false"
+                    aria-controls="bank-display-filter-popover">显示设置</button>
 
-        <span
-          class="bank-result-problem-list-heading-value"
-          role="columnheader"
-        >
-          难度
-        </span>
+            <div id="bank-display-filter-popover"
+                 class="bank-display-filter-popover"
+                 role="dialog"
+                 aria-labelledby="bank-display-filter-title"
+                 hidden>
+              <header>
+                <div>
+                  <h3 id="bank-display-filter-title">完整模式显示内容</h3>
+                  <p>题目名称、题型、题干、打印、查看详情和加入题单始终显示。</p>
+                </div>
+                <button type="button" data-display-filter-close aria-label="关闭展示筛选">×</button>
+              </header>
+
+              <div class="bank-display-filter-options">
+                <label><input type="checkbox" data-display-option-control="selection" checked><span>选择框</span></label>
+                <label><input type="checkbox" data-display-option-control="problem-id" checked><span>题号</span></label>
+                <label><input type="checkbox" data-display-option-control="tags" checked><span>知识标签</span></label>
+                <label><input type="checkbox" data-display-option-control="value" checked><span>训练价值</span></label>
+                <label><input type="checkbox" data-display-option-control="source" checked><span>来源信息</span></label>
+                <label><input type="checkbox" data-display-option-control="export" checked><span>导出按钮</span></label>
+              </div>
+
+              <footer>
+                <button type="button" data-display-minimal>全部隐藏</button>
+                <button type="button" data-display-all>全部显示</button>
+              </footer>
+            </div>
+          </div>
+
+          <div class="bank-header-view-switch" aria-label="题目展示方式">
+            <button type="button"
+                    class="bank-header-view-switch-button"
+                    data-view-target="preview-view"
+                    aria-controls="preview-view"
+                    aria-pressed="true">完整</button>
+
+            <button type="button"
+                    class="bank-header-view-switch-button"
+                    data-view-target="list-view"
+                    aria-controls="list-view"
+                    aria-pressed="false">简略</button>
+          </div>
+
+          <label class="bank-sort-control" for="sort-order">
+            <span>按</span>
+
+            <select id="sort-order"
+                    name="sort"
+                    form="problem-bank-filter-form"
+                    onchange="this.form.submit()">
+              <option value="oldest" {% if sort == "oldest" %}selected{% endif %}>最早收录</option>
+              <option value="newest" {% if sort == "newest" %}selected{% endif %}>最新收录</option>
+              <option value="number_asc" {% if sort == "number_asc" %}selected{% endif %}>题号升序</option>
+              <option value="number_desc" {% if sort == "number_desc" %}selected{% endif %}>题号降序</option>
+              <option value="easy-first" {% if sort == "easy-first" %}selected{% endif %}>由易到难</option>
+              <option value="hard-first" {% if sort == "hard-first" %}selected{% endif %}>由难到易</option>
+            </select>
+
+            <span>排序</span>
+          </label>
+        </div>
+      </header>
+
+      <div id="batch-selection-toolbar"
+           class="bank-batch-selection-toolbar"
+           hidden>
+        <label class="bank-batch-selection-all">
+          <input id="batch-select-all" type="checkbox">
+          <span>全选本页</span>
+        </label>
+
+        <p class="bank-batch-selection-count" aria-live="polite">
+          已选择 <strong id="selected-problem-count">0</strong> 道题目
+        </p>
+
+        <div class="bank-batch-selection-actions">
+          <button type="button" id="batch-print" disabled>打印所选</button>
+          <button type="button" id="batch-add-to-list" disabled>加入题单</button>
+          <button type="button" id="batch-selection-clear" disabled>取消选择</button>
+        </div>
       </div>
 
-      <!-- 题目内容 -->
-      {% for question in questions %}
-        <article
-          class="bank-result-problem-panel-view-item"
-          data-problem-id="{{ question.problem_number }}"
-          data-year="{{ question.year or '' }}"
-          data-source="{{ question.source or '' }}"
-          data-type="{{ question.question_type or '' }}"
-          data-level="{{ question.difficulty or '' }}"
-        >
-          <!-- 完成状态 -->
-          <span
-            class="bank-result-problem-panel-view-item-status"
-            aria-label="未完成"
-          >
-            ○
-          </span>
-
-          <!-- 基本信息 -->
-          <div class="bank-result-problem-panel-view-item-summary">
-            <p>
-              <a
-                href="{{ url_for(
-                  'question_page',
-                  problem_number=question.problem_number
-                ) }}"
-              >
-                <span>
-                  {{ question.problem_number }}
-                </span>
-
-                <span>
-                  {{ question.year or "—" }}
-                </span>
-
-                <span>
-                  {{ question.source or question.region or "—" }}
-                </span>
-
-                <span>
-                  {{ question.question_type or "—" }}
-                </span>
-              </a>
-            </p>
-          </div>
-
-          <!-- 标签 -->
-          <div class="bank-result-problem-panel-view-item-tags">
-            {% set tag_list = (
-              question.tags or ""
-            ).replace("，", ",").split(",") %}
-
-            {% set tag_state = namespace(has_tag=false) %}
-
-            {% for question_tag in tag_list %}
-              {% if question_tag.strip() %}
-                {% set tag_state.has_tag = true %}
-
-                <span>
-                  {{ question_tag.strip() }}
-                </span>
-              {% endif %}
-            {% endfor %}
-
-            {% if not tag_state.has_tag %}
-              <span>未分类</span>
-            {% endif %}
-          </div>
-
-          <!-- 难度 -->
-          <div
-            class="bank-result-problem-panel-view-item-value"
-            data-question-value="{{ question.value_color }}"
-          >
-            <span>
-              {{ question.difficulty or "未设置" }}
-            </span>
-          </div>
-        </article>
-
-      {% else %}
-        <!-- 没有题目 -->
-        <div class="bank-result-empty">
-          <h2>没有找到符合条件的题目</h2>
-
-          <p>
-            请尝试修改关键词或清除筛选条件。
-          </p>
-
-          <a
-            class="bank-filter-clear-button"
-            href="{{ url_for('problems_page') }}"
-          >
-            清除筛选
-          </a>
+      <section id="list-view"
+               class="bank-result-problem-panel-view"
+               hidden>
+        <div class="bank-result-problem-list-heading"
+             role="row"
+             aria-label="题目列表标题栏">
+          <span class="bank-result-problem-list-heading-select" aria-hidden="true"></span>
+          <span class="bank-result-problem-list-heading-status" role="columnheader">状态</span>
+          <span class="bank-result-problem-list-heading-summary" role="columnheader">题目</span>
+          <span class="bank-result-problem-list-heading-tags" role="columnheader">Tag</span>
+          <span class="bank-result-problem-list-heading-source" role="columnheader">来源</span>
+          <span class="bank-result-problem-list-heading-value" role="columnheader">训练价值</span>
+          <span aria-hidden="true"></span>
         </div>
-      {% endfor %}
+
+        {% for question in questions %}
+          <article class="bank-result-problem-panel-view-item"
+                   data-problem-id="{{ question['problem_number'] }}"
+                   data-year="{{ question['year'] or '' }}"
+                   data-source="{{ question['source'] or '' }}"
+                   data-type="{{ question['question_type'] or '' }}"
+                   data-level="{{ question['difficulty'] or '' }}">
+
+            <label class="bank-result-problem-select">
+              <input type="checkbox"
+                     class="bank-result-problem-select-checkbox"
+                     name="selected-problems"
+                     value="{{ question['problem_number'] }}"
+                     data-problem-id="{{ question['problem_number'] }}"
+                     aria-label="选择题目 {{ question['problem_number'] }}">
+            </label>
+
+            <span class="bank-result-problem-panel-view-item-status" aria-label="未完成">○</span>
+
+            <div class="bank-result-problem-panel-view-item-summary">
+              <p class="bank-problem-meta">
+                <a href="{{ url_for('question_page', problem_number=question['problem_number']) }}">
+                  {{ question["problem_number"] }}
+                </a>
+                <span aria-hidden="true">|</span>
+                <span>{{ question["type_name"] }}</span>
+              </p>
+
+              <h3>
+                <a href="{{ url_for('question_page', problem_number=question['problem_number']) }}">
+                  {% if question["year"] %}{{ question["year"] }} 年{% endif %}
+                  {{ question["source_name"] }}
+                </a>
+              </h3>
+
+              <div class="bank-problem-detail math-content">{{ question["content"] }}</div>
+            </div>
+
+            <div class="bank-result-problem-panel-view-item-tags">
+              {% if question["tags"] %}
+                {% for tag_item in question["tags"].replace("，", ",").split(",") %}
+                  {% if tag_item.strip() %}
+                    <span>{{ tag_item.strip() }}</span>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <span>未分类</span>
+              {% endif %}
+            </div>
+
+            <div class="bank-result-problem-panel-view-item-source">
+              <strong>{{ question["year"] or "—" }}</strong>
+              <span>{{ question["source_name"] }}</span>
+            </div>
+
+            <div class="bank-result-problem-panel-view-item-value"
+                 data-question-value="{{ question['value_color'] }}">
+              <span>{{ (question["difficulty"] or "white")|upper }}</span>
+            </div>
+
+            <a class="bank-result-problem-open"
+               href="{{ url_for('question_page', problem_number=question['problem_number']) }}"
+               aria-label="查看题目 {{ question['problem_number'] }}">→</a>
+          </article>
+        {% else %}
+          <div class="bank-no-results">没有找到符合条件的题目</div>
+        {% endfor %}
+      </section>
+
+      <section id="preview-view" class="bank-result-problem-panel-view">
+        {% for question in questions %}
+          <article class="bank-result-problem-panel-view-card"
+                   data-problem-id="{{ question['problem_number'] }}"
+                   data-year="{{ question['year'] or '' }}"
+                   data-source="{{ question['source'] or '' }}"
+                   data-type="{{ question['question_type'] or '' }}"
+                   data-level="{{ question['difficulty'] or '' }}">
+
+            <header class="bank-result-problem-panel-view-card-header">
+              <label class="bank-result-problem-select" data-display-option="selection">
+                <input type="checkbox"
+                       class="bank-result-problem-select-checkbox"
+                       name="selected-problems"
+                       value="{{ question['problem_number'] }}"
+                       data-problem-id="{{ question['problem_number'] }}"
+                       aria-label="选择题目 {{ question['problem_number'] }}">
+              </label>
+
+              <div class="bank-result-problem-panel-view-card-summary">
+                <p class="bank-problem-meta">
+                  <a href="{{ url_for('question_page', problem_number=question['problem_number']) }}"
+                     data-display-option="problem-id">
+                    {{ question["problem_number"] }}
+                  </a>
+                  <span data-display-option="problem-id" aria-hidden="true">|</span>
+                  <span>{{ question["type_name"] }}</span>
+                </p>
+
+                <h3>
+                  <a href="{{ url_for('question_page', problem_number=question['problem_number']) }}">
+                    {% if question["year"] %}{{ question["year"] }} 年{% endif %}
+                    {{ question["source_name"] }}
+                  </a>
+                </h3>
+              </div>
+
+              <div class="bank-result-problem-panel-view-card-tags" data-display-option="tags">
+                {% if question["tags"] %}
+                  {% for tag_item in question["tags"].replace("，", ",").split(",") %}
+                    {% if tag_item.strip() %}
+                      <span>{{ tag_item.strip() }}</span>
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  <span>未分类</span>
+                {% endif %}
+              </div>
+
+              <div class="bank-result-problem-panel-view-card-value"
+                   data-display-option="value"
+                   data-question-value="{{ question['value_color'] }}">
+                <span>{{ (question["difficulty"] or "white")|upper }}</span>
+              </div>
+            </header>
+
+            <div class="bank-result-problem-panel-view-card-content">
+              <div class="math-content bank-problem-question-text">{{ question["content"] }}</div>
+              {% if question["image_path"] %}
+              <img class="bank-problem-image"
+                   src="{{ url_for('static', filename=question['image_path']) }}"
+                   alt="{{ question['problem_number'] }}题目配图">
+              {% endif %}
+            </div>
+
+            <footer class="bank-result-problem-panel-view-card-footer">
+              <p data-display-option="source">
+                {{ question["year"] or "未知年份" }}
+                ·
+                {{ question["source_name"] }}
+              </p>
+
+              <div class="bank-result-problem-panel-view-card-actions">
+                <button type="button" data-card-print>打印</button>
+
+                <div class="bank-problem-export" data-display-option="export">
+                  <button type="button" data-export-toggle aria-expanded="false">导出</button>
+
+                  <div class="bank-problem-export-menu" role="menu" hidden>
+                    <button type="button" role="menuitem" data-export-format="pdf">导出为 PDF</button>
+                    <button type="button" role="menuitem" data-export-format="image">导出为图片（png）</button>
+                    <button type="button" role="menuitem" data-export-format="markdown">以 Markdown 格式复制</button>
+                    <button type="button" role="menuitem" data-export-format="latex">以 LaTeX 格式复制</button>
+                    <button type="button" role="menuitem" data-export-format="text">以纯文本复制</button>
+                  </div>
+                </div>
+
+                <a href="{{ url_for('question_page', problem_number=question['problem_number']) }}">查看详情</a>
+                <button type="button" data-add-to-list>加入题单</button>
+              </div>
+            </footer>
+          </article>
+        {% else %}
+          <div class="bank-no-results">没有找到符合条件的题目</div>
+        {% endfor %}
+      </section>
     </section>
+
+    <nav class="bank-pagination" aria-label="题库分页">
+      <button type="button" disabled>上一页</button>
+      <a href="?page=1">1</a>
+      <a href="?page=2">2</a>
+      <a href="?page=3">3</a>
+      <button type="button">下一页</button>
+    </nav>
   </main>
-
-  <footer class="site-footer">
-    <p>
-      数海 MathSea · 在思考中抵达更远的地方
-    </p>
-  </footer>
 </body>
-
 </html>

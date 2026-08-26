@@ -46,9 +46,37 @@ QUESTION_TAG_OPTIONS = [
     "逻辑与命题",
     "算法与程序框图"
 ]
+QUESTION_SOURCE_OPTIONS = {
+    "national-new-1": "新高考Ⅰ卷",
+    "national-new-2": "新高考Ⅱ卷",
+    "national-a": "全国甲卷",
+    "local": "地方题",
+    "mock": "模拟题"
+}
+
+QUESTION_TYPE_OPTIONS = {
+    "single-choice": "单选题",
+    "multiple-choice": "多选题",
+    "fill-blank": "填空题",
+    "solution": "解答题"
+}
+
+QUESTION_DIFFICULTY_OPTIONS = {
+    "red": "RED",
+    "orange": "ORANGE",
+    "yellow": "YELLOW",
+    "green": "GREEN",
+    "cyan": "CYAN",
+    "blue": "BLUE",
+    "purple": "PURPLE",
+    "black": "BLACK",
+    "white": "WHITE"
+}
 
 ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 MAX_AVATAR_SIZE = 5 * 1024 * 1024
+ALLOWED_QUESTION_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_QUESTION_IMAGE_SIZE = 10 * 1024 * 1024
 
 def get_user_db():
     connection = sqlite3.connect(app.config["USER_DATABASE"])
@@ -123,6 +151,7 @@ def init_question_database():
             content TEXT NOT NULL,
             solution TEXT,
             answer TEXT,
+            image_path TEXT,
             creator_uid TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -146,6 +175,7 @@ def init_question_database():
         "tags": "TEXT",
         "solution": "TEXT",
         "answer": "TEXT",
+        "image_path": "TEXT",
         "creator_uid": "TEXT",
         "created_at": "TEXT",
         "updated_at": "TEXT"
@@ -288,43 +318,18 @@ def forgot_page():
 @app.route("/problems")
 @login_required
 def problems_page():
-    keyword = request.args.get(
-        "keyword",
-        ""
-    ).strip()
+    keyword = request.args.get("keyword", "").strip()
+    year = request.args.get("year", "").strip()
+    source = request.args.get("source", "").strip()
+    question_type = request.args.get("type", "").strip()
+    difficulty = request.args.get("level", "").strip()
+    tags = [
+        item.strip()
+        for item in request.args.getlist("tag")
+        if item.strip()
+    ]
+    sort = request.args.get("sort", "oldest").strip()
 
-    year = request.args.get(
-        "year",
-        ""
-    ).strip()
-
-    source = request.args.get(
-        "source",
-        ""
-    ).strip()
-
-    question_type = request.args.get(
-        "type",
-        ""
-    ).strip()
-
-    difficulty = request.args.get(
-        "level",
-        ""
-    ).strip()
-
-    tag = request.args.get(
-        "tag",
-        ""
-    ).strip()
-
-    # 默认按照最早收录排序
-    sort = request.args.get(
-        "sort",
-        "oldest"
-    ).strip()
-
-    # 排序规则
     sort_rules = {
         "oldest": """
             ORDER BY created_at ASC, id ASC
@@ -355,14 +360,16 @@ def problems_page():
         "easy-first": """
             ORDER BY
                 CASE difficulty
-                    WHEN '基础' THEN 1
-                    WHEN '简单' THEN 1
-                    WHEN '典型' THEN 2
-                    WHEN '中等' THEN 2
-                    WHEN '重点' THEN 3
-                    WHEN '挑战' THEN 4
-                    WHEN '困难' THEN 4
-                    ELSE 5
+                    WHEN 'white' THEN 1
+                    WHEN 'green' THEN 2
+                    WHEN 'cyan' THEN 3
+                    WHEN 'blue' THEN 4
+                    WHEN 'yellow' THEN 5
+                    WHEN 'orange' THEN 6
+                    WHEN 'red' THEN 7
+                    WHEN 'purple' THEN 8
+                    WHEN 'black' THEN 9
+                    ELSE 10
                 END ASC,
                 id ASC
         """,
@@ -370,20 +377,21 @@ def problems_page():
         "hard-first": """
             ORDER BY
                 CASE difficulty
-                    WHEN '挑战' THEN 1
-                    WHEN '困难' THEN 1
-                    WHEN '重点' THEN 2
-                    WHEN '典型' THEN 3
-                    WHEN '中等' THEN 3
-                    WHEN '基础' THEN 4
-                    WHEN '简单' THEN 4
-                    ELSE 5
+                    WHEN 'black' THEN 1
+                    WHEN 'purple' THEN 2
+                    WHEN 'red' THEN 3
+                    WHEN 'orange' THEN 4
+                    WHEN 'yellow' THEN 5
+                    WHEN 'blue' THEN 6
+                    WHEN 'cyan' THEN 7
+                    WHEN 'green' THEN 8
+                    WHEN 'white' THEN 9
+                    ELSE 10
                 END ASC,
                 id ASC
         """
     }
 
-    # 如果网址传入了不存在的排序方式，则使用最早收录
     if sort not in sort_rules:
         sort = "oldest"
 
@@ -403,6 +411,7 @@ def problems_page():
                 OR tags LIKE ?
                 OR source LIKE ?
                 OR region LIKE ?
+                OR question_type LIKE ?
             )
         """)
 
@@ -411,33 +420,36 @@ def problems_page():
             keyword_value,
             keyword_value,
             keyword_value,
+            keyword_value,
             keyword_value
         ])
 
-    # 年份筛选
+    # 年份
     if year:
         conditions.append("year = ?")
         parameters.append(year)
 
-    # 来源筛选
+    # 来源
     if source:
         conditions.append("source = ?")
         parameters.append(source)
 
-    # 题目类型筛选
+    # 题型
     if question_type:
         conditions.append("question_type = ?")
         parameters.append(question_type)
 
-    # 难度筛选
+    # 难度
     if difficulty:
         conditions.append("difficulty = ?")
         parameters.append(difficulty)
 
-    # 标签筛选
-    if tag:
+    # 标签：支持同时选择多个标签。
+    # 当前逻辑为 AND：题目必须同时包含所有已选择标签。
+    for tag in tags:
         normalized_tag = (
-            tag.replace(" ", "")
+            tag
+            .replace(" ", "")
             .replace("，", ",")
         )
 
@@ -457,22 +469,16 @@ def problems_page():
             ) LIKE ?
         """)
 
-        parameters.append(
-            f"%,{normalized_tag},%"
-        )
+        parameters.append(f"%,{normalized_tag},%")
 
-    # 拼接 WHERE
     where_sql = ""
 
     if conditions:
-        where_sql = (
-            "WHERE "
-            + " AND ".join(conditions)
-        )
+        where_sql = "WHERE " + " AND ".join(conditions)
 
     connection = get_question_db()
 
-    # 查询题目
+    # 查询符合条件的题目
     rows = connection.execute(
         f"""
         SELECT
@@ -485,6 +491,10 @@ def problems_page():
             difficulty,
             tags,
             content,
+            solution,
+            answer,
+            image_path,
+            creator_uid,
             created_at
         FROM questions
         {where_sql}
@@ -493,7 +503,7 @@ def problems_page():
         parameters
     ).fetchall()
 
-    # 查询所有年份
+    # 所有年份
     years = connection.execute("""
         SELECT DISTINCT year
         FROM questions
@@ -502,7 +512,7 @@ def problems_page():
         ORDER BY year DESC
     """).fetchall()
 
-    # 查询所有来源
+    # 所有来源
     sources = connection.execute("""
         SELECT DISTINCT source
         FROM questions
@@ -511,7 +521,7 @@ def problems_page():
         ORDER BY source ASC
     """).fetchall()
 
-    # 查询所有题目类型
+    # 所有题型
     question_types = connection.execute("""
         SELECT DISTINCT question_type
         FROM questions
@@ -520,29 +530,62 @@ def problems_page():
         ORDER BY question_type ASC
     """).fetchall()
 
+    # 总题目数量
+    total_count = connection.execute("""
+        SELECT COUNT(*)
+        FROM questions
+    """).fetchone()[0]
+
+    # 真题年份数量
+    year_count = connection.execute("""
+        SELECT COUNT(DISTINCT year)
+        FROM questions
+        WHERE year IS NOT NULL
+          AND year != ''
+    """).fetchone()[0]
+
+    # 知识标签数量
+    tag_rows = connection.execute("""
+        SELECT tags
+        FROM questions
+        WHERE tags IS NOT NULL
+          AND tags != ''
+    """).fetchall()
+
+    tag_set = set()
+
+    for tag_row in tag_rows:
+        text = tag_row["tags"].replace("，", ",")
+
+        for item in text.split(","):
+            item = item.strip()
+
+            if item:
+                tag_set.add(item)
+
+    tag_count = len(tag_set)
+
     connection.close()
-
-    value_colors = {
-        "挑战": "red",
-        "困难": "red",
-
-        "重点": "yellow",
-
-        "典型": "blue",
-        "中等": "blue",
-
-        "基础": "green",
-        "简单": "green"
-    }
 
     questions = []
 
     for row in rows:
         question = dict(row)
 
-        question["value_color"] = value_colors.get(
-            question["difficulty"],
-            "blue"
+        question["value_color"] = (
+            question["difficulty"]
+            if question["difficulty"]
+            else "white"
+        )
+
+        question["source_name"] = QUESTION_SOURCE_OPTIONS.get(
+            question["source"],
+            question["source"] or "未知来源"
+        )
+
+        question["type_name"] = QUESTION_TYPE_OPTIONS.get(
+            question["question_type"],
+            question["question_type"] or "未分类"
         )
 
         questions.append(question)
@@ -553,19 +596,27 @@ def problems_page():
         "source": source,
         "type": question_type,
         "level": difficulty,
-        "tag": tag,
+        "tags": tags,
         "sort": sort
     }
 
     return render_template(
         "problems/problems.html",
+
         questions=questions,
+
         years=years,
         sources=sources,
         question_types=question_types,
         tag_options=QUESTION_TAG_OPTIONS,
+
         filters=filters,
-        sort=sort
+        sort=sort,
+
+        total_count=total_count,
+        result_count=len(questions),
+        year_count=year_count,
+        tag_count=tag_count
     )
 
 @app.route("/user/<int:user_id>")
@@ -659,12 +710,20 @@ def question_page(problem_number):
 
     # 将数据库中的中文题型转换成 CSS 使用的类型
     question_type_styles = {
-        "单选": "single",
-        "多选": "multiple",
-        "填空": "fill",
-        "解答": "solution"
+        "single-choice": "single",
+        "multiple-choice": "multiple",
+        "fill-blank": "fill",
+        "solution": "solution"
     }
+    source_name = QUESTION_SOURCE_OPTIONS.get(
+        question["source"],
+        question["source"] or "未知来源"
+    )
 
+    question_type_name = QUESTION_TYPE_OPTIONS.get(
+        question["question_type"],
+        question["question_type"] or "未分类"
+    )
     question_type_style = question_type_styles.get(
         question["question_type"],
         "other"
@@ -685,6 +744,8 @@ def question_page(problem_number):
         creator=creator,
         recommendation=recommendation,
         question_type_style=question_type_style,
+        question_type_name=question_type_name,
+        source_name=source_name,
         tags=tags
     )
 
@@ -877,7 +938,7 @@ def register():
         "success": True,
         "message": "注册成功",
         "uid": uid,
-        "redirect": url_for("userMainpage")
+        "redirect": url_for("index")
     }), 201
 
 
@@ -1247,13 +1308,46 @@ def get_question_data():
         "tags",
         "content",
         "solution",
-        "answer"
+        "answer",
+        "image_path"
     ]
 
     return {
         field: str(data.get(field, "")).strip()
         for field in fields
     }
+
+
+def validate_question_data(data):
+    if data["image_path"] and not data["image_path"].startswith("uploads/questions/"):
+        return "题目图片路径不合法"
+
+    if data["source"] not in QUESTION_SOURCE_OPTIONS:
+        return "题目来源不合法"
+
+    if data["question_type"] not in QUESTION_TYPE_OPTIONS:
+        return "题目类型不合法"
+
+    if data["difficulty"] not in QUESTION_DIFFICULTY_OPTIONS:
+        return "训练价值不合法"
+
+    selected_tags = [
+        tag.strip()
+        for tag in data["tags"].replace("，", ",").split(",")
+        if tag.strip()
+    ]
+
+    invalid_tags = [
+        tag for tag in selected_tags
+        if tag not in QUESTION_TAG_OPTIONS
+    ]
+
+    if invalid_tags:
+        return "存在不合法标签：" + "、".join(invalid_tags)
+
+    # 统一去重并用英文逗号保存。
+    data["tags"] = ",".join(dict.fromkeys(selected_tags))
+    return None
 
 
 @app.route("/admin")
@@ -1276,7 +1370,10 @@ def admin_page():
         "admin/admin.html",
         current_user=current_user,
         admin_csrf_token=admin_csrf_token,
-        question_tag_options=QUESTION_TAG_OPTIONS
+        question_tag_options=QUESTION_TAG_OPTIONS,
+        question_source_options=QUESTION_SOURCE_OPTIONS,
+        question_type_options=QUESTION_TYPE_OPTIONS,
+        question_difficulty_options=QUESTION_DIFFICULTY_OPTIONS
     )
 
 
@@ -1397,6 +1494,63 @@ def admin_questions():
     })
 
 
+@app.route("/api/admin/question-images", methods=["POST"])
+@admin_required
+def admin_upload_question_image():
+    token = request.headers.get("X-CSRF-Token")
+
+    if token != session.get("admin_csrf_token"):
+        return jsonify({
+            "success": False,
+            "message": "页面凭证已失效，请刷新页面"
+        }), 403
+
+    if request.content_length and request.content_length > MAX_QUESTION_IMAGE_SIZE:
+        return jsonify({
+            "success": False,
+            "message": "题目图片不能超过 10 MB"
+        }), 413
+
+    image = request.files.get("image")
+    filename = (image.filename if image else "") or ""
+    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    if not image or extension not in ALLOWED_QUESTION_IMAGE_EXTENSIONS:
+        return jsonify({
+            "success": False,
+            "message": "请选择 PNG、JPG、GIF 或 WebP 图片"
+        }), 400
+
+    header = image.stream.read(12)
+    image.stream.seek(0)
+    valid_signature = (
+        header.startswith(b"\x89PNG\r\n\x1a\n")
+        or header.startswith(b"\xff\xd8\xff")
+        or header.startswith((b"GIF87a", b"GIF89a"))
+        or (header.startswith(b"RIFF") and header[8:12] == b"WEBP")
+    )
+
+    if not valid_signature:
+        return jsonify({
+            "success": False,
+            "message": "图片文件内容无法识别"
+        }), 400
+
+    relative_directory = os.path.join("uploads", "questions")
+    absolute_directory = os.path.join(app.static_folder, relative_directory)
+    os.makedirs(absolute_directory, exist_ok=True)
+    stored_filename = f"{uuid.uuid4().hex}.{extension}"
+    image.save(os.path.join(absolute_directory, stored_filename))
+    image_path = os.path.join(relative_directory, stored_filename).replace("\\", "/")
+
+    return jsonify({
+        "success": True,
+        "message": "图片上传成功",
+        "image_path": image_path,
+        "image_url": url_for("static", filename=image_path)
+    }), 201
+
+
 @app.route(
     "/api/admin/questions",
     methods=["POST"]
@@ -1412,6 +1566,13 @@ def admin_create_question():
         }), 403
 
     data = get_question_data()
+
+    validation_error = validate_question_data(data)
+    if validation_error:
+        return jsonify({
+            "success": False,
+            "message": validation_error
+        }), 400
 
     if not data["problem_number"] or not data["content"]:
         return jsonify({
@@ -1457,9 +1618,10 @@ def admin_create_question():
             content,
             solution,
             answer,
+            image_path,
             creator_uid
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         data["problem_number"],
         data["year"],
@@ -1471,6 +1633,7 @@ def admin_create_question():
         data["content"],
         data["solution"],
         data["answer"],
+        data["image_path"],
         administrator["uid"]
     ))
 
@@ -1498,6 +1661,13 @@ def admin_update_question(question_id):
         }), 403
 
     data = get_question_data()
+
+    validation_error = validate_question_data(data)
+    if validation_error:
+        return jsonify({
+            "success": False,
+            "message": validation_error
+        }), 400
 
     if not data["problem_number"] or not data["content"]:
         return jsonify({
@@ -1552,6 +1722,7 @@ def admin_update_question(question_id):
             content = ?,
             solution = ?,
             answer = ?,
+            image_path = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     """, (
@@ -1565,6 +1736,7 @@ def admin_update_question(question_id):
         data["content"],
         data["solution"],
         data["answer"],
+        data["image_path"],
         question_id
     ))
 
@@ -1580,4 +1752,4 @@ if __name__ == "__main__":
     init_user_database()
     init_user_setting_fields()
     init_question_database()
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

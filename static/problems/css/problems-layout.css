@@ -1,32 +1,35 @@
-/* ==================== 页面主体与顶部组合面板 ==================== */
+/* ==================== 页面主体 ==================== */
 
-/* 题库主体在普通桌面上保留 24px 左右空白，并限制超宽屏上的行宽。 */
 body > main {
-  width: calc(100% - 48px);
-  max-width: var(--content-width);
+  width: min(calc(100% - 72px), var(--content-width));
   min-width: 0;
-  margin-inline: auto;
-  padding: 24px 0 52px;
-  flex: 1;
+  margin: 0 auto;
+  padding: 38px 0 54px;
 }
 
-/* JavaScript 操作完成后在右下角显示短暂提示，不打断用户继续浏览。 */
+/* 列表和预览继承同一个结果工作区，不再单独收窄或悬浮。 */
+#list-view,
+#preview-view {
+  width: 100%;
+}
+
+/* 操作反馈只在页面右下角短暂出现，不打断题目浏览。 */
 .bank-operation-feedback {
   position: fixed;
-  right: 24px;
+  right: 28px;
   bottom: 24px;
   z-index: 1200;
   max-width: min(360px, calc(100vw - 32px));
   margin: 0;
-  padding: 10px 16px;
-  color: #fff;
-  background: rgba(40, 51, 59, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 4px;
-  box-shadow: 0 5px 18px rgba(23, 31, 37, 0.2);
+  padding: 11px 16px;
+  border: 1px solid #0d3f69;
+  border-radius: var(--radius-small);
+  color: #ffffff;
+  background: var(--color-blue-900);
+  box-shadow: 0 8px 22px rgba(19, 48, 73, 0.18);
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transform: translateY(7px);
+  transition: opacity 160ms ease, transform 160ms ease;
   pointer-events: none;
 }
 
@@ -35,74 +38,45 @@ body > main {
   transform: translateY(0);
 }
 
-/* 标题、筛选和结果摘要三块连续排列，视觉上组成一个完整面板。 */
-.bank-header,
-.bank-filter-panel,
-.bank-result-toolbar-panel {
-  background: var(--surface);
-  border-right: 1px solid rgba(216, 221, 227, 0.94);
-  border-left: 1px solid rgba(216, 221, 227, 0.94);
-  backdrop-filter: blur(9px);
-}
-
-/* ==================== 分页与网站底部 ==================== */
+/* ==================== 分页 ==================== */
 
 .bank-pagination {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: 18px;
+  gap: 5px;
+  margin-top: 24px;
 }
 
 .bank-pagination a,
 .bank-pagination button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  min-height: 34px;
-  padding: 4px 10px;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  display: inline-grid;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 5px 11px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  color: var(--color-ink-secondary);
+  background: var(--color-surface);
   font-size: 14px;
-  line-height: 1;
-}
-
-/* 当前 HTML 默认位于第一页，因此第一个页码作为当前页强调。 */
-.bank-pagination a:first-of-type,
-.bank-pagination a[aria-current="page"] {
-  color: #fff;
-  background: var(--primary);
-  border-color: var(--primary);
 }
 
 .bank-pagination a:hover {
-  color: var(--primary);
-  background: var(--primary-soft);
-  border-color: #8bc7eb;
+  border-color: #aebfce;
+  color: var(--color-blue-900);
+  background: var(--color-blue-050);
 }
 
-.bank-pagination a:first-of-type:hover,
+.bank-pagination a[aria-current="page"] {
+  border-color: var(--color-blue-900);
+  color: #ffffff;
+  background: var(--color-blue-900);
+}
+
 .bank-pagination a[aria-current="page"]:hover {
-  color: #fff;
-  background: var(--primary-dark);
-  border-color: var(--primary-dark);
-}
-
-.site-footer {
-  padding: 15px 20px;
-  color: rgba(255, 255, 255, 0.82);
-  background: rgba(40, 51, 59, 0.9);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  text-align: center;
-  backdrop-filter: blur(9px);
-}
-
-.site-footer p {
-  margin: 0;
-  font-size: 12px;
+  border-color: #0b3b63;
+  color: #ffffff;
+  background: #0b3b63;
 }

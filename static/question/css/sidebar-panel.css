@@ -1,260 +1,232 @@
 /* ==================== 右侧信息、答案、标签和推荐栏 ==================== */
-.information-panel, .answer-panel,
-.tag-panel, .discussion-panel,
-.collection-panel, .recommendation-panel {
-  padding: 16px 20px 12px 20px;
+.information-panel,
+.answer-panel,
+.tag-panel,
+.discussion-panel,
+.collection-panel,
+.recommendation-panel {
+  padding: 14px 18px 11px;
 }
 
 /* ==================== 每栏小标题 ==================== */
 .sidebar h2 {
-  position: relative;
-  width: fit-content;/* h2 宽度等于文字宽度 */
-  margin: 0 0;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #ebeef5;
-  font-size: 15px;
-  font-weight: 600;
-  color:black
-}
-
-.sidebar h2::after {/* 标题下划线*/
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--primary);
-  content: "";
+  width: fit-content; /* h2 宽度等于文字宽度 */
+  color: var(--text-main);
+  font-family: var(--font-display, "Songti SC", STSong, SimSun, serif);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 /* ==================== information-panel ==================== */
-.information-panel p {
-  display: flex; /* 布局方式；可切换 block/flex/grid 等 */
-  align-items: center; /* 垂直对齐方式；常用于 flex 布局 */
-  justify-content: space-between; /* 水平排列方式；调整内容分布 */
-  gap: 10px; /* 子元素间距；调整排列距离 */
-  margin: 3px; /* 外边距；调整元素与其他元素的距离 */
-  padding: 2px 0; /* 内边距；调整元素内部留白大小 */
+.information-panel > p:not(.information-panel-actions) {
+  display: flex;
+  min-height: 31px;
+  padding: 5px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .information-panel-title {
-  color: var(--text-main);
-  font-size: 15px;
-  font-weight: 400;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .information-panel-content {
   color: var(--text-main);
   text-align: right;
-  font-size: 15px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-/* information-panel-value颜色 */
-/* HTML 写法：<data-question-type="red"> */
-#information-panel-value[data-question-type="red"] {
-  color:rgba(218, 68, 66, 1); /* 红 */
+/* 训练价值颜色与题库筛选项、题目标签共用 themes.css 中的映射。 */
+#information-panel-value[data-question-value] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--training-value-color, var(--text-secondary));
+  font-weight: 700;
+  text-shadow: var(--training-value-text-shadow, none);
 }
 
-#information-panel-value[data-question-type="yellow"] {
-  color: rgba(218, 166, 32, 1); /* 黄 */
-}
-
-#information-panel-value[data-question-type="blue"] {
-  color: rgba(55, 132, 191, 1); /* 蓝 */
-}
-
-#information-panel-value[data-question-type="green"] {
-  color: rgba(61, 148, 88, 1); /* 绿 */
+#information-panel-value[data-question-value]::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: var(--training-value-dot-shadow, none);
+  content: "";
 }
 
 .information-panel-actions {
   display: flex; /* 让操作项按照从左到右的顺序排列 */
   flex-wrap: wrap; /* 当前行放不下完整操作项时，将整个操作项移到下一行 */
   justify-content: flex-start; /* 每一行都从左侧开始排列 */
-  gap: 10px 18px; /* 第一项控制行距，第二项控制同一行的项目间距 */
-  margin-top: 18px; /* 保留操作区与上方题目信息的距离 */
+  gap: 9px 16px; /* 第一项控制行距，第二项控制同一行的项目间距 */
+  margin-top: 13px; /* 保留操作区与上方题目信息的距离 */
+  padding-top: 11px;
 }
 
 .information-panel-action {
-  box-sizing: border-box; /* 统一 button 与 a 的盒模型 */
   appearance: none; /* 清除 button 的浏览器默认外观 */
-
   display: inline-flex; /* 让每个操作项按自身文字宽度参与横向排列 */
   flex: 0 0 auto; /* 禁止操作项被压窄，避免中文逐字向下堆叠 */
-  align-items: center; /* 让文字在操作项内垂直居中 */
-  justify-content: center; /* 让文字在操作项内水平居中 */
-  width: auto; /* 宽度由文字内容决定，不再强制占满一列 */
-  min-width: max-content; /* 至少容纳完整文字，空间不足时由父元素整体换行 */
-  min-height: 0; /* 取消旧版按钮的固定高度 */
-  margin: 0; /* 清除 button 与 a 可能存在的默认外边距 */
-  padding: 0; /* 使用洛谷式文字操作项，不保留方框内边距 */
-  writing-mode: horizontal-tb; /* 强制使用从左到右的正常横排方向 */
-  text-orientation: mixed; /* 恢复正常文字方向，防止字符竖直显示 */
-  white-space: nowrap; /* 禁止单个操作项内部拆字换行 */
-  word-break: keep-all; /* 中文词组保持在同一行 */
-
-  color: var(--primary); /* 统一 button 与 a 的文字颜色 */
-  background: transparent; /* 清除 button 的默认背景 */
-  border: 0; /* 清除 button 的默认边框 */
-  border-radius: 0; /* 清除旧版操作项的圆角 */
-  font-family: inherit; /* 统一 button 与 a 的字体 */
-  font-size: 14px; /* 统一 button 与 a 的字号 */
-  font-weight: 600; /* 统一 button 与 a 的字重 */
-  line-height: 1.2; /* 统一文字行高 */
-  text-align: left; /* 保证每项文字从左向右阅读 */
-  text-decoration: none; /* 去掉 a 的默认下划线 */
-
-  cursor: pointer; /* 鼠标经过时显示可点击手型 */
-  transition: color 0.2s; /* 平滑切换悬停颜色 */
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: max-content;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  color: var(--primary);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  word-break: keep-all;
+  cursor: pointer;
 }
 
 .information-panel-action:hover {
-  color: var(--primary-dark); /* 鼠标悬停时统一加深文字颜色 */
-  text-decoration: none; /* 悬停时仍不显示链接下划线 */
-}
-
-.information-panel-action:focus-visible {
-  outline: 2px solid var(--primary); /* 为键盘操作保留清晰的焦点提示 */
-  outline-offset: 3px; /* 让焦点框与文字之间保留一点距离 */
+  color: var(--primary-dark);
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* ==================== sidebar-panel-header&link&toggle ==================== */
 .sidebar-panel-header {
-  display: flex; /* 让标题和“进入讨论版”位于同一行 */
-  align-items: center; 
+  display: flex; /* 让标题和入口链接位于同一行 */
+  padding-bottom: 8px;
+  align-items: center;
   justify-content: space-between; /* 标题靠左，入口链接靠右 */
-  gap: 20px; /* 窗口变窄时仍保留基本间距 */
+  gap: 16px;
+  border-bottom: 1px solid var(--color-border-light, #dce3e9);
 }
 
-/*“进入讨论版”部分*/
+/* “进入讨论版”等入口链接。 */
 .sidebar-panel-link {
-  flex: 0 0 auto; /* 不让入口链接被压缩 */
-  color: var(--primary); /* 使用蓝色强调可跳转入口 */
-  font-size: 13px;
-  line-height: 1.5; /* 修改：与左侧标题对齐 */
-  text-decoration: none; /* 移除链接默认下划线 */
-  white-space: nowrap; /* 保证“进入讨论版”保持一行 */
+  flex: 0 0 auto;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 .sidebar-panel-link:hover {
-  color: var(--primary-dark); /* 修改：鼠标经过时加深链接颜色 */
-  text-decoration: none; /* 修改：悬停时仍不显示下划线 */
+  color: var(--primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* ==================== 通用展开/收起按钮 ==================== */
 .sidebar-panel-toggle {
   appearance: none; /* 清除浏览器的默认按钮样式 */
-  display: flex; /* 让箭头与文字横向排列 */
+  display: flex;
+  width: 100%;
+  min-height: 30px;
+  margin-top: 7px;
+  padding: 5px 8px 1px;
   align-items: center;
-  justify-content: center; /* 将展开入口整体放在卡片中间 */
-  gap: 9px; /* 控制箭头与文字之间的距离 */
-  width: 100%; /* 占满卡片宽度，便于整体居中和点击 */
-  padding: 6px 8px 2px; /* 修改：扩大点击区域，同时保持洛谷式紧凑外观 */
-  margin-top: 7px; /* 修改：统一所有展开按钮与上方内容的距离 */
-  color: var(--text-muted); /* 使用浅灰文字，弱化次要操作 */
-  background: transparent; /* 移除按钮默认背景 */
-  border: 0; /* 移除按钮默认边框 */
-  border-radius: 3px; /* 新增：为悬停浅色背景保留轻微圆角 */
-  font-family: inherit; /* 按钮字体与页面保持一致 */
-  font-size: 12px; /* 设置查看入口字号 */
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--radius-small, 3px);
+  color: var(--text-muted);
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
   line-height: 1.2;
-  cursor: pointer; /* 提示此区域可以点击 */
-  transition: color 0.18s ease, background-color 0.18s ease; /* 新增：平滑显示悬停反馈 */
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
 }
 
 .sidebar-panel-arrow {
-  width: 7px; /* 设置 V 形箭头宽度 */
-  height: 7px; /* 设置 V 形箭头高度 */
-  border-right: 1.5px solid currentColor; /* 绘制箭头右侧笔画 */
-  border-bottom: 1.5px solid currentColor; /* 绘制箭头下侧笔画 */
-  transform: translateY(-3px) rotate(45deg); /* 将边框旋转为向下箭头 */
-  transition: transform 0.2s; /* 为展开状态预留平滑动画 */
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-3px) rotate(45deg);
+  transition: transform 160ms ease;
 }
 
 .sidebar-panel-toggle[aria-expanded="true"] .sidebar-panel-arrow {
-  transform: translateY(3px) rotate(225deg); /* 修改：所有内容展开时箭头统一指向上方 */
+  transform: translateY(3px) rotate(225deg);
 }
 
 .sidebar-panel-toggle:hover {
-  color: var(--text-main); /* 鼠标经过时加深文字与箭头 */
-  background: rgba(69, 128, 167, 0.07); /* 修改：覆盖全局按钮背景，使用接近洛谷的轻量反馈 */
-  box-shadow: none; /* 修改：展开入口不使用普通按钮的悬停阴影 */
+  border-color: transparent;
+  color: var(--primary-dark);
+  background: var(--primary-soft);
 }
 
-.sidebar-panel-toggle:active {
-  transform: none; /* 新增：覆盖全局按钮下移效果，避免整行展开入口跳动 */
-}
-
-.sidebar-panel-toggle:focus-visible {
-  outline: 2px solid var(--primary); /* 保留键盘操作的焦点提示 */
-  outline-offset: 2px; /* 让焦点框与文字保持距离 */
-}
-
-/* ==================== 新增：所有侧栏卡片共用的展开内容区域 ==================== */
+/* ==================== 所有侧栏卡片共用的展开内容区域 ==================== */
 .sidebar-panel-content {
-  margin-top: 10px; /* 让展开内容与标题行保持距离 */
-  padding: 12px 0 5px; /* 为展开内容保留紧凑的上下留白 */
-  color: var(--text-secondary); /* 使用次要文字颜色，接近洛谷侧栏的信息层级 */
-  border-top: 1px solid var(--line); /* 使用细分隔线区分标题行与展开内容 */
-  font-size: 13px; /* 展开内容字号略小于卡片标题 */
-  line-height: 1.7; /* 增加行高，便于显示多行答案或讨论 */
-  overflow-wrap: anywhere; /* 避免长链接或连续字符撑宽侧栏 */
-  animation: sidebar-panel-expand 0.18s ease-out; /* 展开时添加轻微的淡入下移动画 */
+  margin-top: 10px;
+  padding: 2px 0 3px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  animation: sidebar-panel-expand 0.18s ease-out;
 }
 
-.sidebar-panel-content[hidden] {
-  display: none; /* hidden 存在时强制隐藏内容，避免其他样式意外覆盖 */
-}
-
-/* 新增：收录信息与推荐题目使用统一的浅灰列表项 */
+/* 收录信息与推荐题目使用统一的浅色列表项。 */
 .sidebar-panel-item {
-  display: block; /* 让每条内容单独占据一行 */
-  min-width: 0; /* 允许长内容在侧栏内正常收缩 */
-  padding: 7px 10px; /* 为列表项增加紧凑留白 */
-  color: var(--text-secondary); /* 使用次要文字颜色 */
-  background: #f5f7fa; /* 使用浅灰底区分展开内容 */
-  border-left: 2px solid var(--primary); /* 使用主题色标识内容层级 */
-  border-radius: 2px; /* 使用接近洛谷的轻微圆角 */
-  line-height: 1.55; /* 保证多行内容易读 */
+  display: block;
+  min-width: 0;
+  padding: 7px 9px;
+  color: var(--text-secondary);
+  background: #f9fbfc;
+  border-left: 2px solid var(--primary);
+  border-radius: 2px;
+  line-height: 1.55;
 }
 
-/* 新增：标签项使用洛谷常见的高亮标签外观 */
+/* 标签项沿用题库结果列表中的浅底描边样式。 */
 .sidebar-panel-tag {
-  display: inline-flex; /* 让标签宽度随文字内容收缩 */
-  width: fit-content; /* 标签不占满整行 */
-  padding: 2px 8px; /* 使用紧凑的标签内边距 */
-  color: #fff; /* 深色标签背景上使用白色文字 */
-  background: #f39c12; /* 使用橙色突出题目标签 */
-  border-left: 0; /* 标签本身不再显示列表项左边线 */
-  border-radius: 2px; /* 保持简洁的小圆角 */
-  line-height: 1.5; /* 让标签文字垂直居中 */
+  display: inline-flex;
+  width: fit-content;
+  min-height: 26px;
+  padding: 3px 8px;
+  align-items: center;
+  color: var(--text-secondary);
+  background: #f9fbfc;
+  border: 1px solid #c4d2de;
+  border-radius: 2px;
+  line-height: 1.4;
 }
 
-/* 新增：所有暂无内容状态共用居中灰色提示 */
+/* 所有暂无内容状态共用居中灰色提示。 */
 .sidebar-panel-empty {
-  margin: 0; /* 清除段落默认外边距，保证空状态位置稳定 */
-  padding: 8px 0; /* 为提示文字保留适当上下留白 */
-  color: var(--text-muted); /* 使用浅灰色表示当前为空状态 */
-  text-align: center; /* 参照洛谷侧栏，将提示文字放在卡片中间 */
+  padding: 8px 0;
+  color: var(--text-muted);
+  text-align: center;
 }
 
-/* 新增：所有展开区域共用同一个入场动画 */
+/* 所有展开区域共用同一个入场动画。 */
 @keyframes sidebar-panel-expand {
   from {
-    opacity: 0; /* 动画开始时内容透明 */
-    transform: translateY(-4px); /* 动画开始时内容略微靠上 */
+    opacity: 0;
+    transform: translateY(-4px);
   }
 
   to {
-    opacity: 1; /* 动画结束时内容完全显示 */
-    transform: translateY(0); /* 动画结束时内容回到正常位置 */
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* 新增：用户关闭动画时，不播放展开区域的入场动画 */
+/* 用户关闭动画时，不播放展开区域的入场动画。 */
 @media (prefers-reduced-motion: reduce) {
   .sidebar-panel-content {
-    animation: none; /* 尊重系统的“减少动态效果”设置 */
+    animation: none;
   }
 }

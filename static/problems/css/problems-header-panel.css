@@ -1,217 +1,139 @@
-/* ==================== 网站顶部导航 ==================== */
-
-/* 只选中 body 下第一层 header，避免影响预览卡片自己的 header。 */
-body > header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  min-height: 58px;
-  padding: 0 max(20px, calc((100vw - var(--content-width)) / 2));
-  column-gap: 22px;
-  color: #fff;
-  background: rgba(40, 51, 59, 0.92);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 9px rgba(23, 31, 37, 0.16);
-  backdrop-filter: blur(10px);
-}
-
-#header-return,
-#header-location {
-  color: rgba(255, 255, 255, 0.94);
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-#header-return:hover {
-  color: #fff;
-}
-
-/* 使用浅色竖线分隔返回入口和当前位置。 */
-#header-location {
-  padding-left: 22px;
-  border-left: 1px solid rgba(255, 255, 255, 0.22);
-}
-
-#header-user {
-  margin-left: auto;
-}
-
-#header-userimg {
-  display: block;
-  width: 45px;
-  height: 45px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 2px solid rgba(255, 255, 255, 0.72);
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-/* ==================== 页面标题、视图切换与批量工具 ==================== */
+/* ==================== 题库标题区 ==================== */
 
 .bank-header {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) max-content max-content;
-  align-items: center;
-  gap: 12px 20px;
-  padding: 14px 18px;
-  border-top: 1px solid rgba(216, 221, 227, 0.94);
-  border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: var(--shadow);
+  color: var(--color-ink);
 }
 
-.bank-header-title {
-  min-width: 0;
+.bank-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-blue-800);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.bank-breadcrumb a:hover {
+  color: var(--color-blue-900);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.bank-header-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 416px;
+  align-items: end;
+  gap: 56px;
+  margin-top: 13px;
 }
 
 .bank-header-title h1 {
-  margin: 0;
-  color: #333;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.3;
+  color: #071d30;
+  font-family: var(--font-display);
+  font-size: clamp(38px, 2.55vw, 48px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.025em;
 }
 
 .bank-header-title p {
-  margin: 3px 0 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.5;
+  max-width: 900px;
+  margin-top: 3px;
+  color: var(--color-ink-secondary);
+  font-size: 20px;
+  line-height: 1.75;
 }
 
-.bank-header-view-switch,
-.bank-header-tools {
+/* 三项统计只用细线分隔，避免把标题区做成另一组卡片。 */
+.bank-header-stats {
+  display: grid;
+  min-height: 98px;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid #bdcbd7;
+  border-bottom: 1px solid #bdcbd7;
+}
+
+.bank-header-stats > div {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-/* 视图切换使用相连按钮组，减少工具区的视觉噪声。 */
-.bank-header-view-switch-button {
-  position: relative;
-  min-width: 82px;
-  border-radius: 0;
-}
-
-.bank-header-view-switch-button:first-child {
-  border-radius: 4px 0 0 4px;
-}
-
-.bank-header-view-switch-button:last-child {
-  margin-left: -1px;
-  border-radius: 0 4px 4px 0;
-}
-
-.bank-header-tools {
-  gap: 7px;
-}
-
-/* 没有脚本状态时默认强调列表模式；脚本加入状态后强调当前按钮。 */
-.bank-header-view-switch:not(:has(.bank-header-view-switch-button.is-active)):not(:has(.bank-header-view-switch-button[aria-pressed="true"]))
-  .bank-header-view-switch-button:first-child,
-.bank-header-view-switch-button.is-active,
-.bank-header-view-switch-button[aria-pressed="true"],
-.bank-header-tool-button[aria-pressed="true"] {
-  z-index: 1;
-  color: #fff;
-  background: var(--primary);
-  border-color: var(--primary);
-}
-
-.bank-header-view-switch:not(:has(.bank-header-view-switch-button.is-active)):not(:has(.bank-header-view-switch-button[aria-pressed="true"]))
-  .bank-header-view-switch-button:first-child:hover,
-.bank-header-view-switch-button.is-active:hover,
-.bank-header-view-switch-button[aria-pressed="true"]:hover,
-.bank-header-tool-button[aria-pressed="true"]:hover {
-  color: #fff;
-  background: var(--primary-dark);
-  border-color: var(--primary-dark);
-}
-
-/* 批量工具栏显示时占满标题面板底部，形成轻量提示条。 */
-.bank-batch-selection-toolbar:not([hidden]) {
-  display: flex;
-  grid-column: 1 / -1;
-  align-items: center;
-  gap: 18px;
-  margin: 2px -18px -14px;
-  padding: 10px 18px;
-  background: rgba(237, 247, 253, 0.9);
-  border-top: 1px solid rgba(52, 152, 219, 0.2);
-}
-
-.bank-batch-selection-all {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.bank-batch-selection-count {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-#selected-problem-count {
-  color: var(--primary);
-  font-size: 15px;
-}
-
-#batch-selection-clear {
-  margin-left: auto;
-}
-
-#header-user {
-  position: relative;
-  display: block;
-  flex: 0 0 45px;
-  width: 45px;
-  height: 45px;
-  padding: 0;
-  overflow: hidden;
-  text-decoration: none;
-  background: linear-gradient(135deg, #42a9df, #718de6);
-  border: 3px solid rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-}
-
-#header-userimg {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
-#header-userimg[hidden] {
-  display: none;
-}
-
-#header-user > .header-user-fallback {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
+  min-width: 0;
+  padding: 16px 26px 12px;
+  flex-direction: column;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  color: #fff !important;
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1;
-  text-align: center;
-  text-decoration: none;
-  text-transform: uppercase;
 }
 
-#header-user > .header-user-fallback[hidden] {
-  display: none;
+.bank-header-stats > div + div {
+  border-left: 1px solid #cbd6df;
+}
+
+.bank-header-stats dt {
+  color: var(--color-ink-secondary);
+  font-size: 16px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.bank-header-stats dd {
+  margin-top: 4px;
+  color: #0d4777;
+  font-family: Georgia, "Times New Roman", var(--font-display);
+  font-size: 31px;
+  line-height: 1.1;
+  letter-spacing: 0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bank-header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.bank-header-user {
+    width: 46px;
+    height: 46px;
+
+    flex: 0 0 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    overflow: hidden;
+
+    background: #3557d4;
+    text-decoration: none;
+
+    box-shadow: 0 3px 10px rgba(53, 87, 212, 0.18);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.bank-header-user:hover {
+    transform: translateY(-2px);
+
+    box-shadow: 0 5px 14px rgba(53, 87, 212, 0.28);
+}
+
+.bank-header-user-img {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+    object-fit: cover;
+}
+
+.bank-header-user-fallback {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #ffffff;
+    font-size: 19px;
+    font-weight: 700;
 }

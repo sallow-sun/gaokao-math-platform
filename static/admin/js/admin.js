@@ -8,6 +8,29 @@ document.addEventListener("DOMContentLoaded", () => {
         questions: []
     };
 
+    const SOURCE_NAMES = {
+        "national-new-1": "新高考Ⅰ卷",
+        "national-new-2": "新高考Ⅱ卷",
+        "national-a": "全国甲卷",
+        "local": "地方题",
+        "mock": "模拟题"
+    };
+
+    const TYPE_NAMES = {
+        "single-choice": "单项选择题",
+        "multiple-choice": "多项选择题",
+        "fill-blank": "填空题",
+        "solution": "解答题"
+    };
+
+    function getSourceName(value) {
+        return SOURCE_NAMES[value] || value || "来源未设置";
+    }
+
+    function getTypeName(value) {
+        return TYPE_NAMES[value] || value || "题型未设置";
+    }
+
     const usersBody = document.querySelector("#users-body");
     const questionsList = document.querySelector("#questions-list");
     const userSearch = document.querySelector("#user-search");
@@ -18,6 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const cancelEdit = document.querySelector("#cancel-edit");
     const submitButton = document.querySelector("#question-submit");
     const feedback = document.querySelector("#question-feedback");
+    const questionImage = document.querySelector("#question-image");
+    const questionImagePath = document.querySelector("#question-image-path");
+    const questionImagePreview = document.querySelector("#question-image-preview");
+    const questionImagePreviewElement = questionImagePreview.querySelector("img");
+    const removeQuestionImage = document.querySelector("#remove-question-image");
 
     function escapeHtml(value) {
         return String(value ?? "")
@@ -35,7 +63,9 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         if (options.method && options.method !== "GET") {
-            headers["Content-Type"] = "application/json";
+            if (!(options.body instanceof FormData)) {
+                headers["Content-Type"] = "application/json";
+            }
             headers["X-CSRF-Token"] = csrfToken;
         }
 
@@ -47,10 +77,28 @@ document.addEventListener("DOMContentLoaded", () => {
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-            throw new Error(result.message || "操作失败");
+            throw new Error(
+                result.message || "操作失败"
+            );
         }
 
         return result;
+    }
+
+    function typesetMath(container) {
+        if (!window.MathJax || !MathJax.startup || !MathJax.typesetPromise) {
+            return;
+        }
+
+        MathJax.startup.promise.then(() => {
+            MathJax.typesetClear([container]);
+            return MathJax.typesetPromise(container.querySelectorAll(".math-content"));
+        }).catch(() => {});
+    }
+
+    function showQuestionImage(source) {
+        questionImagePreviewElement.src = source;
+        questionImagePreview.hidden = !source;
     }
 
     function updateStatistics() {
@@ -58,21 +106,28 @@ document.addEventListener("DOMContentLoaded", () => {
             user => Boolean(user.is_banned)
         ).length;
 
-        document.querySelector("#user-total").textContent =
-            state.users.length;
+        document.querySelector(
+            "#user-total"
+        ).textContent = state.users.length;
 
-        document.querySelector("#active-total").textContent =
+        document.querySelector(
+            "#active-total"
+        ).textContent =
             state.users.length - banned;
 
-        document.querySelector("#banned-total").textContent =
-            banned;
+        document.querySelector(
+            "#banned-total"
+        ).textContent = banned;
 
-        document.querySelector("#question-total").textContent =
-            state.questions.length;
+        document.querySelector(
+            "#question-total"
+        ).textContent = state.questions.length;
     }
 
     function renderUsers() {
-        const keyword = userSearch.value.trim().toLowerCase();
+        const keyword = userSearch.value
+            .trim()
+            .toLowerCase();
 
         const users = state.users.filter(user => {
             return [
@@ -80,7 +135,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 user.uid,
                 user.username,
                 user.email
-            ].join(" ").toLowerCase().includes(keyword);
+            ]
+                .join(" ")
+                .toLowerCase()
+                .includes(keyword);
         });
 
         if (!users.length) {
@@ -91,12 +149,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     </td>
                 </tr>
             `;
+
             return;
         }
 
         usersBody.innerHTML = users.map(user => {
-            const isAdmin = Boolean(user.is_admin);
-            const isBanned = Boolean(user.is_banned);
+            const isAdmin = Boolean(
+                user.is_admin
+            );
+
+            const isBanned = Boolean(
+                user.is_banned
+            );
 
             let status = "正常";
             let statusClass = "";
@@ -111,34 +175,79 @@ document.addEventListener("DOMContentLoaded", () => {
 
             return `
                 <tr>
-                    <td>#${escapeHtml(user.id)}</td>
-
                     <td>
-                        <strong>${escapeHtml(user.username)}</strong><br>
-                        <small>${escapeHtml(user.uid)}</small>
+                        #${escapeHtml(user.id)}
                     </td>
 
                     <td>
-                        ${escapeHtml(user.email)}<br>
-                        <small>${escapeHtml(user.phone || "未绑定手机号")}</small>
+                        <strong>
+                            ${escapeHtml(
+                                user.username
+                            )}
+                        </strong>
+                        <br>
+
+                        <small>
+                            ${escapeHtml(
+                                user.uid
+                            )}
+                        </small>
                     </td>
 
-                    <td>${escapeHtml(user.created_at || "—")}</td>
+                    <td>
+                        ${escapeHtml(
+                            user.email
+                        )}
+                        <br>
+
+                        <small>
+                            ${escapeHtml(
+                                user.phone ||
+                                "未绑定手机号"
+                            )}
+                        </small>
+                    </td>
 
                     <td>
-                        <span class="status ${statusClass}">
+                        ${escapeHtml(
+                            user.created_at ||
+                            "—"
+                        )}
+                    </td>
+
+                    <td>
+                        <span
+                            class="status ${statusClass}"
+                        >
                             ${status}
                         </span>
                     </td>
 
                     <td>
                         <button
-                            class="action-button ${isBanned ? "" : "danger"}"
+                            class="
+                                action-button
+                                ${
+                                    isBanned
+                                        ? ""
+                                        : "danger"
+                                }
+                            "
                             data-user-id="${user.id}"
-                            data-banned="${String(!isBanned)}"
-                            ${isAdmin ? "disabled" : ""}
+                            data-banned="${String(
+                                !isBanned
+                            )}"
+                            ${
+                                isAdmin
+                                    ? "disabled"
+                                    : ""
+                            }
                         >
-                            ${isBanned ? "解除封禁" : "封禁"}
+                            ${
+                                isBanned
+                                    ? "解除封禁"
+                                    : "封禁"
+                            }
                         </button>
                     </td>
                 </tr>
@@ -147,8 +256,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function loadUsers() {
-        const result = await requestJson("/api/admin/users");
+        const result = await requestJson(
+            "/api/admin/users"
+        );
+
         state.users = result.users;
+
         renderUsers();
         updateStatistics();
     }
@@ -158,55 +271,114 @@ document.addEventListener("DOMContentLoaded", () => {
             .trim()
             .toLowerCase();
 
-        const questions = state.questions.filter(question => {
-            return [
-                question.problem_number,
-                question.source,
-                question.region,
-                question.tags
-            ].join(" ").toLowerCase().includes(keyword);
-        });
+        const questions = state.questions.filter(
+            question => {
+                return [
+                    question.problem_number,
+                    question.source,
+                    getSourceName(
+                        question.source
+                    ),
+                    question.region,
+                    question.question_type,
+                    getTypeName(
+                        question.question_type
+                    ),
+                    question.difficulty,
+                    String(
+                        question.difficulty || ""
+                    ).toUpperCase(),
+                    question.tags
+                ]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(keyword);
+            }
+        );
 
         if (!questions.length) {
-            questionsList.innerHTML =
-                `<p class="empty">没有符合条件的题目</p>`;
+            questionsList.innerHTML = `
+                <p class="empty">
+                    没有符合条件的题目
+                </p>
+            `;
+
             return;
         }
 
-        questionsList.innerHTML = questions.map(question => `
-            <article class="question-item">
-                <div class="question-item-header">
-                    <div>
-                        <h3>
-                            ${escapeHtml(
-                                question.problem_number || `#${question.id}`
-                            )}
-                        </h3>
+        questionsList.innerHTML =
+            questions.map(question => `
+                <article class="question-item">
 
-                        <p class="meta">
-                            ${escapeHtml(question.year || "年份未设置")}
-                            ·
-                            ${escapeHtml(question.region || "地区未设置")}
-                            ·
-                            ${escapeHtml(
-                                question.question_type || "题型未设置"
-                            )}
-                        </p>
+                    <div class="question-item-header">
+
+                        <div>
+                            <h3>
+                                ${escapeHtml(
+                                    question.problem_number ||
+                                    `#${question.id}`
+                                )}
+                            </h3>
+
+                            <p class="meta">
+                                ${escapeHtml(
+                                    question.year ||
+                                    "年份未设置"
+                                )}
+                                ·
+
+                                ${escapeHtml(
+                                    getSourceName(
+                                        question.source
+                                    )
+                                )}
+                                ·
+
+                                ${escapeHtml(
+                                    question.region ||
+                                    "地区未设置"
+                                )}
+                                ·
+
+                                ${escapeHtml(
+                                    getTypeName(
+                                        question.question_type
+                                    )
+                                )}
+                                ·
+
+                                ${escapeHtml(
+                                    String(
+                                        question.difficulty ||
+                                        "white"
+                                    ).toUpperCase()
+                                )}
+                            </p>
+                        </div>
+
+                        <button
+                            class="edit-button"
+                            data-question-id="${question.id}"
+                        >
+                            编辑
+                        </button>
                     </div>
 
-                    <button
-                        class="edit-button"
-                        data-question-id="${question.id}"
-                    >
-                        编辑
-                    </button>
-                </div>
+                    <div class="content math-content">
+                        ${escapeHtml(
+                            question.content
+                        )}
+                    </div>
+                    ${question.image_path ? `
+                        <img class="admin-question-image"
+                            src="/static/${escapeHtml(question.image_path)}"
+                            alt="${escapeHtml(question.problem_number)}题目配图">
+                    ` : ""}
 
-                <p class="content">
-                    ${escapeHtml(question.content)}
-                </p>
-            </article>
-        `).join("");
+                </article>
+            `).join("");
+
+        typesetMath(questionsList);
     }
 
     async function loadQuestions() {
@@ -215,16 +387,27 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
         state.questions = result.questions;
+
         renderQuestions();
         updateStatistics();
     }
 
     function resetForm() {
         questionForm.reset();
+
         questionId.value = "";
-        formTitle.textContent = "上传题目";
-        submitButton.textContent = "上传题目";
+        questionImagePath.value = "";
+        questionImage.value = "";
+        showQuestionImage("");
+
+        formTitle.textContent =
+            "上传题目";
+
+        submitButton.textContent =
+            "上传题目";
+
         cancelEdit.hidden = true;
+
         feedback.textContent = "";
     }
 
@@ -238,6 +421,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         questionId.value = question.id;
+        questionImagePath.value = question.image_path || "";
+        questionImage.value = "";
+        showQuestionImage(
+            question.image_path ? `/static/${question.image_path}` : ""
+        );
 
         const fields = [
             "problem_number",
@@ -252,33 +440,47 @@ document.addEventListener("DOMContentLoaded", () => {
         ];
 
         fields.forEach(fieldName => {
-            const field = questionForm.elements[fieldName];
+            const field =
+                questionForm.elements[
+                    fieldName
+                ];
 
             if (field) {
-                field.value = question[fieldName] || "";
+                field.value =
+                    question[fieldName] ||
+                    "";
             }
         });
 
         const selectedTags = new Set(
-            String(question.tags || "")
+            String(
+                question.tags || ""
+            )
                 .replaceAll("，", ",")
                 .split(",")
-                .map(tag => tag.trim())
+                .map(tag =>
+                    tag.trim()
+                )
                 .filter(Boolean)
         );
 
         questionForm
-            .querySelectorAll('input[name="tags"]')
+            .querySelectorAll(
+                'input[name="tags"]'
+            )
             .forEach(checkbox => {
-                checkbox.checked = selectedTags.has(
-                    checkbox.value
-                );
+                checkbox.checked =
+                    selectedTags.has(
+                        checkbox.value
+                    );
             });
 
         formTitle.textContent =
             `编辑 ${question.problem_number}`;
 
-        submitButton.textContent = "保存修改";
+        submitButton.textContent =
+            "保存修改";
+
         cancelEdit.hidden = false;
 
         questionForm.scrollIntoView({
@@ -286,113 +488,230 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    document.querySelectorAll(".admin-tab").forEach(tab => {
-        tab.addEventListener("click", () => {
-            document
-                .querySelectorAll(".admin-tab")
-                .forEach(item => item.classList.remove("active"));
+    document
+        .querySelectorAll(
+            ".admin-tab"
+        )
+        .forEach(tab => {
+            tab.addEventListener(
+                "click",
+                () => {
+                    document
+                        .querySelectorAll(
+                            ".admin-tab"
+                        )
+                        .forEach(
+                            item =>
+                                item.classList.remove(
+                                    "active"
+                                )
+                        );
 
-            tab.classList.add("active");
+                    tab.classList.add(
+                        "active"
+                    );
 
-            document.querySelector("#users-panel").hidden =
-                tab.dataset.target !== "users-panel";
+                    document.querySelector(
+                        "#users-panel"
+                    ).hidden =
+                        tab.dataset.target !==
+                        "users-panel";
 
-            document.querySelector("#questions-panel").hidden =
-                tab.dataset.target !== "questions-panel";
+                    document.querySelector(
+                        "#questions-panel"
+                    ).hidden =
+                        tab.dataset.target !==
+                        "questions-panel";
+                }
+            );
         });
-    });
 
-    userSearch.addEventListener("input", renderUsers);
-    questionSearch.addEventListener("input", renderQuestions);
+    userSearch.addEventListener(
+        "input",
+        renderUsers
+    );
 
-    usersBody.addEventListener("click", async event => {
-        const button = event.target.closest("[data-user-id]");
+    questionSearch.addEventListener(
+        "input",
+        renderQuestions
+    );
 
-        if (!button) {
-            return;
+    usersBody.addEventListener(
+        "click",
+        async event => {
+            const button =
+                event.target.closest(
+                    "[data-user-id]"
+                );
+
+            if (!button) {
+                return;
+            }
+
+            const userId =
+                button.dataset.userId;
+
+            const banned =
+                button.dataset.banned ===
+                "true";
+
+            if (
+                !confirm(
+                    banned
+                        ? "确定封禁这个用户吗？"
+                        : "确定解除封禁吗？"
+                )
+            ) {
+                return;
+            }
+
+            button.disabled = true;
+
+            try {
+                const result =
+                    await requestJson(
+                        `/api/admin/users/${userId}/ban`,
+                        {
+                            method: "PATCH",
+
+                            body:
+                                JSON.stringify({
+                                    banned
+                                })
+                        }
+                    );
+
+                alert(result.message);
+
+                await loadUsers();
+            } catch (error) {
+                alert(error.message);
+
+                button.disabled = false;
+            }
         }
+    );
 
-        const userId = button.dataset.userId;
-        const banned = button.dataset.banned === "true";
+    questionsList.addEventListener(
+        "click",
+        event => {
+            const button =
+                event.target.closest(
+                    "[data-question-id]"
+                );
 
-        if (!confirm(
-            banned
-                ? "确定封禁这个用户吗？"
-                : "确定解除封禁吗？"
-        )) {
-            return;
+            if (button) {
+                editQuestion(
+                    button.dataset.questionId
+                );
+            }
         }
+    );
 
-        button.disabled = true;
+    cancelEdit.addEventListener(
+        "click",
+        resetForm
+    );
 
-        try {
-            const result = await requestJson(
-                `/api/admin/users/${userId}/ban`,
-                {
-                    method: "PATCH",
-                    body: JSON.stringify({ banned })
-                }
+    questionImage.addEventListener("change", () => {
+        const file = questionImage.files[0];
+
+        if (!file) {
+            showQuestionImage(
+                questionImagePath.value ? `/static/${questionImagePath.value}` : ""
             );
-
-            alert(result.message);
-            await loadUsers();
-        } catch (error) {
-            alert(error.message);
-            button.disabled = false;
+            return;
         }
+
+        showQuestionImage(URL.createObjectURL(file));
     });
 
-    questionsList.addEventListener("click", event => {
-        const button = event.target.closest(
-            "[data-question-id]"
-        );
-
-        if (button) {
-            editQuestion(button.dataset.questionId);
-        }
+    removeQuestionImage.addEventListener("click", () => {
+        questionImage.value = "";
+        questionImagePath.value = "";
+        showQuestionImage("");
     });
 
-    cancelEdit.addEventListener("click", resetForm);
+    questionForm.addEventListener(
+        "submit",
+        async event => {
+            event.preventDefault();
 
-    questionForm.addEventListener("submit", async event => {
-        event.preventDefault();
+            const formData =
+                new FormData(
+                    questionForm
+                );
 
-        const formData = new FormData(questionForm);
-        const data = Object.fromEntries(
-            formData.entries()
-        );
+            const data =
+                Object.fromEntries(
+                    formData.entries()
+                );
 
-        data.tags = formData
-            .getAll("tags")
-            .join(",");
+            data.tags = formData
+                .getAll("tags")
+                .join(",");
 
-        const id = questionId.value;
-        const editing = Boolean(id);
+            const id =
+                questionId.value;
 
-        submitButton.disabled = true;
-        feedback.textContent =
-            editing ? "正在保存……" : "正在上传……";
+            const editing =
+                Boolean(id);
 
-        try {
-            const result = await requestJson(
+            submitButton.disabled = true;
+
+            feedback.textContent =
                 editing
-                    ? `/api/admin/questions/${id}`
-                    : "/api/admin/questions",
-                {
-                    method: editing ? "PUT" : "POST",
-                    body: JSON.stringify(data)
-                }
-            );
+                    ? "正在保存……"
+                    : "正在上传……";
 
-            feedback.textContent = result.message;
-            resetForm();
-            await loadQuestions();
-        } catch (error) {
-            feedback.textContent = error.message;
-        } finally {
-            submitButton.disabled = false;
+            try {
+                const selectedImage = questionImage.files[0];
+
+                if (selectedImage) {
+                    const imageData = new FormData();
+                    imageData.append("image", selectedImage);
+                    const uploadResult = await requestJson(
+                        "/api/admin/question-images",
+                        { method: "POST", body: imageData }
+                    );
+                    data.image_path = uploadResult.image_path;
+                } else {
+                    data.image_path = questionImagePath.value;
+                }
+
+                const result =
+                    await requestJson(
+                        editing
+                            ? `/api/admin/questions/${id}`
+                            : "/api/admin/questions",
+                        {
+                            method:
+                                editing
+                                    ? "PUT"
+                                    : "POST",
+
+                            body:
+                                JSON.stringify(
+                                    data
+                                )
+                        }
+                    );
+
+                feedback.textContent =
+                    result.message;
+
+                resetForm();
+
+                await loadQuestions();
+            } catch (error) {
+                feedback.textContent =
+                    error.message;
+            } finally {
+                submitButton.disabled =
+                    false;
+            }
         }
-    });
+    );
 
     Promise.all([
         loadUsers(),

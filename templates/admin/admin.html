@@ -16,6 +16,19 @@
         href="{{ url_for('static', filename='admin/css/admin.css') }}"
     >
 
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [["\\(", "\\)"], ["$", "$"]],
+                displayMath: [["\\[", "\\]"], ["$$", "$$"]],
+                processEscapes: true
+            },
+            options: { enableMenu: false },
+            startup: { typeset: false }
+        };
+    </script>
+    <script src="{{ url_for('static', filename='question/vendor/mathjax/tex-svg.js') }}" defer></script>
+
     <script
         src="{{ url_for('static', filename='admin/js/admin.js') }}"
         defer
@@ -24,27 +37,30 @@
 
 <body>
     <header class="site-header">
-        <a href="{{ url_for('problems_page') }}">
-            ← 返回题库
-        </a>
+        <div class="site-header-inner">
+            <a class="site-back" href="{{ url_for('problems_page') }}">
+                ← 返回题库
+            </a>
 
-        <span>管理后台</span>
+            <span class="site-header-title">管理后台</span>
 
-        <a
-            class="header-user"
-            href="{{ url_for('user_page', user_id=current_user.id) }}"
-        >
-            {% if current_user.avatar %}
-            <img
-                src="{{ url_for('static', filename=current_user.avatar) }}"
-                alt="{{ current_user.username }}的头像"
+            <a
+                class="header-user"
+                href="{{ url_for('user_page', user_id=current_user.id) }}"
+                aria-label="进入{{ current_user.username }}的个人主页"
             >
-            {% else %}
-            <span class="avatar-fallback">
-                {{ current_user.username[0] }}
-            </span>
-            {% endif %}
-        </a>
+                {% if current_user.avatar %}
+                <img
+                    src="{{ url_for('static', filename=current_user.avatar) }}"
+                    alt="{{ current_user.username }}的头像"
+                >
+                {% else %}
+                <span class="avatar-fallback">
+                    {{ current_user.username[0] }}
+                </span>
+                {% endif %}
+            </a>
+        </div>
     </header>
 
     <main class="admin-page">
@@ -81,7 +97,7 @@
             </article>
         </section>
 
-        <nav class="admin-tabs">
+        <nav class="admin-tabs" aria-label="后台管理栏目">
             <button
                 type="button"
                 class="admin-tab active"
@@ -153,6 +169,7 @@
                         <button
                             id="cancel-edit"
                             type="button"
+                            class="secondary-button"
                             hidden
                         >
                             取消编辑
@@ -161,6 +178,7 @@
 
                     <div class="form-body">
                         <input id="question-id" type="hidden">
+                        <input id="question-image-path" name="image_path" type="hidden">
 
                         <div class="form-grid">
                             <label>
@@ -184,41 +202,50 @@
                                 地区
                                 <input
                                     name="region"
-                                    placeholder="全国"
+                                    placeholder="全国 / 北京 / 上海"
                                 >
                             </label>
 
                             <label>
                                 来源
-                                <input
-                                    name="source"
-                                    placeholder="新高考Ⅰ卷"
-                                >
+                                <select name="source">
+                                    <option value="">请选择</option>
+                                    <option value="national-new-1">新高考Ⅰ卷</option>
+                                    <option value="national-new-2">新高考Ⅱ卷</option>
+                                    <option value="national-a">全国甲卷</option>
+                                    <option value="local">地方题</option>
+                                    <option value="mock">模拟题</option>
+                                </select>
                             </label>
 
                             <label>
                                 题型
                                 <select name="question_type">
                                     <option value="">请选择</option>
-                                    <option>单项选择题</option>
-                                    <option>多项选择题</option>
-                                    <option>填空题</option>
-                                    <option>解答题</option>
+                                    <option value="single-choice">单项选择题</option>
+                                    <option value="multiple-choice">多项选择题</option>
+                                    <option value="fill-blank">填空题</option>
+                                    <option value="solution">解答题</option>
                                 </select>
                             </label>
 
                             <label>
-                                难度
+                                训练价值
                                 <select name="difficulty">
                                     <option value="">请选择</option>
-                                    <option>基础</option>
-                                    <option>典型</option>
-                                    <option>重点</option>
-                                    <option>挑战</option>
+                                    <option value="red">RED</option>
+                                    <option value="orange">ORANGE</option>
+                                    <option value="yellow">YELLOW</option>
+                                    <option value="green">GREEN</option>
+                                    <option value="cyan">CYAN</option>
+                                    <option value="blue">BLUE</option>
+                                    <option value="purple">PURPLE</option>
+                                    <option value="black">BLACK</option>
+                                    <option value="white">WHITE</option>
                                 </select>
                             </label>
 
-                           <fieldset class="full-width tag-field">
+                            <fieldset class="full-width tag-field">
                                 <legend>标签（可以选择多个）</legend>
 
                                 <div class="tag-options">
@@ -229,7 +256,6 @@
                                             name="tags"
                                             value="{{ tag }}"
                                         >
-
                                         <span>{{ tag }}</span>
                                     </label>
                                     {% endfor %}
@@ -243,6 +269,15 @@
                                     rows="7"
                                     required
                                 ></textarea>
+                            </label>
+
+                            <label class="full-width question-image-field">
+                                题目配图（PNG、JPG、GIF 或 WebP，最大 10 MB）
+                                <input id="question-image" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+                                <span id="question-image-preview" class="question-image-preview" hidden>
+                                    <img alt="题目配图预览">
+                                    <button id="remove-question-image" type="button" class="secondary-button">移除图片</button>
+                                </span>
                             </label>
 
                             <label class="full-width">
@@ -280,13 +315,13 @@
                     <header class="panel-header">
                         <div>
                             <h2>已有题目</h2>
-                            <p>点击编辑载入题目信息</p>
+                            <p>输入题号、标签、来源或地区即可快速筛选</p>
                         </div>
 
                         <input
                             id="question-search"
                             type="search"
-                            placeholder="搜索题号或标签"
+                            placeholder="搜索题号、标签、来源或地区"
                         >
                     </header>
 
