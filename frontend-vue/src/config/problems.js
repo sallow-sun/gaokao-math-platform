@@ -33,6 +33,12 @@ export const PROBLEMS_PROTOTYPE_ITEMS = [
     title: '2025 年新高考Ⅰ卷 · T1',
     detail: '复数的基本运算',
     tags: ['复数'],
+    stats: {
+      views: '1.3M',
+      passes: '73.7k',
+      downloads: '20.0k',
+      favorites: '10.0k',
+    },
     sourceText: '2025 · 新高考Ⅰ卷 · T1',
     content: '1. (1 + 5i)i 的虚部为（    ）\n\nA. −1        B. 0        C. 1        D. 6',
   },

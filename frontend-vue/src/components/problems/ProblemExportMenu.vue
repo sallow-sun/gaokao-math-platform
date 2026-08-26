@@ -1,6 +1,13 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
+defineProps({
+  triggerLabel: {
+    type: String,
+    default: '导出',
+  },
+})
+
 const emit = defineEmits(['export'])
 const exportMenu = ref(null)
 const exportToggle = ref(null)
@@ -54,7 +61,9 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="exportMenu" class="bank-problem-export">
-    <button ref="exportToggle" type="button" :aria-expanded="isOpen" @click="toggle">导出</button>
+    <button ref="exportToggle" type="button" :aria-expanded="isOpen" @click="toggle">
+      {{ triggerLabel }}
+    </button>
 
     <div v-show="isOpen" class="bank-problem-export-menu" role="menu">
       <button type="button" role="menuitem" @click="selectFormat('pdf')">导出为 PDF</button>

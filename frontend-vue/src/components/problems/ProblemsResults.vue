@@ -109,14 +109,9 @@ const isMinimalDisplay = computed(
       v-for="problem in problems"
       :key="problem.id"
       :completed="completedProblemIds.includes(problem.id)"
-      :favorite="favoriteProblemIds.includes(problem.id)"
       :problem="problem"
       :selected="selectedProblemIds.includes(problem.id)"
-      :solution-open="openSolutionProblemIds.includes(problem.id)"
       @selection-change="emit('selection-change', { problemId: problem.id, selected: $event })"
-      @toggle-completed="emit('toggle-completed', problem.id)"
-      @toggle-favorite="emit('toggle-favorite', problem.id)"
-      @toggle-solution="emit('toggle-solution', problem.id)"
     />
   </section>
 

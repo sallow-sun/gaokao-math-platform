@@ -1,9 +1,5 @@
 <script setup>
 defineProps({
-  compact: {
-    type: Boolean,
-    default: false,
-  },
   completed: {
     type: Boolean,
     default: false,
@@ -26,7 +22,7 @@ const emit = defineEmits(['toggle-completed', 'toggle-favorite', 'toggle-solutio
 </script>
 
 <template>
-  <div class="bank-problem-engagement-bar" :class="{ 'is-compact': compact }">
+  <div class="bank-problem-engagement-bar">
     <button
       class="bank-problem-engagement-button"
       type="button"

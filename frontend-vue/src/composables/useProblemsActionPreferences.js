@@ -10,6 +10,29 @@ export const DEFAULT_PROBLEMS_ACTION_CONFIRMATIONS = Object.freeze({
   removeFavorite: true,
 })
 
+export const PROBLEMS_ACTION_CONFIRMATION_OPTIONS = [
+  {
+    value: 'markCompleted',
+    label: '标记已做时确认',
+    description: '从未做改为已做前询问',
+  },
+  {
+    value: 'unmarkCompleted',
+    label: '取消已做时确认',
+    description: '从已做恢复为未做前询问',
+  },
+  {
+    value: 'addFavorite',
+    label: '加入收藏时确认',
+    description: '收藏题目前询问',
+  },
+  {
+    value: 'removeFavorite',
+    label: '移出收藏时确认',
+    description: '移出收藏前询问',
+  },
+]
+
 const ACTION_CONFIRMATION_NAMES = Object.keys(DEFAULT_PROBLEMS_ACTION_CONFIRMATIONS)
 
 export function normalizeProblemsActionConfirmations(value) {

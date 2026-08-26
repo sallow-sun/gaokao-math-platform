@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import ProblemExportMenu from './ProblemExportMenu.vue'
 import ProblemEngagementBar from './ProblemEngagementBar.vue'
 import ProblemSolutionDrawer from './ProblemSolutionDrawer.vue'
@@ -78,9 +79,13 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
 
       <div class="bank-result-problem-panel-view-card-summary">
         <p class="bank-problem-meta">
-          <span v-show="displayOptions['problem-id']" class="bank-problem-id">{{
-            problem.id
-          }}</span>
+          <RouterLink
+            v-show="displayOptions['problem-id']"
+            class="bank-problem-id"
+            :to="{ name: 'question', params: { problemNumber: problem.id } }"
+          >
+            {{ problem.id }}
+          </RouterLink>
           <span
             v-show="displayOptions['problem-id']"
             class="bank-problem-id-separator"
@@ -90,7 +95,11 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
           </span>
           <span class="bank-problem-type">{{ problem.typeLabel }}</span>
         </p>
-        <h3 class="bank-problem-title">{{ problem.title }}</h3>
+        <h3 class="bank-problem-title">
+          <RouterLink :to="{ name: 'question', params: { problemNumber: problem.id } }">
+            {{ problem.title }}
+          </RouterLink>
+        </h3>
       </div>
 
       <div v-show="displayOptions.tags" class="bank-result-problem-panel-view-card-tags">
@@ -131,7 +140,12 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
       <div class="bank-result-problem-panel-view-card-actions">
         <button type="button" @click="emit('print')">打印</button>
         <ProblemExportMenu v-show="displayOptions.export" @export="emit('export', $event)" />
-        <button type="button" disabled title="题目详情页尚未迁移">查看详情</button>
+        <RouterLink
+          class="bank-result-problem-detail-link"
+          :to="{ name: 'question', params: { problemNumber: problem.id } }"
+        >
+          查看详情
+        </RouterLink>
         <button type="button" :disabled="inPracticeList" @click="emit('add-to-list')">
           {{ inPracticeList ? '已加入题单' : '加入题单' }}
         </button>

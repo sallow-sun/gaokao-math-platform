@@ -1,13 +1,8 @@
 <script setup>
-import ProblemEngagementBar from './ProblemEngagementBar.vue'
-import ProblemSolutionDrawer from './ProblemSolutionDrawer.vue'
+import { RouterLink } from 'vue-router'
 
 defineProps({
   completed: {
-    type: Boolean,
-    default: false,
-  },
-  favorite: {
     type: Boolean,
     default: false,
   },
@@ -19,18 +14,9 @@ defineProps({
     type: Boolean,
     default: false,
   },
-  solutionOpen: {
-    type: Boolean,
-    default: false,
-  },
 })
 
-const emit = defineEmits([
-  'selection-change',
-  'toggle-completed',
-  'toggle-favorite',
-  'toggle-solution',
-])
+const emit = defineEmits(['selection-change'])
 </script>
 
 <template>
@@ -65,11 +51,20 @@ const emit = defineEmits([
 
       <div class="bank-result-problem-panel-view-item-summary">
         <p class="bank-problem-meta">
-          <span class="bank-problem-id">{{ problem.id }}</span>
+          <RouterLink
+            class="bank-problem-id"
+            :to="{ name: 'question', params: { problemNumber: problem.id } }"
+          >
+            {{ problem.id }}
+          </RouterLink>
           <span aria-hidden="true">|</span>
           <span>{{ problem.typeLabel }}</span>
         </p>
-        <h3>{{ problem.title }}</h3>
+        <h3>
+          <RouterLink :to="{ name: 'question', params: { problemNumber: problem.id } }">
+            {{ problem.title }}
+          </RouterLink>
+        </h3>
         <p class="bank-problem-detail">{{ problem.detail }}</p>
       </div>
 
@@ -86,32 +81,13 @@ const emit = defineEmits([
         <span>{{ problem.level }}</span>
       </div>
 
-      <button
+      <RouterLink
         class="bank-result-problem-open"
-        type="button"
-        disabled
-        :aria-label="`查看题目 ${problem.id}（详情页尚未迁移）`"
-        title="题目详情页尚未迁移"
+        :to="{ name: 'question', params: { problemNumber: problem.id } }"
+        :aria-label="`查看题目 ${problem.id}`"
       >
         →
-      </button>
+      </RouterLink>
     </article>
-
-    <ProblemEngagementBar
-      compact
-      :completed="completed"
-      :favorite="favorite"
-      :problem-id="problem.id"
-      :solution-open="solutionOpen"
-      @toggle-completed="emit('toggle-completed')"
-      @toggle-favorite="emit('toggle-favorite')"
-      @toggle-solution="emit('toggle-solution')"
-    />
-
-    <ProblemSolutionDrawer
-      :open="solutionOpen"
-      :problem="problem"
-      @close="emit('toggle-solution')"
-    />
   </div>
 </template>

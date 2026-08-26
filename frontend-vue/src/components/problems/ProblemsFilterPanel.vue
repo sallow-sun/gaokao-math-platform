@@ -187,7 +187,7 @@ function updateFilterMode(event) {
 
       <ProblemsFilterGroup
         filter-key="level"
-        label="训练价值"
+        label="题目难度"
         :model-value="level"
         :multiple="filterMode === 'multiple'"
         :options="levelOptions"

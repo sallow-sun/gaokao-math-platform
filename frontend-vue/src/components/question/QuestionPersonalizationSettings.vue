@@ -7,11 +7,11 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  displayOptions: {
-    type: Object,
+  answerPlacement: {
+    type: String,
     required: true,
   },
-  displayOptionOptions: {
+  answerPlacementOptions: {
     type: Array,
     required: true,
   },
@@ -23,19 +23,26 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  typeColorMode: {
+    type: String,
+    required: true,
+  },
+  typeColorOptions: {
+    type: Array,
+    required: true,
+  },
 })
 
 const emit = defineEmits([
   'action-confirmation-change',
-  'display-option-change',
-  'display-options-all',
-  'display-options-minimal',
+  'answer-placement-change',
   'print-option-change',
   'print-preset-change',
+  'type-color-change',
 ])
 const dialog = ref(null)
-const settingsToggle = ref(null)
 const isOpen = ref(false)
+const settingsToggle = ref(null)
 const selectedPrintOptionCount = computed(
   () => props.printOptionOptions.filter((option) => props.printOptions[option.value]).length,
 )
@@ -47,10 +54,6 @@ function close(shouldRestoreFocus = false) {
   if (shouldRestoreFocus) {
     settingsToggle.value?.focus()
   }
-}
-
-function open() {
-  isOpen.value = true
 }
 
 function handleKeydown(event) {
@@ -70,7 +73,7 @@ function handleKeydown(event) {
 
   const focusableElements = Array.from(
     dialog.value?.querySelectorAll(
-      'button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      'button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])',
     ) ?? [],
   )
 
@@ -111,87 +114,86 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="bank-personalization-settings">
+  <div class="question-personalization-settings">
     <button
       ref="settingsToggle"
-      class="bank-display-filter-toggle bank-personalization-settings-toggle"
       type="button"
+      class="question-personalization-toggle"
       :aria-expanded="isOpen"
-      aria-controls="bank-personalization-settings-dialog"
-      @click="open"
+      aria-controls="question-personalization-dialog"
+      @click="isOpen = true"
     >
-      个性化设置
+      个性化
     </button>
 
     <Teleport to="body">
-      <Transition name="bank-personalization-dialog">
-        <div
-          v-if="isOpen"
-          class="bank-personalization-dialog-backdrop"
-          @mousedown.self="close(true)"
-        >
+      <Transition name="question-personalization-dialog">
+        <div v-if="isOpen" class="question-personalization-backdrop" @mousedown.self="close(true)">
           <section
-            id="bank-personalization-settings-dialog"
+            id="question-personalization-dialog"
             ref="dialog"
-            class="bank-personalization-dialog"
+            class="question-personalization-dialog"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="bank-personalization-settings-title"
-            aria-describedby="bank-personalization-settings-description"
+            aria-labelledby="question-personalization-title"
+            aria-describedby="question-personalization-description"
           >
-            <header class="bank-personalization-dialog-header">
+            <header class="question-personalization-header">
               <div>
-                <h2 id="bank-personalization-settings-title">个性化设置</h2>
-                <p id="bank-personalization-settings-description">
-                  统一调整题库显示、打印内容和操作确认。
-                </p>
+                <h2 id="question-personalization-title">个性化设置</h2>
+                <p id="question-personalization-description">调整单题页面显示和打印内容。</p>
               </div>
               <button type="button" aria-label="关闭个性化设置" @click="close(true)">×</button>
             </header>
 
-            <div class="bank-personalization-dialog-body">
-              <section class="bank-personalization-section" aria-labelledby="display-options-title">
+            <div class="question-personalization-body">
+              <section aria-labelledby="question-answer-placement-title">
                 <header>
-                  <div>
-                    <h3 id="display-options-title">页面显示</h3>
-                    <p>这些选项应用于完整视图。</p>
-                  </div>
+                  <h3 id="question-answer-placement-title">答案解析位置</h3>
+                  <p>默认显示在右侧栏，也可以移动到草稿区下方。</p>
                 </header>
-
-                <div class="bank-display-filter-options">
-                  <label v-for="option in displayOptionOptions" :key="option.value">
+                <div class="question-personalization-options">
+                  <label v-for="option in answerPlacementOptions" :key="option.value">
                     <input
-                      type="checkbox"
-                      :checked="displayOptions[option.value]"
-                      @change="
-                        emit('display-option-change', {
-                          name: option.value,
-                          visible: $event.target.checked,
-                        })
-                      "
+                      type="radio"
+                      name="question-answer-placement"
+                      :value="option.value"
+                      :checked="answerPlacement === option.value"
+                      @change="emit('answer-placement-change', option.value)"
                     />
                     <span>{{ option.label }}</span>
                   </label>
                 </div>
-
-                <footer class="bank-personalization-section-footer">
-                  <button type="button" @click="emit('display-options-minimal')">全部隐藏</button>
-                  <button type="button" @click="emit('display-options-all')">全部显示</button>
-                </footer>
               </section>
 
-              <section class="bank-personalization-section" aria-labelledby="print-options-title">
+              <section aria-labelledby="question-type-color-title">
                 <header>
-                  <div>
-                    <h3 id="print-options-title">打印内容</h3>
-                    <p>单题、批量打印和 PDF 共用。</p>
-                  </div>
-                  <span class="bank-personalization-count">
-                    {{ selectedPrintOptionCount }} / {{ printOptionOptions.length }} 项
-                  </span>
+                  <h3 id="question-type-color-title">题型颜色</h3>
+                  <p>控制顶栏题型文字的颜色。</p>
                 </header>
+                <div class="question-personalization-options">
+                  <label v-for="option in typeColorOptions" :key="option.value">
+                    <input
+                      type="radio"
+                      name="question-type-color"
+                      :value="option.value"
+                      :checked="typeColorMode === option.value"
+                      @change="emit('type-color-change', option.value)"
+                    />
+                    <span>{{ option.label }}</span>
+                  </label>
+                </div>
+              </section>
 
-                <div class="bank-display-filter-options">
+              <section aria-labelledby="question-print-options-title">
+                <header class="question-personalization-section-heading">
+                  <div>
+                    <h3 id="question-print-options-title">打印内容</h3>
+                    <p>打印和导出 PDF 共用这些选项。</p>
+                  </div>
+                  <span>{{ selectedPrintOptionCount }} / {{ printOptionOptions.length }} 项</span>
+                </header>
+                <div class="question-personalization-options question-print-options">
                   <label v-for="option in printOptionOptions" :key="option.value">
                     <input
                       type="checkbox"
@@ -206,8 +208,7 @@ onBeforeUnmount(() => {
                     <span>{{ option.label }}</span>
                   </label>
                 </div>
-
-                <footer class="bank-personalization-section-footer">
+                <footer class="question-personalization-section-footer">
                   <button type="button" @click="emit('print-preset-change', 'practice-paper')">
                     仅题型、题干
                   </button>
@@ -217,15 +218,12 @@ onBeforeUnmount(() => {
                 </footer>
               </section>
 
-              <section class="bank-personalization-section" aria-labelledby="action-options-title">
+              <section aria-labelledby="question-action-options-title">
                 <header>
-                  <div>
-                    <h3 id="action-options-title">操作确认</h3>
-                    <p>开启后，对应操作执行前会弹窗二次确认。</p>
-                  </div>
+                  <h3 id="question-action-options-title">操作确认</h3>
+                  <p>开启后，对应操作执行前会弹窗二次确认。</p>
                 </header>
-
-                <div class="bank-action-confirmation-options">
+                <div class="question-action-confirmation-options">
                   <label v-for="option in PROBLEMS_ACTION_CONFIRMATION_OPTIONS" :key="option.value">
                     <input
                       type="checkbox"
@@ -246,7 +244,8 @@ onBeforeUnmount(() => {
               </section>
             </div>
 
-            <footer class="bank-personalization-dialog-footer">
+            <footer class="question-personalization-footer">
+              <p>设置仅保存在当前浏览器。</p>
               <button type="button" @click="close(true)">完成</button>
             </footer>
           </section>
