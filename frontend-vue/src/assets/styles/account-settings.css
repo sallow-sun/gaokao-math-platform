@@ -1,0 +1,600 @@
+.account-settings-page,
+.account-settings-page *,
+.account-settings-page *::before,
+.account-settings-page *::after {
+  box-sizing: border-box;
+}
+
+.account-settings-page {
+  --settings-canvas: var(--color-canvas, #eef1f4);
+  --settings-surface: var(--color-surface, #ffffff);
+  --settings-ink: var(--color-ink, #0c2134);
+  --settings-ink-secondary: var(--color-ink-secondary, #365a78);
+  --settings-ink-muted: var(--color-ink-muted, #657c90);
+  --settings-border: var(--color-border, #cbd6e0);
+  --settings-border-light: var(--color-border-light, #dce3e9);
+  --settings-primary: var(--color-blue-800, #1d5687);
+  --settings-primary-dark: var(--color-blue-900, #104875);
+  --settings-primary-soft: var(--color-blue-050, #f3f7fa);
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100svh;
+  color: var(--settings-ink);
+  background: var(--settings-canvas);
+  font-family: var(
+    --font-ui,
+    'Noto Sans SC',
+    'Source Han Sans SC',
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif
+  );
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.account-settings-page a {
+  color: inherit;
+}
+
+.account-settings-page button,
+.account-settings-page input,
+.account-settings-page textarea {
+  color: inherit;
+  font: inherit;
+}
+
+.account-settings-page :focus-visible {
+  outline: 3px solid rgb(45 103 152 / 28%);
+  outline-offset: 2px;
+}
+
+.account-settings-main {
+  width: min(calc(100% - 80px), 1180px);
+  margin: 0 auto;
+  padding: 24px 0 52px;
+}
+
+.account-settings-back {
+  display: inline-block;
+  margin-bottom: 14px;
+  color: var(--settings-ink-secondary) !important;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.account-settings-back:hover {
+  color: var(--settings-primary-dark) !important;
+}
+
+.account-settings-heading {
+  position: relative;
+  padding: 30px 34px 0;
+  overflow: hidden;
+  border: 1px solid var(--settings-border);
+  border-radius: 4px;
+  background: linear-gradient(120deg, #ffffff, #f3f7fa);
+}
+
+.account-settings-heading > div:first-child > p,
+.account-settings-card-header p {
+  margin: 0 0 5px;
+  color: var(--settings-primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.account-settings-heading h1 {
+  margin: 0;
+  font-family: var(
+    --font-display,
+    'Noto Serif SC',
+    'Source Han Serif SC',
+    'Songti SC',
+    STSong,
+    SimSun,
+    serif
+  );
+  font-size: clamp(31px, 3vw, 39px);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.account-settings-heading > div:first-child > span {
+  display: block;
+  margin-top: 6px;
+  color: var(--settings-ink-secondary);
+  font-size: 14px;
+}
+
+.account-settings-summary {
+  position: absolute;
+  top: 36px;
+  right: 34px;
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+}
+
+.account-settings-summary strong {
+  font-weight: 800;
+}
+
+.account-settings-summary small {
+  margin-top: 2px;
+  color: var(--settings-ink-muted);
+  font-size: 11px;
+}
+
+.account-settings-tabs {
+  display: flex;
+  margin-top: 28px;
+  gap: 30px;
+}
+
+.account-settings-tabs a {
+  position: relative;
+  padding: 15px 7px 14px;
+  color: var(--settings-ink-secondary);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.account-settings-tabs a::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: transparent;
+  content: '';
+}
+
+.account-settings-tabs a:hover,
+.account-settings-tabs a.is-active {
+  color: var(--settings-primary-dark);
+}
+
+.account-settings-tabs a.is-active::after {
+  background: var(--settings-primary);
+}
+
+.account-settings-prototype-note,
+.account-local-preference-note,
+.account-security-static-note {
+  margin: 16px 0 0;
+  padding: 11px 14px;
+  border: 1px solid #d8c9aa;
+  border-radius: 3px;
+  color: #72582c;
+  background: #faf4e7;
+  font-size: 12px;
+}
+
+.account-settings-card {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid var(--settings-border);
+  border-radius: 4px;
+  background: var(--settings-surface);
+}
+
+.account-settings-card-header {
+  display: flex;
+  min-height: 76px;
+  padding: 18px 24px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+  border-bottom: 1px solid var(--settings-border-light);
+  background: var(--settings-primary-soft);
+}
+
+.account-settings-card-header h2,
+.account-setting-copy h2,
+.account-setting-copy h3 {
+  margin: 0;
+  font-weight: 800;
+}
+
+.account-settings-card-header h2 {
+  font-size: 18px;
+}
+
+.account-settings-card-header > span {
+  max-width: 420px;
+  color: var(--settings-ink-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.account-profile-setting-row {
+  display: grid;
+  padding: 28px 24px;
+  border-bottom: 1px solid var(--settings-border-light);
+  grid-template-columns: minmax(190px, 0.7fr) minmax(320px, 1.3fr);
+  gap: 44px;
+}
+
+.account-setting-copy p {
+  margin: 6px 0 0;
+  color: var(--settings-ink-muted);
+  font-size: 12px;
+}
+
+.account-avatar-setting-control {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.account-settings-file-button {
+  display: inline-flex;
+  min-height: 38px;
+  padding: 7px 15px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--settings-primary);
+  border-radius: 3px;
+  color: #ffffff;
+  background: var(--settings-primary);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.account-settings-file-button:hover {
+  border-color: var(--settings-primary-dark);
+  background: var(--settings-primary-dark);
+}
+
+.account-settings-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.account-avatar-setting-control:has(.account-settings-file-input:focus-visible)
+  .account-settings-file-button {
+  outline: 3px solid rgb(45 103 152 / 28%);
+  outline-offset: 2px;
+}
+
+.account-settings-file-name,
+.account-settings-field-message {
+  max-width: 300px;
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--settings-ink-muted);
+  font-size: 11px;
+}
+
+.account-settings-field-message {
+  min-height: 17px;
+  color: #72582c;
+}
+
+.account-signature-control textarea,
+.account-security-form input {
+  width: 100%;
+  border: 1px solid var(--settings-border);
+  border-radius: 3px;
+  outline: none;
+  background: #ffffff;
+}
+
+.account-signature-control textarea {
+  min-height: 116px;
+  padding: 11px 12px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.account-signature-control textarea:focus {
+  border-color: var(--settings-primary);
+  box-shadow: 0 0 0 3px rgb(45 103 152 / 12%);
+}
+
+.account-signature-control p {
+  margin: 5px 0 0;
+  color: var(--settings-ink-muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.account-settings-form-actions {
+  display: flex;
+  padding: 18px 24px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.account-settings-form-actions p {
+  margin: 0 auto 0 0;
+  color: var(--settings-ink-muted);
+  font-size: 11px;
+}
+
+.account-settings-form-actions button,
+.account-security-form button {
+  min-height: 38px;
+  padding: 7px 14px;
+  border: 1px solid #aebdca;
+  border-radius: 3px;
+  color: #f3f6f8;
+  background: #8799a8;
+  cursor: not-allowed;
+  font-weight: 700;
+}
+
+.account-preference-list,
+.account-security-list {
+  display: grid;
+  margin-top: 18px;
+  gap: 18px;
+}
+
+.account-preference-list .account-settings-card,
+.account-security-list .account-settings-card {
+  margin-top: 0;
+}
+
+.account-preference-section + .account-preference-section,
+.account-shared-settings-card .bank-personalization-section + .bank-personalization-section {
+  border-top: 1px solid var(--settings-border-light);
+}
+
+.account-preference-section > header {
+  padding: 14px 18px 2px;
+}
+
+.account-preference-section h3 {
+  margin: 0;
+  font-family: var(
+    --font-display,
+    'Noto Serif SC',
+    'Source Han Serif SC',
+    'Songti SC',
+    STSong,
+    SimSun,
+    serif
+  );
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.account-preference-options {
+  display: grid;
+  padding: 12px 18px 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.account-preference-options label {
+  display: flex;
+  min-height: 36px;
+  padding: 7px 9px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--settings-border-light);
+  border-radius: 3px;
+  color: var(--settings-ink-secondary);
+  background: #fbfcfd;
+  cursor: pointer;
+}
+
+.account-preference-options label:has(input:checked) {
+  border-color: #a9c2d5;
+  background: var(--settings-primary-soft);
+}
+
+.account-preference-options input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--settings-primary);
+}
+
+.account-preference-section-actions {
+  display: flex;
+  padding: 0 18px 16px;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.account-preference-section-actions button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid #b9c9d6;
+  border-radius: 3px;
+  color: var(--settings-ink-secondary);
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.account-preference-section-actions button:hover {
+  border-color: #89aac2;
+  color: var(--settings-primary-dark);
+  background: var(--settings-primary-soft);
+}
+
+.account-shared-settings-card .bank-personalization-section > header,
+.account-shared-settings-card .bank-display-filter-options,
+.account-shared-settings-card .bank-action-confirmation-options {
+  padding-inline: 18px;
+}
+
+.account-local-preference-note,
+.account-security-static-note {
+  margin-top: 0;
+}
+
+.account-security-card {
+  display: grid;
+  padding: 24px;
+  grid-template-columns: minmax(210px, 0.75fr) minmax(360px, 1.25fr);
+  gap: 42px;
+}
+
+.account-security-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: end;
+  gap: 7px 10px;
+}
+
+.account-security-form label {
+  grid-column: 1 / -1;
+  color: var(--settings-ink-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-security-form input {
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+.account-security-form input:disabled {
+  color: #8293a1;
+  background: #f1f4f6;
+  cursor: not-allowed;
+}
+
+.account-security-password-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.account-security-password-form button {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .account-settings-main {
+    width: min(calc(100% - 48px), 1180px);
+  }
+
+  .account-profile-setting-row,
+  .account-security-card {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .account-preference-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .account-settings-main {
+    width: min(calc(100% - 24px), 1180px);
+    padding-top: 18px;
+  }
+
+  .account-settings-heading {
+    padding: 24px 20px 0;
+  }
+
+  .account-settings-summary {
+    position: static;
+    margin-top: 16px;
+    align-items: flex-start;
+  }
+
+  .account-settings-tabs {
+    margin-top: 18px;
+    overflow-x: auto;
+    gap: 8px;
+  }
+
+  .account-settings-tabs a {
+    flex: 0 0 auto;
+    padding-inline: 11px;
+  }
+
+  .account-settings-card-header {
+    padding: 17px 18px;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .account-settings-card-header > span {
+    max-width: none;
+    text-align: left;
+  }
+
+  .account-profile-setting-row,
+  .account-security-card {
+    padding: 22px 18px;
+  }
+
+  .account-settings-form-actions {
+    padding: 17px 18px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .account-settings-form-actions button {
+    width: 100%;
+  }
+
+  .account-shared-settings-card .bank-display-filter-options,
+  .account-shared-settings-card .bank-action-confirmation-options,
+  .account-preference-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .account-settings-main {
+    width: min(calc(100% - 16px), 1180px);
+  }
+
+  .account-avatar-setting-control {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-security-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-security-form button {
+    width: 100%;
+  }
+}
+
+@media print {
+  .account-settings-page {
+    min-height: 0;
+    background: #ffffff;
+  }
+
+  .account-settings-main {
+    width: 100%;
+    padding: 0;
+  }
+
+  .account-settings-back,
+  .account-settings-tabs,
+  .account-settings-prototype-note,
+  .account-settings-form-actions,
+  .account-security-form button {
+    display: none;
+  }
+
+  .account-settings-card {
+    break-inside: avoid;
+  }
+}

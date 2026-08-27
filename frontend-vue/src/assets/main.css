@@ -1,7 +1,12 @@
 @import './base.css';
+@import './styles/themes.css';
 @import './styles/problems.css';
 @import './styles/problem-print.css';
 @import './styles/personalization.css';
+@import './styles/study-navigation.css';
+@import './styles/account.css';
+@import './styles/account-profile.css';
+@import './styles/account-settings.css';
 
 html,
 body,
