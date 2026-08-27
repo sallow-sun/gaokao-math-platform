@@ -8,7 +8,9 @@ import ProblemsInfiniteLoader from '../components/problems/ProblemsInfiniteLoade
 import ProblemsOperationFeedback from '../components/problems/ProblemsOperationFeedback.vue'
 import ProblemsResults from '../components/problems/ProblemsResults.vue'
 import ProblemsToolbar from '../components/problems/ProblemsToolbar.vue'
+import PracticeListPickerDialog from '../components/training/PracticeListPickerDialog.vue'
 import { copyProblem, exportProblemAsImage } from '../composables/useProblemExport.js'
+import { usePracticeListPicker } from '../composables/usePracticeListPicker.js'
 import { useProblemsActionPreferences } from '../composables/useProblemsActionPreferences.js'
 import { useProblemsDisplayPreferences } from '../composables/useProblemsDisplayPreferences.js'
 import { useProblemsFilterPreferences } from '../composables/useProblemsFilterPreferences.js'
@@ -59,7 +61,21 @@ const { filterMode, pinnedFilters, setFilterMode, setFilterPinned } = useProblem
 const { actionConfirmations, setActionConfirmation } = useProblemsActionPreferences()
 const { displayOptions, viewMode, setAllDisplayOptions, setDisplayOption, setViewMode } =
   useProblemsDisplayPreferences()
-const { practiceProblemIds, addProblemsToPracticeList } = useProblemsPracticeList()
+const { practiceProblemIds } = useProblemsPracticeList()
+const {
+  defaultPracticeListId,
+  pickerMode,
+  pickerOpen,
+  pickerProblemIds,
+  practiceLists,
+  selectedPracticeListIds,
+  applyPracticeListSelection,
+  closePracticeListPicker,
+  createPracticeListFromPicker,
+  openPracticeListPickerForProblem,
+  openPracticeListPickerForProblems,
+  setPracticeListSelected,
+} = usePracticeListPicker()
 const { printOptions, setPrintOption, setPrintPreset } = useProblemsPrintPreferences()
 const { selectedProblemIds, clearSelection, setProblemSelected, setProblemsSelected } =
   useProblemsSelection()
@@ -267,20 +283,33 @@ function clearProblemSelection() {
 }
 
 function addSelectedProblemsToPracticeList() {
-  const newlyAddedProblemIds = addProblemsToPracticeList(selectedProblemIds.value)
-  showOperationFeedback(
-    newlyAddedProblemIds.length
-      ? `已将 ${newlyAddedProblemIds.length} 道题加入本地题单`
-      : '所选题目已在本地题单中',
-  )
+  openPracticeListPickerForProblems(selectedProblemIds.value)
 }
 
 function addProblemToPracticeList(problemId) {
-  const newlyAddedProblemIds = addProblemsToPracticeList([problemId])
+  openPracticeListPickerForProblem(problemId)
+}
+
+function createPickerPracticeList(formValue) {
+  const practiceList = createPracticeListFromPicker(formValue)
+  showOperationFeedback(`题单“${practiceList.title}”已创建并选中`)
+}
+
+function applyPickerSelection() {
+  const result = applyPracticeListSelection()
+
+  if (result.mode === 'manage') {
+    const changed = result.addedMembershipCount + result.removedMembershipCount
+    showOperationFeedback(
+      changed ? `题目 ${result.problemId} 的题单归属已更新` : '题单归属没有变化',
+    )
+    return
+  }
+
   showOperationFeedback(
-    newlyAddedProblemIds.length
-      ? `题目 ${problemId} 已加入本地题单`
-      : `题目 ${problemId} 已在本地题单中`,
+    result.addedMembershipCount
+      ? `已将所选题目加入 ${result.selectedListCount} 份题单`
+      : '所选题目已在这些题单中',
   )
 }
 
@@ -489,6 +518,19 @@ onBeforeUnmount(() => {
       :title="pendingConfirmation?.title"
       @cancel="cancelPendingConfirmation"
       @confirm="confirmPendingAction"
+    />
+
+    <PracticeListPickerDialog
+      :default-list-id="defaultPracticeListId"
+      :lists="practiceLists"
+      :mode="pickerMode"
+      :open="pickerOpen"
+      :problem-count="pickerProblemIds.length"
+      :selected-list-ids="selectedPracticeListIds"
+      @apply="applyPickerSelection"
+      @cancel="closePracticeListPicker"
+      @create-list="createPickerPracticeList"
+      @selection-change="setPracticeListSelected"
     />
   </div>
 </template>

@@ -1,13 +1,13 @@
 <script setup>
-import { useRouter } from "vue-router";
-import HomeFooter from "../components/home/HomeFooter.vue";
-import HomeModeToggle from "../components/home/HomeModeToggle.vue";
-import HomeSearchPanel from "../components/home/HomeSearchPanel.vue";
-import { useHomePreferences } from "../composables/useHomePreferences";
-import { HOME_ROUTES, RANDOM_PROBLEM_IDS } from "../config/home";
-import "../assets/styles/home.css";
+import { useRouter } from 'vue-router'
+import HomeFooter from '../components/home/HomeFooter.vue'
+import HomeModeToggle from '../components/home/HomeModeToggle.vue'
+import HomeSearchPanel from '../components/home/HomeSearchPanel.vue'
+import { useHomePreferences } from '../composables/useHomePreferences'
+import { HOME_ROUTES, RANDOM_PROBLEM_IDS } from '../config/home'
+import '../assets/styles/home.css'
 
-const router = useRouter();
+const router = useRouter()
 const {
   theme,
   isDark,
@@ -18,37 +18,37 @@ const {
   toggleTheme,
   applyBackground,
   pickRandomProblem,
-} = useHomePreferences();
+} = useHomePreferences()
 
 async function navigateTo(route, onError) {
   try {
-    await router.push(route);
+    await router.push(route)
   } catch {
-    announce("页面暂时无法打开，请检查首页路由配置");
-    onError?.();
+    announce('页面暂时无法打开，请检查首页路由配置')
+    onError?.()
   }
 }
 
 function goToNormalHome(resetToggle) {
-  navigateTo(HOME_ROUTES.normalHome, resetToggle);
+  navigateTo(HOME_ROUTES.normalHome, resetToggle)
 }
 
 function searchProblems(keyword) {
   navigateTo({
     path: HOME_ROUTES.problems,
     query: { keyword },
-  });
+  })
 }
 
 function goToRandomProblem() {
-  const problemId = pickRandomProblem(RANDOM_PROBLEM_IDS);
+  const problemId = pickRandomProblem(RANDOM_PROBLEM_IDS)
 
   if (!problemId) {
-    navigateTo(HOME_ROUTES.problems);
-    return;
+    navigateTo(HOME_ROUTES.problems)
+    return
   }
 
-  navigateTo(HOME_ROUTES.question(problemId));
+  navigateTo(HOME_ROUTES.question(problemId))
 }
 </script>
 
@@ -64,6 +64,7 @@ function goToRandomProblem() {
     <main class="home-main">
       <HomeSearchPanel
         :problems-route="HOME_ROUTES.problems"
+        :training-route="HOME_ROUTES.training"
         @search="searchProblems"
         @random-problem="goToRandomProblem"
       />

@@ -10,13 +10,29 @@ defineProps({
     type: Object,
     required: true,
   },
+  position: {
+    type: [Number, String],
+    default: '',
+  },
+  removable: {
+    type: Boolean,
+    default: false,
+  },
+  reorderable: {
+    type: Boolean,
+    default: false,
+  },
+  selectable: {
+    type: Boolean,
+    default: true,
+  },
   selected: {
     type: Boolean,
     default: false,
   },
 })
 
-const emit = defineEmits(['selection-change'])
+const emit = defineEmits(['drag-end', 'drag-start', 'move', 'remove', 'selection-change'])
 </script>
 
 <template>
@@ -32,7 +48,22 @@ const emit = defineEmits(['selection-change'])
       :data-type="problem.type"
       :data-level="problem.level"
     >
-      <label class="bank-result-problem-select">
+      <button
+        v-if="reorderable"
+        class="bank-result-problem-drag-handle"
+        type="button"
+        draggable="true"
+        :aria-label="`拖动排序题目 ${problem.id}；也可使用上下方向键调整`"
+        @click.prevent
+        @dragstart="emit('drag-start', $event)"
+        @dragend="emit('drag-end')"
+        @keydown.up.prevent="emit('move', -1)"
+        @keydown.down.prevent="emit('move', 1)"
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+
+      <label v-else-if="selectable" class="bank-result-problem-select">
         <input
           class="bank-result-problem-select-checkbox"
           type="checkbox"
@@ -41,6 +72,8 @@ const emit = defineEmits(['selection-change'])
           @change="emit('selection-change', $event.target.checked)"
         />
       </label>
+
+      <span v-else class="bank-result-problem-position" aria-hidden="true">{{ position }}</span>
 
       <span
         class="bank-result-problem-panel-view-item-status"
@@ -59,13 +92,16 @@ const emit = defineEmits(['selection-change'])
           </RouterLink>
           <span aria-hidden="true">|</span>
           <span>{{ problem.typeLabel }}</span>
+          <slot name="meta-extra"></slot>
         </p>
         <h3>
           <RouterLink :to="{ name: 'question', params: { problemNumber: problem.id } }">
             {{ problem.title }}
           </RouterLink>
+          <slot name="title-extra"></slot>
         </h3>
         <p class="bank-problem-detail">{{ problem.detail }}</p>
+        <slot name="summary-extra"></slot>
       </div>
 
       <div class="bank-result-problem-panel-view-item-tags">
@@ -81,7 +117,18 @@ const emit = defineEmits(['selection-change'])
         <span>{{ problem.level }}</span>
       </div>
 
+      <button
+        v-if="removable"
+        class="bank-result-problem-remove"
+        type="button"
+        :aria-label="`从题单移除题目 ${problem.id}`"
+        @click="emit('remove')"
+      >
+        ×
+      </button>
+
       <RouterLink
+        v-else
         class="bank-result-problem-open"
         :to="{ name: 'question', params: { problemNumber: problem.id } }"
         :aria-label="`查看题目 ${problem.id}`"

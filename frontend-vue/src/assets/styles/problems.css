@@ -1419,6 +1419,20 @@
   opacity: 0.55;
 }
 
+.bank-result-problem-position {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #aebfcd;
+  border-radius: 50%;
+  color: var(--color-blue-900);
+  background: var(--color-blue-050);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .bank-result-problem-panel-view-card-summary {
   min-width: 0;
   grid-area: summary;
@@ -1717,6 +1731,10 @@
 }
 
 .bank-problem-print-content {
+  display: none;
+}
+
+.bank-problem-print-note {
   display: none;
 }
 
@@ -2501,6 +2519,34 @@
   body.is-printing-problems .bank-result-problem-panel-view-card-footer {
     color: #000000 !important;
     background: #ffffff !important;
+  }
+
+  body.is-printing-problems .bank-problem-print-note {
+    display: block !important;
+    margin: 3mm 0 0 calc(var(--print-type-column-width) + var(--print-type-column-gap));
+    padding: 3mm 4mm;
+    border: 1px solid #999999;
+    break-inside: avoid-page;
+    color: #000000;
+    background: #ffffff;
+  }
+
+  body.is-printing-problems .bank-problem-print-note h4 {
+    margin: 0 0 1.5mm;
+    font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.5;
+  }
+
+  body.is-printing-problems .bank-problem-print-note pre {
+    margin: 0;
+    overflow: visible;
+    color: #000000;
+    font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, SimSun, serif;
+    font-size: 10.5pt;
+    line-height: 1.7;
+    text-wrap: wrap;
+    white-space: pre-wrap;
   }
 
   body.is-printing-problems .bank-result-problem-panel-view-card-header {

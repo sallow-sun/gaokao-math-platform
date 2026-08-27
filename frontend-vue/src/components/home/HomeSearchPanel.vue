@@ -1,20 +1,24 @@
 <script setup>
-import { ref } from "vue";
+import { ref } from 'vue'
 
 defineProps({
   problemsRoute: {
     type: [String, Object],
     required: true,
   },
-});
+  trainingRoute: {
+    type: [String, Object],
+    required: true,
+  },
+})
 
-const emit = defineEmits(["search", "random-problem"]);
-const keyword = ref("");
+const emit = defineEmits(['search', 'random-problem'])
+const keyword = ref('')
 
 function submitSearch() {
-  const normalizedKeyword = keyword.value.trim();
+  const normalizedKeyword = keyword.value.trim()
   if (normalizedKeyword) {
-    emit("search", normalizedKeyword);
+    emit('search', normalizedKeyword)
   }
 }
 </script>
@@ -37,12 +41,13 @@ function submitSearch() {
         enterkeyhint="search"
         required
         autofocus
-      >
+      />
       <button class="visually-hidden" type="submit">搜索</button>
     </form>
 
     <div class="home-search-actions" role="group" aria-label="首页快捷入口">
       <RouterLink class="home-text-button" :to="problemsRoute">题库</RouterLink>
+      <RouterLink class="home-text-button" :to="trainingRoute">题单</RouterLink>
       <button class="home-text-button" type="button" @click="emit('random-problem')">
         随机跳题
       </button>

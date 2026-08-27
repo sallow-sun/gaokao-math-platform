@@ -1,41 +1,18 @@
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { usePracticeListsStore } from '../stores/practiceLists.js'
+import { LEGACY_PRACTICE_LIST_STORAGE_KEY } from './usePracticeListsStorage.js'
 import { normalizeProblemIds } from './useProblemsSelection.js'
 
-export const PROBLEMS_PRACTICE_LIST_STORAGE_KEY = 'problem-bank-practice-list'
+export const PROBLEMS_PRACTICE_LIST_STORAGE_KEY = LEGACY_PRACTICE_LIST_STORAGE_KEY
 
 export function normalizeProblemsPracticeList(value) {
   return Array.isArray(value) ? normalizeProblemIds(value) : []
 }
 
-function readPracticeList() {
-  if (typeof window === 'undefined') {
-    return []
-  }
-
-  try {
-    return normalizeProblemsPracticeList(
-      JSON.parse(window.localStorage.getItem(PROBLEMS_PRACTICE_LIST_STORAGE_KEY)),
-    )
-  } catch {
-    return []
-  }
-}
-
-function writePracticeList(problemIds) {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  try {
-    window.localStorage.setItem(PROBLEMS_PRACTICE_LIST_STORAGE_KEY, JSON.stringify(problemIds))
-  } catch {
-    // 本地存储不可用时，本页内的题单状态仍然可以正常使用。
-  }
-}
-
 export function mergeProblemsPracticeList(currentIds, problemIds) {
   const currentProblemIds = normalizeProblemsPracticeList(currentIds)
-  const nextProblemIds = normalizeProblemIds([...currentProblemIds, ...problemIds])
+  const requestedProblemIds = Array.isArray(problemIds) ? problemIds : [problemIds]
+  const nextProblemIds = normalizeProblemIds([...currentProblemIds, ...requestedProblemIds])
 
   return {
     newlyAddedProblemIds: nextProblemIds.filter(
@@ -46,18 +23,32 @@ export function mergeProblemsPracticeList(currentIds, problemIds) {
 }
 
 export function useProblemsPracticeList() {
-  const practiceProblemIds = ref(readPracticeList())
+  const practiceListsStore = usePracticeListsStore()
+  const practiceProblemIds = computed(() =>
+    normalizeProblemIds(
+      practiceListsStore.lists.flatMap((practiceList) =>
+        practiceList.items.map((item) => item.problemId),
+      ),
+    ),
+  )
 
   function isProblemInPracticeList(problemId) {
     return practiceProblemIds.value.includes(String(problemId))
   }
 
   function addProblemsToPracticeList(problemIds) {
-    const result = mergeProblemsPracticeList(practiceProblemIds.value, problemIds)
-    practiceProblemIds.value = result.problemIds
-    writePracticeList(practiceProblemIds.value)
+    let defaultPracticeList = practiceListsStore.getPracticeListById(
+      practiceListsStore.defaultListId,
+    )
 
-    return result.newlyAddedProblemIds
+    if (!defaultPracticeList) {
+      defaultPracticeList = practiceListsStore.createPracticeList({
+        title: '默认题单',
+        description: '从题库和题目详情页加入的题目',
+      })
+    }
+
+    return practiceListsStore.addProblemsToPracticeList(defaultPracticeList.id, problemIds)
   }
 
   return {

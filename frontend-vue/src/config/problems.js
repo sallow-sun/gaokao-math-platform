@@ -10,7 +10,7 @@ export const PROBLEMS_DISPLAY_OPTION_OPTIONS = [
 ]
 
 export const PROBLEMS_PRINT_OPTION_OPTIONS = [
-  { value: 'problem-id', label: '题号' },
+  { value: 'problem-id', label: '题库编号' },
   { value: 'type', label: '题型' },
   { value: 'content', label: '题干' },
   { value: 'title', label: '题目标题' },

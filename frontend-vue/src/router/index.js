@@ -21,6 +21,17 @@ const router = createRouter({
       props: true,
     },
     {
+      path: '/training',
+      name: 'training',
+      component: () => import('../views/TrainingView.vue'),
+    },
+    {
+      path: '/training/:practiceListId',
+      name: 'training-detail',
+      component: () => import('../views/TrainingDetailView.vue'),
+      props: true,
+    },
+    {
       path: '/about',
       name: 'about',
       // route level code-splitting

@@ -5,6 +5,7 @@
 export const HOME_ROUTES = {
   normalHome: '/home',
   problems: '/problems',
+  training: '/training',
   about: '/about',
   help: '/help',
   question(problemId) {

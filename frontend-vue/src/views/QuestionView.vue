@@ -10,7 +10,9 @@ import QuestionPersonalizationSettings from '../components/question/QuestionPers
 import QuestionPrintSheet from '../components/question/QuestionPrintSheet.vue'
 import QuestionSidebar from '../components/question/QuestionSidebar.vue'
 import QuestionStem from '../components/question/QuestionStem.vue'
+import PracticeListPickerDialog from '../components/training/PracticeListPickerDialog.vue'
 import { copyProblem, exportProblemAsImage } from '../composables/useProblemExport.js'
+import { usePracticeListPicker } from '../composables/usePracticeListPicker.js'
 import { useQuestionData } from '../composables/useQuestionData.js'
 import {
   QUESTION_ANSWER_PLACEMENT_OPTIONS,
@@ -43,7 +45,20 @@ const {
   setTypeColorMode,
   typeColorMode,
 } = useQuestionPreferences()
-const { practiceProblemIds, addProblemsToPracticeList } = useProblemsPracticeList()
+const { practiceProblemIds } = useProblemsPracticeList()
+const {
+  defaultPracticeListId,
+  pickerMode,
+  pickerOpen,
+  pickerProblemIds,
+  practiceLists,
+  selectedPracticeListIds,
+  applyPracticeListSelection,
+  closePracticeListPicker,
+  createPracticeListFromPicker,
+  openPracticeListPickerForProblem,
+  setPracticeListSelected,
+} = usePracticeListPicker()
 const { completedProblemIds, favoriteProblemIds, setProblemCompleted, setProblemFavorite } =
   useProblemsUserMarks(PROBLEMS_PROTOTYPE_ITEMS)
 const pendingConfirmation = ref(null)
@@ -143,12 +158,18 @@ function addToPracticeList() {
     return
   }
 
-  const newlyAddedProblemIds = addProblemsToPracticeList([problem.value.id])
-  showOperationFeedback(
-    newlyAddedProblemIds.length
-      ? `题目 ${problem.value.id} 已加入本地题单`
-      : `题目 ${problem.value.id} 已在本地题单中`,
-  )
+  openPracticeListPickerForProblem(problem.value.id)
+}
+
+function createPickerPracticeList(formValue) {
+  const practiceList = createPracticeListFromPicker(formValue)
+  showOperationFeedback(`题单“${practiceList.title}”已创建并选中`)
+}
+
+function applyPickerSelection() {
+  const result = applyPracticeListSelection()
+  const changed = result.addedMembershipCount + result.removedMembershipCount
+  showOperationFeedback(changed ? `题目 ${result.problemId} 的题单归属已更新` : '题单归属没有变化')
 }
 
 function cancelPendingConfirmation() {
@@ -256,6 +277,7 @@ async function exportQuestion(format) {
 watch(normalizedProblemNumber, () => {
   finishPrint()
   pendingConfirmation.value = null
+  closePracticeListPicker()
   window.clearTimeout(operationFeedbackTimer)
   operationFeedbackMessage.value = ''
 })
@@ -364,6 +386,19 @@ onBeforeUnmount(() => {
       :confirm-label="pendingConfirmation?.confirmLabel"
       @cancel="cancelPendingConfirmation"
       @confirm="confirmPendingAction"
+    />
+
+    <PracticeListPickerDialog
+      :default-list-id="defaultPracticeListId"
+      :lists="practiceLists"
+      :mode="pickerMode"
+      :open="pickerOpen"
+      :problem-count="pickerProblemIds.length"
+      :selected-list-ids="selectedPracticeListIds"
+      @apply="applyPickerSelection"
+      @cancel="closePracticeListPicker"
+      @create-list="createPickerPracticeList"
+      @selection-change="setPracticeListSelected"
     />
   </main>
 </template>

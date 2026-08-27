@@ -31,6 +31,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  printNote: {
+    type: String,
+    default: '',
+  },
   selected: {
     type: Boolean,
     default: false,
@@ -146,11 +150,16 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
         >
           查看详情
         </RouterLink>
-        <button type="button" :disabled="inPracticeList" @click="emit('add-to-list')">
-          {{ inPracticeList ? '已加入题单' : '加入题单' }}
+        <button type="button" @click="emit('add-to-list')">
+          {{ inPracticeList ? '管理题单' : '加入题单' }}
         </button>
       </div>
     </footer>
+
+    <section v-if="printing && printNote" class="bank-problem-print-note">
+      <h4>个人备注</h4>
+      <pre>{{ printNote }}</pre>
+    </section>
 
     <ProblemSolutionDrawer
       v-if="!printing"
