@@ -1,5 +1,6 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { PROBLEMS_PRINT_OPTION_OPTIONS } from '../config/problems.js'
+import { useProblemPrintPreferences } from './useProblemPrintPreferences.js'
 
 export const QUESTION_PREFERENCES_STORAGE_KEY = 'question-page-preferences'
 
@@ -19,9 +20,11 @@ export const QUESTION_PRINT_OPTION_OPTIONS = [
   { value: 'solution', label: '解析' },
 ]
 
-const PRINT_OPTION_NAMES = QUESTION_PRINT_OPTION_OPTIONS.map((option) => option.value)
-const DEFAULT_PRINT_OPTIONS = Object.fromEntries(
-  PRINT_OPTION_NAMES.map((name) => [name, name === 'type' || name === 'content']),
+const COMMON_PRINT_OPTION_NAMES = PROBLEMS_PRINT_OPTION_OPTIONS.map((option) => option.value)
+const QUESTION_ONLY_PRINT_OPTION_NAMES = ['answer', 'solution']
+const PRINT_OPTION_NAMES = [...COMMON_PRINT_OPTION_NAMES, ...QUESTION_ONLY_PRINT_OPTION_NAMES]
+const DEFAULT_QUESTION_PRINT_OPTIONS = Object.fromEntries(
+  QUESTION_ONLY_PRINT_OPTION_NAMES.map((name) => [name, false]),
 )
 
 function normalizeChoice(value, options, fallback) {
@@ -32,9 +35,11 @@ function normalizePrintOptions(value) {
   const savedValue = value && typeof value === 'object' ? value : {}
 
   return Object.fromEntries(
-    PRINT_OPTION_NAMES.map((name) => [
+    QUESTION_ONLY_PRINT_OPTION_NAMES.map((name) => [
       name,
-      typeof savedValue[name] === 'boolean' ? savedValue[name] : DEFAULT_PRINT_OPTIONS[name],
+      typeof savedValue[name] === 'boolean'
+        ? savedValue[name]
+        : DEFAULT_QUESTION_PRINT_OPTIONS[name],
     ]),
   )
 }
@@ -84,24 +89,35 @@ function writePreferences(preferences) {
 }
 
 export function createQuestionPrintPreset(preset) {
-  if (preset === 'practice-paper') {
-    return { ...DEFAULT_PRINT_OPTIONS }
-  }
-
-  return Object.fromEntries(PRINT_OPTION_NAMES.map((name) => [name, true]))
+  return preset === 'practice-paper'
+    ? { ...DEFAULT_QUESTION_PRINT_OPTIONS }
+    : Object.fromEntries(QUESTION_ONLY_PRINT_OPTION_NAMES.map((name) => [name, true]))
 }
 
 export function useQuestionPreferences() {
   const savedPreferences = readPreferences()
+  const {
+    includePrintHeader,
+    printOptions: commonPrintOptions,
+    printPageLayout,
+    setIncludePrintHeader,
+    setPrintOption: setCommonPrintOption,
+    setPrintPageLayout,
+    setPrintPreset: setCommonPrintPreset,
+  } = useProblemPrintPreferences()
   const answerPlacement = ref(savedPreferences.answerPlacement)
   const typeColorMode = ref(savedPreferences.typeColorMode)
-  const printOptions = ref(savedPreferences.printOptions)
+  const questionPrintOptions = ref(savedPreferences.printOptions)
+  const printOptions = computed(() => ({
+    ...commonPrintOptions.value,
+    ...questionPrintOptions.value,
+  }))
 
   function persistPreferences() {
     writePreferences({
       answerPlacement: answerPlacement.value,
       typeColorMode: typeColorMode.value,
-      printOptions: printOptions.value,
+      printOptions: questionPrintOptions.value,
     })
   }
 
@@ -120,23 +136,33 @@ export function useQuestionPreferences() {
       return
     }
 
-    printOptions.value = {
-      ...printOptions.value,
+    if (COMMON_PRINT_OPTION_NAMES.includes(name)) {
+      setCommonPrintOption(name, visible)
+      return
+    }
+
+    questionPrintOptions.value = {
+      ...questionPrintOptions.value,
       [name]: Boolean(visible),
     }
     persistPreferences()
   }
 
   function setPrintPreset(preset) {
-    printOptions.value = createQuestionPrintPreset(preset)
+    setCommonPrintPreset(preset)
+    questionPrintOptions.value = createQuestionPrintPreset(preset)
     persistPreferences()
   }
 
   return {
     answerPlacement,
+    includePrintHeader,
     printOptions,
+    printPageLayout,
     setAnswerPlacement,
+    setIncludePrintHeader,
     setPrintOption,
+    setPrintPageLayout,
     setPrintPreset,
     setTypeColorMode,
     typeColorMode,

@@ -159,23 +159,31 @@ export const usePracticeListsStore = defineStore('practiceLists', {
     },
 
     removeProblemFromPracticeList(listId, problemId) {
+      return this.removeProblemsFromPracticeList(listId, [problemId]).length > 0
+    },
+
+    removeProblemsFromPracticeList(listId, problemIds) {
       const practiceList = findPracticeList(this.lists, listId)
-      const normalizedProblemId = String(problemId ?? '').trim()
+      const normalizedProblemIds = new Set(normalizeProblemIds(problemIds))
 
-      if (!practiceList || !normalizedProblemId) {
-        return false
+      if (!practiceList || normalizedProblemIds.size === 0) {
+        return []
       }
 
-      const nextItems = practiceList.items.filter((item) => item.problemId !== normalizedProblemId)
+      const removedProblemIds = practiceList.items
+        .filter((item) => normalizedProblemIds.has(item.problemId))
+        .map((item) => item.problemId)
 
-      if (nextItems.length === practiceList.items.length) {
-        return false
+      if (removedProblemIds.length === 0) {
+        return []
       }
 
-      practiceList.items = nextItems
+      practiceList.items = practiceList.items.filter(
+        (item) => !normalizedProblemIds.has(item.problemId),
+      )
       practiceList.updatedAt = getCurrentTimestamp()
       this.persist()
-      return true
+      return removedProblemIds
     },
 
     updateProblemNote(listId, problemId, note) {

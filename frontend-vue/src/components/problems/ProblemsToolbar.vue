@@ -14,12 +14,24 @@ defineProps({
     type: Array,
     required: true,
   },
+  includePrintHeader: {
+    type: Boolean,
+    default: false,
+  },
   printOptionOptions: {
     type: Array,
     required: true,
   },
   printOptions: {
     type: Object,
+    required: true,
+  },
+  printPageLayout: {
+    type: String,
+    default: 'auto',
+  },
+  printPageLayoutOptions: {
+    type: Array,
     required: true,
   },
   sort: {
@@ -45,7 +57,9 @@ const emit = defineEmits([
   'display-options-all',
   'display-options-minimal',
   'action-confirmation-change',
+  'include-print-header-change',
   'print-option-change',
+  'print-page-layout-change',
   'print-preset-change',
   'sort-change',
   'view-mode-change',
@@ -70,13 +84,18 @@ function handleSortChange(event) {
         :action-confirmations="actionConfirmations"
         :display-options="displayOptions"
         :display-option-options="displayOptionOptions"
+        :include-print-header="includePrintHeader"
         :print-option-options="printOptionOptions"
         :print-options="printOptions"
+        :print-page-layout="printPageLayout"
+        :print-page-layout-options="printPageLayoutOptions"
         @action-confirmation-change="emit('action-confirmation-change', $event)"
         @display-option-change="emit('display-option-change', $event)"
         @display-options-all="emit('display-options-all')"
         @display-options-minimal="emit('display-options-minimal')"
+        @include-print-header-change="emit('include-print-header-change', $event)"
         @print-option-change="emit('print-option-change', $event)"
+        @print-page-layout-change="emit('print-page-layout-change', $event)"
         @print-preset-change="emit('print-preset-change', $event)"
       />
 

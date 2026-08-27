@@ -28,10 +28,6 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-  printProblems: {
-    type: Array,
-    required: true,
-  },
   selectedProblemIds: {
     type: Array,
     required: true,
@@ -109,20 +105,11 @@ const isMinimalDisplay = computed(
       v-for="problem in problems"
       :key="problem.id"
       :completed="completedProblemIds.includes(problem.id)"
+      completion-toggleable
       :problem="problem"
       :selected="selectedProblemIds.includes(problem.id)"
       @selection-change="emit('selection-change', { problemId: problem.id, selected: $event })"
-    />
-  </section>
-
-  <section id="print-view" class="bank-print-results" aria-hidden="true">
-    <ProblemPreviewCard
-      v-for="problem in printProblems"
-      :key="problem.id"
-      :display-options="displayOptions"
-      :in-practice-list="practiceProblemIds.includes(problem.id)"
-      :problem="problem"
-      printing
+      @toggle-completed="emit('toggle-completed', problem.id)"
     />
   </section>
 </template>

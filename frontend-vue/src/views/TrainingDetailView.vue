@@ -1,25 +1,29 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import TrainingConfirmDialog from '../components/training/TrainingConfirmDialog.vue'
 import TrainingEditDialog from '../components/training/TrainingEditDialog.vue'
 import TrainingNoteWorkspace from '../components/training/TrainingNoteWorkspace.vue'
 import TrainingPersonalizationSettings from '../components/training/TrainingPersonalizationSettings.vue'
-import TrainingPrintSheet from '../components/training/TrainingPrintSheet.vue'
 import TrainingProblemItem from '../components/training/TrainingProblemItem.vue'
 import { sharePracticeList } from '../composables/usePracticeListExport.js'
 import {
   getPracticeListDropIndex,
+  formatPracticeListProblemContent,
   parsePracticeListProblemIds,
 } from '../composables/usePracticeListArrangement.js'
-import { usePracticeListOutputPreferences } from '../composables/usePracticeListOutputPreferences.js'
+import {
+  PRACTICE_LIST_PRINT_PAGE_LAYOUTS,
+  usePracticeListOutputPreferences,
+} from '../composables/usePracticeListOutputPreferences.js'
 import { usePracticeListViewPreferences } from '../composables/usePracticeListViewPreferences.js'
-import { useProblemsPrintPreferences } from '../composables/useProblemsPrintPreferences.js'
+import { useProblemsActionPreferences } from '../composables/useProblemsActionPreferences.js'
+import { useProblemPrint } from '../composables/useProblemPrint.js'
+import { useProblemPrintPreferences } from '../composables/useProblemPrintPreferences.js'
 import { useProblemsUserMarks } from '../composables/useProblemsUserMarks.js'
 import { findPrototypeProblem } from '../composables/useQuestionData.js'
 import { PROBLEMS_PRINT_OPTION_OPTIONS, PROBLEMS_PROTOTYPE_ITEMS } from '../config/problems.js'
 import { usePracticeListsStore } from '../stores/practiceLists.js'
-import '../assets/styles/problems.css'
 import '../assets/styles/training.css'
 
 const props = defineProps({
@@ -31,19 +35,27 @@ const props = defineProps({
 
 const router = useRouter()
 const practiceListsStore = usePracticeListsStore()
-const { includeNotes, includePrintHeader, setIncludeNotes, setIncludePrintHeader } =
-  usePracticeListOutputPreferences()
+const {
+  includeNotes,
+  includePrintHeader,
+  printPageLayout,
+  setIncludeNotes,
+  setIncludePrintHeader,
+  setPrintPageLayout,
+} = usePracticeListOutputPreferences()
 const { viewMode, setViewMode } = usePracticeListViewPreferences()
-const { printOptions, setPrintOption, setPrintPreset } = useProblemsPrintPreferences()
-const { completedProblemIds } = useProblemsUserMarks(PROBLEMS_PROTOTYPE_ITEMS)
+const { actionConfirmations, setActionConfirmation } = useProblemsActionPreferences()
+const { printOptions, setPrintOption, setPrintPreset } = useProblemPrintPreferences()
+const { finishPrint, printProblems: openProblemPrintDialog } = useProblemPrint()
+const { completedProblemIds, setProblemCompleted } = useProblemsUserMarks(PROBLEMS_PROTOTYPE_ITEMS)
 const activeNoteListId = ref('')
 const activeNoteProblemId = ref('')
+const batchMode = ref(false)
 const editDialogOpen = ref(false)
 const draggedProblemId = ref('')
 const dragTargetPosition = ref('')
 const dragTargetProblemId = ref('')
-const isPrinting = ref(false)
-const printingProblemIds = ref([])
+const managementMenu = ref(null)
 const pendingConfirmation = ref(null)
 const noteDraft = ref('')
 const noteSaveStatus = ref('saved')
@@ -51,13 +63,9 @@ const noteStorageAvailable = ref(true)
 const problemImportMessage = ref('')
 const problemImportStatus = ref('')
 const problemImportValue = ref('')
+const selectedProblemIds = ref([])
 const operationFeedbackMessage = ref('')
-const PRINT_BODY_CLASS = 'is-printing-problems'
-const PRINT_OPTION_BODY_CLASSES = PROBLEMS_PRINT_OPTION_OPTIONS.map(
-  (option) => `print-hide-${option.value}`,
-)
 const NOTE_AUTOSAVE_DELAY = 800
-let titleBeforePrint = ''
 let noteAutosaveTimer = 0
 let operationFeedbackTimer = 0
 
@@ -96,10 +104,13 @@ const hasPreviousNoteEntry = computed(() => activeNoteIndex.value > 0)
 const hasNextNoteEntry = computed(
   () => activeNoteIndex.value >= 0 && activeNoteIndex.value < problemEntries.value.length - 1,
 )
-const printingEntries = computed(() =>
-  printingProblemIds.value
-    .map((problemId) => problemEntries.value.find((entry) => entry.item.problemId === problemId))
-    .filter(Boolean),
+const selectedEntries = computed(() =>
+  problemEntries.value.filter((entry) => selectedProblemIds.value.includes(entry.item.problemId)),
+)
+const allProblemsSelected = computed(
+  () =>
+    problemEntries.value.length > 0 &&
+    selectedProblemIds.value.length === problemEntries.value.length,
 )
 const nextPracticeEntry = computed(
   () =>
@@ -127,7 +138,35 @@ function showOperationFeedback(message) {
   }, 2200)
 }
 
+function closeManagementMenu({ restoreFocus = false } = {}) {
+  const menu = managementMenu.value
+
+  if (!menu?.open) {
+    return
+  }
+
+  menu.removeAttribute('open')
+
+  if (restoreFocus) {
+    menu.querySelector('summary')?.focus()
+  }
+}
+
+function handleManagementMenuPointerDown(event) {
+  if (managementMenu.value?.open && !managementMenu.value.contains(event.target)) {
+    closeManagementMenu()
+  }
+}
+
+function handleManagementMenuKeydown(event) {
+  if (event.key === 'Escape' && managementMenu.value?.open) {
+    event.preventDefault()
+    closeManagementMenu({ restoreFocus: true })
+  }
+}
+
 function openEditDialog() {
+  closeManagementMenu()
   editDialogOpen.value = true
 }
 
@@ -147,6 +186,8 @@ function savePracticeList(changes) {
 }
 
 function setAsDefaultPracticeList() {
+  closeManagementMenu()
+
   if (!practiceList.value || isDefaultPracticeList.value) {
     return
   }
@@ -157,6 +198,8 @@ function setAsDefaultPracticeList() {
 }
 
 function requestDeletePracticeList() {
+  closeManagementMenu()
+
   if (!practiceList.value) {
     return
   }
@@ -176,6 +219,20 @@ function requestRemoveProblem(problemId) {
     title: `从题单移除题目 ${problemId}？`,
     description: '该题在当前题单中的备注也会删除，题库中的原题不会受到影响。',
     confirmLabel: '移除题目',
+  }
+}
+
+function requestRemoveSelectedProblems() {
+  if (selectedProblemIds.value.length === 0) {
+    return
+  }
+
+  pendingConfirmation.value = {
+    kind: 'remove-problems',
+    problemIds: [...selectedProblemIds.value],
+    title: `从题单移除选中的 ${selectedProblemIds.value.length} 道题？`,
+    description: '这些题目在当前题单中的备注也会删除，题库中的原题不会受到影响。',
+    confirmLabel: '批量移除',
   }
 }
 
@@ -212,6 +269,28 @@ async function confirmPendingAction() {
     }
   }
 
+  if (action.kind === 'remove-problems') {
+    if (action.problemIds.includes(activeNoteProblemId.value)) {
+      resetNoteWorkspace({ save: false })
+    }
+
+    const removedProblemIds = practiceListsStore.removeProblemsFromPracticeList(
+      currentPracticeList.id,
+      action.problemIds,
+    )
+
+    selectedProblemIds.value = []
+    batchMode.value = false
+
+    if (removedProblemIds.length > 0) {
+      showOperationFeedback(`已从题单移除 ${removedProblemIds.length} 道题`)
+    }
+  }
+
+  if (action.kind === 'toggle-completed') {
+    applyProblemCompletedChange(action.problemId, action.value)
+  }
+
   pendingConfirmation.value = null
 }
 
@@ -223,6 +302,70 @@ function moveProblem(problemId, targetIndex) {
   if (practiceListsStore.moveProblemInPracticeList(practiceList.value.id, problemId, targetIndex)) {
     showOperationFeedback('题目顺序已调整')
   }
+}
+
+function applyProblemCompletedChange(problemId, completed) {
+  setProblemCompleted(problemId, completed)
+  showOperationFeedback(
+    completed ? `题目 ${problemId} 已标记为已做` : `题目 ${problemId} 已取消已做`,
+  )
+}
+
+function updateProblemCompleted(problemId, completed) {
+  const confirmationName = completed ? 'markCompleted' : 'unmarkCompleted'
+
+  if (!actionConfirmations.value[confirmationName]) {
+    applyProblemCompletedChange(problemId, completed)
+    return
+  }
+
+  pendingConfirmation.value = {
+    kind: 'toggle-completed',
+    problemId,
+    value: completed,
+    title: completed ? '标记为已做？' : '取消已做标记？',
+    description: completed
+      ? `确认将题目 ${problemId} 标记为“已做”。`
+      : `取消后，题目 ${problemId} 将恢复为“未做”状态。`,
+    confirmLabel: completed ? '标记已做' : '取消已做',
+  }
+}
+
+function enterBatchMode() {
+  resetNoteWorkspace()
+  finishProblemDrag()
+  selectedProblemIds.value = []
+  batchMode.value = true
+}
+
+function exitBatchMode() {
+  selectedProblemIds.value = []
+  batchMode.value = false
+}
+
+function setProblemSelected(problemId, selected) {
+  selectedProblemIds.value = selected
+    ? [...new Set([...selectedProblemIds.value, problemId])]
+    : selectedProblemIds.value.filter((currentProblemId) => currentProblemId !== problemId)
+}
+
+function selectAllProblems() {
+  selectedProblemIds.value = problemEntries.value.map((entry) => entry.item.problemId)
+}
+
+function clearProblemSelection() {
+  selectedProblemIds.value = []
+}
+
+function printSelectedProblems() {
+  if (selectedEntries.value.length === 0) {
+    return
+  }
+
+  return startPracticeListPrint(
+    selectedEntries.value,
+    `高考数学题单-${practiceList.value?.title ?? '题单'}-所选题目`,
+  )
 }
 
 function clearNoteAutosaveTimer() {
@@ -410,21 +553,6 @@ function importProblemsById() {
   }
 }
 
-function finishPrint() {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  document.body.classList.remove(PRINT_BODY_CLASS, ...PRINT_OPTION_BODY_CLASSES)
-  isPrinting.value = false
-  printingProblemIds.value = []
-
-  if (titleBeforePrint) {
-    document.title = titleBeforePrint
-    titleBeforePrint = ''
-  }
-}
-
 async function startPracticeListPrint(entries, title) {
   persistActiveNote()
 
@@ -453,24 +581,23 @@ async function startPracticeListPrint(entries, title) {
     ? printableEntries
     : printableEntries.filter((entry) => entry.item.note)
 
-  finishPrint()
-  titleBeforePrint = document.title
-  document.title = title
-  printingProblemIds.value = entriesToPrint.map((entry) => entry.item.problemId)
-  isPrinting.value = true
-  document.body.classList.add(PRINT_BODY_CLASS)
-
-  PROBLEMS_PRINT_OPTION_OPTIONS.forEach((option) => {
-    if (!printOptions.value[option.value]) {
-      document.body.classList.add(`print-hide-${option.value}`)
-    }
+  const result = await openProblemPrintDialog({
+    documentTitle: title,
+    entries: entriesToPrint.map((entry) => ({
+      key: entry.item.problemId,
+      note: includeNotes.value ? entry.item.note : '',
+      problem: {
+        ...entry.problem,
+        content: formatPracticeListProblemContent(entry.problem.content, entry.position),
+      },
+    })),
+    header: { eyebrow: '高考数学题单', title: practiceList.value.title },
+    includeHeader: includePrintHeader.value,
+    options: printOptions.value,
+    pageLayout: printPageLayout.value,
   })
 
-  try {
-    await nextTick()
-    window.print()
-  } catch {
-    finishPrint()
+  if (result.reason === 'print-unavailable') {
     showOperationFeedback('无法打开打印窗口，请检查浏览器设置')
   }
 }
@@ -508,6 +635,7 @@ async function shareCurrentPracticeList() {
 watch(
   () => props.practiceListId,
   () => {
+    closeManagementMenu()
     resetNoteWorkspace()
     finishPrint()
     finishProblemDrag()
@@ -516,23 +644,30 @@ watch(
     problemImportMessage.value = ''
     problemImportStatus.value = ''
     problemImportValue.value = ''
+    exitBatchMode()
     window.clearTimeout(operationFeedbackTimer)
     operationFeedbackMessage.value = ''
   },
 )
 
 watch(viewMode, (nextViewMode) => {
+  if (nextViewMode === 'preview-view') {
+    exitBatchMode()
+  }
+
   if (nextViewMode === 'preview-view' && activeNoteProblemId.value) {
     resetNoteWorkspace()
   }
 })
 
 onMounted(() => {
-  window.addEventListener('afterprint', finishPrint)
+  document.addEventListener('pointerdown', handleManagementMenuPointerDown)
+  document.addEventListener('keydown', handleManagementMenuKeydown)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('afterprint', finishPrint)
+  document.removeEventListener('pointerdown', handleManagementMenuPointerDown)
+  document.removeEventListener('keydown', handleManagementMenuKeydown)
   resetNoteWorkspace()
   window.clearTimeout(operationFeedbackTimer)
   finishProblemDrag()
@@ -567,7 +702,7 @@ onBeforeUnmount(() => {
               <span v-if="isDefaultPracticeList" class="is-default">默认题单</span>
             </div>
             <h1>{{ practiceList.title }}</h1>
-            <p>{{ practiceList.description || '还没有填写题单说明。' }}</p>
+            <p v-if="practiceList.description">{{ practiceList.description }}</p>
           </div>
 
           <dl class="training-detail-summary" aria-label="题单统计">
@@ -587,7 +722,6 @@ onBeforeUnmount(() => {
             <header class="training-detail-content-header">
               <div>
                 <h2 id="training-detail-problems-title">题目与备注</h2>
-                <p>完整模式按试卷连续预览；简略模式可拖动排序，并在右侧编辑备注。</p>
               </div>
               <div class="training-detail-content-tools">
                 <div class="training-detail-view-mode">
@@ -614,18 +748,40 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
                 <TrainingPersonalizationSettings
+                  :action-confirmations="actionConfirmations"
                   :include-notes="includeNotes"
                   :include-print-header="includePrintHeader"
                   :print-option-options="PROBLEMS_PRINT_OPTION_OPTIONS"
                   :print-options="printOptions"
+                  :print-page-layout="printPageLayout"
+                  :print-page-layout-options="PRACTICE_LIST_PRINT_PAGE_LAYOUTS"
+                  @action-confirmation-change="setActionConfirmation($event.name, $event.enabled)"
                   @include-notes-change="setIncludeNotes"
                   @include-print-header-change="setIncludePrintHeader"
                   @print-option-change="setPrintOption($event.name, $event.visible)"
+                  @print-page-layout-change="setPrintPageLayout"
                   @print-preset-change="setPrintPreset"
                 />
-                <RouterLink class="training-secondary-action" to="/problems"
-                  >继续添加题目</RouterLink
-                >
+                <details ref="managementMenu" class="training-detail-more-menu">
+                  <summary aria-label="更多题单操作" title="更多">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 7h16M4 12h16M4 17h16" />
+                    </svg>
+                  </summary>
+                  <div role="group" aria-label="题单管理操作">
+                    <button
+                      type="button"
+                      :disabled="isDefaultPracticeList"
+                      @click="setAsDefaultPracticeList"
+                    >
+                      {{ isDefaultPracticeList ? '当前默认题单' : '设为默认题单' }}
+                    </button>
+                    <button type="button" @click="openEditDialog">编辑题单信息</button>
+                    <button type="button" class="is-danger-text" @click="requestDeletePracticeList">
+                      删除题单
+                    </button>
+                  </div>
+                </details>
               </div>
             </header>
 
@@ -642,15 +798,14 @@ onBeforeUnmount(() => {
                   type="text"
                   inputmode="text"
                   autocomplete="off"
-                  aria-describedby="training-problem-import-help training-problem-import-result"
+                  :aria-describedby="
+                    problemImportMessage ? 'training-problem-import-result' : undefined
+                  "
                   placeholder="例如：P10001, P10002"
                   @input="problemImportMessage = ''"
                 />
                 <button type="submit" :disabled="!problemImportValue.trim()">添加</button>
               </div>
-              <p id="training-problem-import-help" class="training-detail-import-help">
-                多个题号可用空格、逗号或分号分隔；当前仅支持已载入题库的题目。
-              </p>
               <p
                 v-if="problemImportMessage"
                 id="training-problem-import-result"
@@ -676,6 +831,8 @@ onBeforeUnmount(() => {
                 :item="entry.item"
                 :note-active="activeNoteProblemId === entry.item.problemId"
                 :problem="entry.problem"
+                :selected="selectedProblemIds.includes(entry.item.problemId)"
+                :selection-mode="batchMode"
                 :completed="completedProblemIds.includes(entry.item.problemId)"
                 :dragging="draggedProblemId === entry.item.problemId"
                 :drop-position="
@@ -691,10 +848,52 @@ onBeforeUnmount(() => {
                 @move="moveProblem(entry.item.problemId, $event)"
                 @print="printSingleProblem(entry)"
                 @remove="requestRemoveProblem(entry.item.problemId)"
+                @selection-change="setProblemSelected(entry.item.problemId, $event)"
+                @toggle-completed="updateProblemCompleted(entry.item.problemId, $event)"
               />
             </div>
 
-            <div v-else class="training-detail-empty">
+            <div
+              v-if="viewMode === 'list-view' && problemEntries.length"
+              class="training-detail-batch-toolbar"
+              :class="{ 'is-active': batchMode }"
+              aria-label="题目批量操作"
+            >
+              <button v-if="!batchMode" type="button" @click="enterBatchMode">多选</button>
+              <template v-else>
+                <button type="button" @click="exitBatchMode">返回</button>
+                <span aria-live="polite">已选择 {{ selectedProblemIds.length }}</span>
+                <button type="button" :disabled="allProblemsSelected" @click="selectAllProblems">
+                  全选
+                </button>
+                <button
+                  type="button"
+                  :disabled="selectedProblemIds.length === 0"
+                  @click="clearProblemSelection"
+                >
+                  清除
+                </button>
+                <div class="training-detail-batch-actions">
+                  <button
+                    type="button"
+                    :disabled="selectedProblemIds.length === 0"
+                    @click="printSelectedProblems"
+                  >
+                    打印所选
+                  </button>
+                  <button
+                    type="button"
+                    class="is-danger-text"
+                    :disabled="selectedProblemIds.length === 0"
+                    @click="requestRemoveSelectedProblems"
+                  >
+                    移出题单
+                  </button>
+                </div>
+              </template>
+            </div>
+
+            <div v-if="!problemEntries.length" class="training-detail-empty">
               <span class="training-empty-mark" aria-hidden="true">题</span>
               <h2>这份题单还没有题目</h2>
               <p>前往题库选择需要练习的题目，它们会加入当前默认题单。</p>
@@ -782,41 +981,11 @@ onBeforeUnmount(() => {
                   复制题号
                 </button>
               </div>
-              <p class="training-detail-share-privacy">
-                复制题号会生成逗号分隔的题库编号，可直接粘贴到“按题号导入”；打印内容可在个性化设置中调整。
-              </p>
-            </section>
-
-            <section class="training-detail-sidebar-card">
-              <header>
-                <h2>管理题单</h2>
-              </header>
-              <div class="training-detail-sidebar-actions" role="group" aria-label="题单管理操作">
-                <button
-                  type="button"
-                  :disabled="isDefaultPracticeList"
-                  @click="setAsDefaultPracticeList"
-                >
-                  {{ isDefaultPracticeList ? '当前默认题单' : '设为默认题单' }}
-                </button>
-                <button type="button" @click="openEditDialog">编辑题单信息</button>
-                <button type="button" class="is-danger-text" @click="requestDeletePracticeList">
-                  删除题单
-                </button>
-              </div>
             </section>
           </aside>
         </div>
       </template>
     </main>
-
-    <TrainingPrintSheet
-      v-if="practiceList && isPrinting"
-      :entries="printingEntries"
-      :include-notes="includeNotes"
-      :include-print-header="includePrintHeader"
-      :practice-list="practiceList"
-    />
 
     <TrainingEditDialog
       :open="editDialogOpen"

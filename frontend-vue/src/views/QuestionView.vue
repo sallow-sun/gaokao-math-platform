@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import QuestionAnswerSection from '../components/question/QuestionAnswerSection.vue'
 import QuestionConfirmDialog from '../components/question/QuestionConfirmDialog.vue'
@@ -7,11 +7,12 @@ import QuestionForumPlaceholder from '../components/question/QuestionForumPlaceh
 import QuestionHeader from '../components/question/QuestionHeader.vue'
 import QuestionHeaderTools from '../components/question/QuestionHeaderTools.vue'
 import QuestionPersonalizationSettings from '../components/question/QuestionPersonalizationSettings.vue'
-import QuestionPrintSheet from '../components/question/QuestionPrintSheet.vue'
 import QuestionSidebar from '../components/question/QuestionSidebar.vue'
 import QuestionStem from '../components/question/QuestionStem.vue'
 import PracticeListPickerDialog from '../components/training/PracticeListPickerDialog.vue'
 import { copyProblem, exportProblemAsImage } from '../composables/useProblemExport.js'
+import { useProblemPrint } from '../composables/useProblemPrint.js'
+import { PROBLEM_PRINT_PAGE_LAYOUT_OPTIONS } from '../composables/useProblemPrintPreferences.js'
 import { usePracticeListPicker } from '../composables/usePracticeListPicker.js'
 import { useQuestionData } from '../composables/useQuestionData.js'
 import {
@@ -38,13 +39,18 @@ const { error, isLoading, normalizedProblemNumber, problem } = useQuestionData(r
 const { actionConfirmations, setActionConfirmation } = useProblemsActionPreferences()
 const {
   answerPlacement,
+  includePrintHeader,
   printOptions,
+  printPageLayout,
   setAnswerPlacement,
+  setIncludePrintHeader,
   setPrintOption,
+  setPrintPageLayout,
   setPrintPreset,
   setTypeColorMode,
   typeColorMode,
 } = useQuestionPreferences()
+const { finishPrint, printProblems: openProblemPrintDialog } = useProblemPrint()
 const { practiceProblemIds } = useProblemsPracticeList()
 const {
   defaultPracticeListId,
@@ -62,10 +68,7 @@ const {
 const { completedProblemIds, favoriteProblemIds, setProblemCompleted, setProblemFavorite } =
   useProblemsUserMarks(PROBLEMS_PROTOTYPE_ITEMS)
 const pendingConfirmation = ref(null)
-const isPrinting = ref(false)
 const operationFeedbackMessage = ref('')
-const PRINT_BODY_CLASS = 'is-printing-question'
-let titleBeforePrint = ''
 let operationFeedbackTimer = 0
 
 const isCompleted = computed(
@@ -200,45 +203,28 @@ function updateActionConfirmation({ name, enabled }) {
   setActionConfirmation(name, enabled)
 }
 
-function finishPrint() {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  document.body.classList.remove(PRINT_BODY_CLASS)
-  isPrinting.value = false
-
-  if (titleBeforePrint) {
-    document.title = titleBeforePrint
-    titleBeforePrint = ''
-  }
-}
-
 async function printQuestion(forPdf = false) {
-  if (!problem.value || typeof window === 'undefined' || typeof document === 'undefined') {
+  if (!problem.value) {
     return
   }
-
-  if (!Object.values(printOptions.value).some(Boolean)) {
-    showOperationFeedback('请先在“个性化”的“打印内容”中至少选择一项')
-    return
-  }
-
-  finishPrint()
-  titleBeforePrint = document.title
-  document.title = `高考数学单题练习-${problem.value.id}`
-  isPrinting.value = true
-  document.body.classList.add(PRINT_BODY_CLASS)
 
   if (forPdf) {
     showOperationFeedback('请在打印窗口中选择“另存为 PDF”')
   }
 
-  try {
-    await nextTick()
-    window.print()
-  } catch {
-    finishPrint()
+  const result = await openProblemPrintDialog({
+    documentTitle: `高考数学单题练习-${problem.value.id}`,
+    entries: [{ key: problem.value.id, problem: problem.value }],
+    forPdf,
+    header: { eyebrow: '高考数学单题练习', title: problem.value.title },
+    includeHeader: includePrintHeader.value,
+    options: printOptions.value,
+    pageLayout: printPageLayout.value,
+  })
+
+  if (result.reason === 'no-content') {
+    showOperationFeedback('请先在“个性化设置”的“打印内容”中至少选择一项')
+  } else if (result.reason === 'print-unavailable') {
     showOperationFeedback('无法打开打印窗口，请检查浏览器设置')
   }
 }
@@ -282,12 +268,7 @@ watch(normalizedProblemNumber, () => {
   operationFeedbackMessage.value = ''
 })
 
-onMounted(() => {
-  window.addEventListener('afterprint', finishPrint)
-})
-
 onBeforeUnmount(() => {
-  window.removeEventListener('afterprint', finishPrint)
   window.clearTimeout(operationFeedbackTimer)
   finishPrint()
 })
@@ -329,13 +310,18 @@ onBeforeUnmount(() => {
               :action-confirmations="actionConfirmations"
               :answer-placement="answerPlacement"
               :answer-placement-options="QUESTION_ANSWER_PLACEMENT_OPTIONS"
+              :include-print-header="includePrintHeader"
               :print-option-options="QUESTION_PRINT_OPTION_OPTIONS"
               :print-options="printOptions"
+              :print-page-layout="printPageLayout"
+              :print-page-layout-options="PROBLEM_PRINT_PAGE_LAYOUT_OPTIONS"
               :type-color-mode="typeColorMode"
               :type-color-options="QUESTION_TYPE_COLOR_OPTIONS"
               @action-confirmation-change="updateActionConfirmation"
               @answer-placement-change="setAnswerPlacement"
+              @include-print-header-change="setIncludePrintHeader"
               @print-option-change="updatePrintOption"
+              @print-page-layout-change="setPrintPageLayout"
               @print-preset-change="setPrintPreset"
               @type-color-change="setTypeColorMode"
             />
@@ -367,8 +353,6 @@ onBeforeUnmount(() => {
         </aside>
       </div>
     </article>
-
-    <QuestionPrintSheet v-if="problem && isPrinting" :options="printOptions" :problem="problem" />
 
     <p
       v-show="operationFeedbackMessage"

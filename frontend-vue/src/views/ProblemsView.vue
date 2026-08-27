@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import ProblemsBatchToolbar from '../components/problems/ProblemsBatchToolbar.vue'
 import ProblemsConfirmDialog from '../components/problems/ProblemsConfirmDialog.vue'
 import ProblemsFilterPanel from '../components/problems/ProblemsFilterPanel.vue'
@@ -19,7 +19,11 @@ import {
   useProblemsInfiniteList,
 } from '../composables/useProblemsInfiniteList.js'
 import { useProblemsPracticeList } from '../composables/useProblemsPracticeList.js'
-import { useProblemsPrintPreferences } from '../composables/useProblemsPrintPreferences.js'
+import { useProblemPrint } from '../composables/useProblemPrint.js'
+import {
+  PROBLEM_PRINT_PAGE_LAYOUT_OPTIONS,
+  useProblemPrintPreferences,
+} from '../composables/useProblemPrintPreferences.js'
 import { useProblemsQuery } from '../composables/useProblemsQuery'
 import { useProblemsSelection } from '../composables/useProblemsSelection.js'
 import { useProblemsUserMarks } from '../composables/useProblemsUserMarks.js'
@@ -34,7 +38,6 @@ import {
   PROBLEMS_TYPE_CATALOG_OPTIONS,
   PROBLEMS_YEAR_CATALOG_OPTIONS,
 } from '../config/problems'
-import '../assets/styles/problems.css'
 
 const {
   keyword,
@@ -76,22 +79,24 @@ const {
   openPracticeListPickerForProblems,
   setPracticeListSelected,
 } = usePracticeListPicker()
-const { printOptions, setPrintOption, setPrintPreset } = useProblemsPrintPreferences()
+const {
+  includePrintHeader,
+  printOptions,
+  printPageLayout,
+  setIncludePrintHeader,
+  setPrintOption,
+  setPrintPageLayout,
+  setPrintPreset,
+} = useProblemPrintPreferences()
+const { finishPrint, printProblems: openProblemPrintDialog } = useProblemPrint()
 const { selectedProblemIds, clearSelection, setProblemSelected, setProblemsSelected } =
   useProblemsSelection()
 const { completedProblemIds, favoriteProblemIds, setProblemCompleted, setProblemFavorite } =
   useProblemsUserMarks(PROBLEMS_PROTOTYPE_ITEMS)
-const printingProblemIds = ref([])
 const openSolutionProblemIds = ref([])
 const pendingConfirmation = ref(null)
 const operationFeedbackMessage = ref('')
-let titleBeforePrint = ''
 let operationFeedbackTimer = 0
-
-const PRINT_BODY_CLASS = 'is-printing-problems'
-const PRINT_OPTION_BODY_CLASSES = PROBLEMS_PRINT_OPTION_OPTIONS.map(
-  (option) => `print-hide-${option.value}`,
-)
 
 const filteredProblems = usePrototypeProblems({
   keyword,
@@ -105,11 +110,6 @@ const filteredProblems = usePrototypeProblems({
 const { hasMoreProblems, isLoadingMore, loadedProblems, loadMoreProblems } =
   useProblemsInfiniteList(filteredProblems, PROBLEMS_PAGE_SIZE)
 const visibleProblemIds = computed(() => loadedProblems.value.map((problem) => problem.id))
-const printProblems = computed(() =>
-  printingProblemIds.value
-    .map((problemId) => PROBLEMS_PROTOTYPE_ITEMS.find((problem) => problem.id === problemId))
-    .filter(Boolean),
-)
 const visibleSelectedCount = computed(
   () =>
     visibleProblemIds.value.filter((problemId) => selectedProblemIds.value.includes(problemId))
@@ -313,51 +313,33 @@ function applyPickerSelection() {
   )
 }
 
-function finishPrint() {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  document.body.classList.remove(PRINT_BODY_CLASS, ...PRINT_OPTION_BODY_CLASSES)
-  printingProblemIds.value = []
-
-  if (titleBeforePrint) {
-    document.title = titleBeforePrint
-    titleBeforePrint = ''
-  }
-}
-
 async function startPrint(problemIds, title, forPdf = false) {
-  if (problemIds.length === 0 || typeof window === 'undefined' || typeof document === 'undefined') {
+  const entries = Array.from(new Set(problemIds))
+    .map((problemId) => PROBLEMS_PROTOTYPE_ITEMS.find((problem) => problem.id === problemId))
+    .filter(Boolean)
+    .map((problem) => ({ key: problem.id, problem }))
+
+  if (entries.length === 0) {
     return
   }
-
-  if (!Object.values(printOptions.value).some(Boolean)) {
-    showOperationFeedback('请先在“个性化设置”的“打印内容”中至少选择一项')
-    return
-  }
-
-  finishPrint()
-  titleBeforePrint = document.title
-  document.title = title
-  printingProblemIds.value = Array.from(new Set(problemIds))
-  document.body.classList.add(PRINT_BODY_CLASS)
-
-  PROBLEMS_PRINT_OPTION_OPTIONS.forEach((option) => {
-    if (!printOptions.value[option.value]) {
-      document.body.classList.add(`print-hide-${option.value}`)
-    }
-  })
 
   if (forPdf) {
     showOperationFeedback('请在打印窗口中选择“另存为 PDF”')
   }
 
-  try {
-    await nextTick()
-    window.print()
-  } catch {
-    finishPrint()
+  const result = await openProblemPrintDialog({
+    documentTitle: title,
+    entries,
+    forPdf,
+    header: { eyebrow: '高考数学练习', title },
+    includeHeader: includePrintHeader.value,
+    options: printOptions.value,
+    pageLayout: printPageLayout.value,
+  })
+
+  if (result.reason === 'no-content') {
+    showOperationFeedback('请先在“个性化设置”的“打印内容”中至少选择一项')
+  } else if (result.reason === 'print-unavailable') {
     showOperationFeedback('无法打开打印窗口，请检查浏览器设置')
   }
 }
@@ -397,12 +379,7 @@ async function exportProblem({ format, problem }) {
   }
 }
 
-onMounted(() => {
-  window.addEventListener('afterprint', finishPrint)
-})
-
 onBeforeUnmount(() => {
-  window.removeEventListener('afterprint', finishPrint)
   window.clearTimeout(operationFeedbackTimer)
   finishPrint()
 })
@@ -451,8 +428,11 @@ onBeforeUnmount(() => {
           :action-confirmations="actionConfirmations"
           :display-options="displayOptions"
           :display-option-options="PROBLEMS_DISPLAY_OPTION_OPTIONS"
+          :include-print-header="includePrintHeader"
           :print-option-options="PROBLEMS_PRINT_OPTION_OPTIONS"
           :print-options="printOptions"
+          :print-page-layout="printPageLayout"
+          :print-page-layout-options="PROBLEM_PRINT_PAGE_LAYOUT_OPTIONS"
           :sort="sort"
           :sort-options="PROBLEMS_SORT_OPTIONS"
           :total-count="filteredProblems.length"
@@ -461,7 +441,9 @@ onBeforeUnmount(() => {
           @display-option-change="updateDisplayOption"
           @display-options-all="setAllDisplayOptions(true)"
           @display-options-minimal="setAllDisplayOptions(false)"
+          @include-print-header-change="setIncludePrintHeader"
           @print-option-change="updatePrintOption"
+          @print-page-layout-change="setPrintPageLayout"
           @print-preset-change="setPrintPreset"
           @sort-change="updateSort"
           @view-mode-change="setViewMode"
@@ -485,7 +467,6 @@ onBeforeUnmount(() => {
           :favorite-problem-ids="favoriteProblemIds"
           :open-solution-problem-ids="openSolutionProblemIds"
           :practice-problem-ids="practiceProblemIds"
-          :print-problems="printProblems"
           :problems="loadedProblems"
           :selected-problem-ids="selectedProblemIds"
           :view-mode="viewMode"

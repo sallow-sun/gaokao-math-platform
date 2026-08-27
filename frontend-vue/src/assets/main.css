@@ -1,4 +1,7 @@
-@import "./base.css";
+@import './base.css';
+@import './styles/problems.css';
+@import './styles/problem-print.css';
+@import './styles/personalization.css';
 
 html,
 body,

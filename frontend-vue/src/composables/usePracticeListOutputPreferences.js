@@ -1,6 +1,11 @@
 import { ref } from 'vue'
+import {
+  PROBLEM_PRINT_PAGE_LAYOUT_OPTIONS,
+  useProblemPrintPreferences,
+} from './useProblemPrintPreferences.js'
 
 export const PRACTICE_LIST_OUTPUT_PREFERENCES_STORAGE_KEY = 'practice-list-output-preferences'
+export const PRACTICE_LIST_PRINT_PAGE_LAYOUTS = PROBLEM_PRINT_PAGE_LAYOUT_OPTIONS
 
 export function normalizePracticeListOutputPreferences(value) {
   const savedValue = value && typeof value === 'object' ? value : {}
@@ -9,6 +14,11 @@ export function normalizePracticeListOutputPreferences(value) {
     includeNotes: typeof savedValue.includeNotes === 'boolean' ? savedValue.includeNotes : true,
     includePrintHeader:
       typeof savedValue.includePrintHeader === 'boolean' ? savedValue.includePrintHeader : false,
+    printPageLayout: PROBLEM_PRINT_PAGE_LAYOUT_OPTIONS.some(
+      (option) => option.value === savedValue.printPageLayout,
+    )
+      ? savedValue.printPageLayout
+      : 'auto',
   }
 }
 
@@ -41,12 +51,14 @@ function writeOutputPreferences(value) {
 export function usePracticeListOutputPreferences() {
   const preferences = readOutputPreferences()
   const includeNotes = ref(preferences.includeNotes)
-  const includePrintHeader = ref(preferences.includePrintHeader)
+  const { includePrintHeader, printPageLayout, setIncludePrintHeader, setPrintPageLayout } =
+    useProblemPrintPreferences()
 
   function persistPreferences() {
     writeOutputPreferences({
       includeNotes: includeNotes.value,
       includePrintHeader: includePrintHeader.value,
+      printPageLayout: printPageLayout.value,
     })
   }
 
@@ -55,15 +67,12 @@ export function usePracticeListOutputPreferences() {
     persistPreferences()
   }
 
-  function setIncludePrintHeader(value) {
-    includePrintHeader.value = Boolean(value)
-    persistPreferences()
-  }
-
   return {
     includeNotes,
     includePrintHeader,
+    printPageLayout,
     setIncludeNotes,
     setIncludePrintHeader,
+    setPrintPageLayout,
   }
 }

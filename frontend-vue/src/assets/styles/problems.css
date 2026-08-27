@@ -1898,6 +1898,35 @@
   line-height: 1;
 }
 
+.bank-result-problem-panel-view-item-status.is-toggle {
+  min-height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  appearance: none;
+  cursor: pointer;
+}
+
+.bank-result-problem-panel-view-item-status.is-toggle[aria-pressed='false']::before {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid currentcolor;
+  border-radius: 50%;
+  box-sizing: border-box;
+  content: '';
+}
+
+.bank-result-problem-panel-view-item-status.is-toggle:hover {
+  color: var(--color-blue-800);
+  background: #e7f1f8;
+}
+
+.bank-result-problem-panel-view-item-status.is-toggle:focus-visible {
+  outline: 2px solid rgb(11 91 152 / 28%);
+  outline-offset: 2px;
+}
+
 .bank-result-problem-list-entry.is-complete .bank-result-problem-panel-view-item-status {
   color: #4f7658;
   background: #edf5ee;

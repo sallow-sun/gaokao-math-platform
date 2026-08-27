@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import ProblemExportMenu from './ProblemExportMenu.vue'
 import ProblemEngagementBar from './ProblemEngagementBar.vue'
 import ProblemSolutionDrawer from './ProblemSolutionDrawer.vue'
-import { normalizeProblemPrintContent } from '../../composables/useProblemsPrintPreferences.js'
+import { normalizeProblemPrintContent } from '../../composables/useProblemPrintPreferences.js'
 
 const props = defineProps({
   completed: {

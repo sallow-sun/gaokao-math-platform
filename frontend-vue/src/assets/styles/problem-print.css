@@ -1,0 +1,121 @@
+.problem-print-host {
+  display: none;
+}
+
+@media print {
+  body.is-printing-problems #app > :not(#print-view) {
+    display: none !important;
+  }
+
+  body.is-printing-problems #app,
+  body.is-printing-problems #print-view {
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  body.is-printing-problems .problem-print-entry {
+    break-inside: avoid-page;
+  }
+
+  body.is-printing-problems .problem-print-host.is-print-one-per-page .problem-print-entry {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  body.is-printing-problems
+    .problem-print-host.is-print-one-per-page
+    .problem-print-entry:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.is-printing-problems .problem-print-two-page {
+    display: grid;
+    height: 262mm;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    break-after: page;
+    box-sizing: border-box;
+    page-break-after: always;
+  }
+
+  body.is-printing-problems .problem-print-two-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.is-printing-problems .problem-print-half-page {
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  body.is-printing-problems .problem-print-half-page > .bank-result-problem-panel-view-card {
+    margin-bottom: 0;
+  }
+
+  body.is-printing-problems .problem-print-header {
+    margin: 0 0 8mm;
+    padding: 0 0 4mm;
+    border-bottom: 0.35mm solid #222222;
+    break-after: avoid-page;
+    color: #000000;
+  }
+
+  body.is-printing-problems .problem-print-header > p:first-child {
+    margin: 0;
+    font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', sans-serif;
+    font-size: 9pt;
+    letter-spacing: 0.12em;
+  }
+
+  body.is-printing-problems .problem-print-header h1 {
+    margin: 1.5mm 0 4mm;
+    font-size: 18pt;
+    line-height: 1.4;
+  }
+
+  body.is-printing-problems .problem-print-candidate-fields {
+    display: flex;
+    margin-bottom: 2mm;
+    gap: 8mm;
+    font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei', sans-serif;
+    font-size: 10pt;
+  }
+
+  body.is-printing-problems .problem-print-header > p:last-child {
+    margin: 0;
+    color: #333333;
+    font-size: 9pt;
+    text-align: right;
+  }
+
+  body.is-printing-problems .problem-print-answer {
+    margin: 7mm 0 0 calc(22mm + 3mm);
+    padding-top: 3mm;
+    border-top: 0.3mm solid #777777;
+    break-inside: avoid-page;
+    color: #000000;
+  }
+
+  body.is-printing-problems .problem-print-answer h2 {
+    margin: 0 0 2mm;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  body.is-printing-problems .problem-print-answer pre {
+    min-width: 0;
+    margin: 0;
+    color: #000000;
+    font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, SimSun, serif;
+    font-size: 12pt;
+    line-height: 1.65;
+    white-space: pre-wrap;
+  }
+
+  body.print-hide-problem-id .bank-problem-meta {
+    display: none !important;
+  }
+}

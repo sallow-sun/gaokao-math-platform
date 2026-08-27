@@ -34,6 +34,14 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  selected: {
+    type: Boolean,
+    default: false,
+  },
+  selectionMode: {
+    type: Boolean,
+    default: false,
+  },
   total: {
     type: Number,
     required: true,
@@ -54,6 +62,8 @@ const emit = defineEmits([
   'move',
   'print',
   'remove',
+  'selection-change',
+  'toggle-completed',
 ])
 const previewContent = computed(() => stripPracticeListSourceNumber(props.problem?.content))
 
@@ -76,6 +86,7 @@ function moveBy(offset) {
         'is-drop-before': dropPosition === 'before',
         'is-drop-after': dropPosition === 'after',
         'is-note-active': noteActive,
+        'is-selected': selected,
       },
     ]"
     @dragover.prevent="viewMode === 'list-view' && emit('drag-over', $event)"
@@ -102,24 +113,37 @@ function moveBy(offset) {
         <button type="button" :aria-label="`打印题目 ${item.problemId}`" @click="emit('print')">
           打印
         </button>
+        <button
+          type="button"
+          :aria-label="`${completed ? '标记为未做' : '标记为已做'}：${item.problemId}`"
+          :aria-pressed="completed"
+          @click="emit('toggle-completed', !completed)"
+        >
+          {{ completed ? '改为未做' : '标记已做' }}
+        </button>
       </div>
     </section>
 
     <ProblemListItem
       v-else-if="problem"
       :completed="completed"
+      completion-toggleable
       :position="index + 1"
       :problem="problem"
-      removable
-      reorderable
-      :selectable="false"
+      :removable="!selectionMode"
+      :reorderable="!selectionMode"
+      :selectable="selectionMode"
+      :selected="selected"
       @drag-end="emit('drag-end')"
       @drag-start="emit('drag-start', $event)"
       @move="moveBy"
       @remove="emit('remove')"
+      @selection-change="emit('selection-change', $event)"
+      @toggle-completed="emit('toggle-completed', $event)"
     >
       <template #title-extra>
         <button
+          v-if="!selectionMode"
           type="button"
           class="training-detail-note-button"
           :class="{ 'has-note': item.note, 'is-active': noteActive }"
@@ -139,7 +163,17 @@ function moveBy(offset) {
     </ProblemListItem>
 
     <div v-else-if="viewMode === 'list-view'" class="training-missing-list-row" role="status">
+      <label v-if="selectionMode" class="bank-result-problem-select">
+        <input
+          class="bank-result-problem-select-checkbox"
+          type="checkbox"
+          :checked="selected"
+          :aria-label="`选择题目 ${item.problemId}`"
+          @change="emit('selection-change', $event.target.checked)"
+        />
+      </label>
       <button
+        v-else
         class="bank-result-problem-drag-handle"
         type="button"
         draggable="true"
@@ -152,10 +186,22 @@ function moveBy(offset) {
       >
         <span aria-hidden="true">☰</span>
       </button>
+      <button
+        type="button"
+        class="bank-result-problem-panel-view-item-status is-toggle"
+        :class="{ 'is-complete': completed }"
+        :aria-label="`${completed ? '标记为未做' : '标记为已做'}：${item.problemId}`"
+        :aria-pressed="completed"
+        :title="completed ? '标记为未做' : '标记为已做'"
+        @click="emit('toggle-completed', !completed)"
+      >
+        {{ completed ? '✓' : '' }}
+      </button>
       <div>
         <div class="training-missing-list-heading">
           <strong>{{ item.problemId }}</strong>
           <button
+            v-if="!selectionMode"
             type="button"
             class="training-detail-note-button"
             :class="{ 'has-note': item.note, 'is-active': noteActive }"
@@ -175,6 +221,7 @@ function moveBy(offset) {
         <span>题目数据暂不可用，题号与备注仍会保留。</span>
       </div>
       <button
+        v-if="!selectionMode"
         class="bank-result-problem-remove"
         type="button"
         :aria-label="`从题单移除题目 ${item.problemId}`"

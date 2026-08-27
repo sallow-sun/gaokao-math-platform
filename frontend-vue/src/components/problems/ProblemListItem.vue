@@ -6,6 +6,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  completionToggleable: {
+    type: Boolean,
+    default: false,
+  },
   problem: {
     type: Object,
     required: true,
@@ -32,7 +36,14 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['drag-end', 'drag-start', 'move', 'remove', 'selection-change'])
+const emit = defineEmits([
+  'drag-end',
+  'drag-start',
+  'move',
+  'remove',
+  'selection-change',
+  'toggle-completed',
+])
 </script>
 
 <template>
@@ -75,7 +86,21 @@ const emit = defineEmits(['drag-end', 'drag-start', 'move', 'remove', 'selection
 
       <span v-else class="bank-result-problem-position" aria-hidden="true">{{ position }}</span>
 
+      <button
+        v-if="completionToggleable"
+        type="button"
+        class="bank-result-problem-panel-view-item-status is-toggle"
+        :class="{ 'is-complete': completed }"
+        :aria-label="`${completed ? '标记为未做' : '标记为已做'}：${problem.id}`"
+        :aria-pressed="completed"
+        :title="completed ? '标记为未做' : '标记为已做'"
+        @click="emit('toggle-completed', !completed)"
+      >
+        {{ completed ? '✓' : '' }}
+      </button>
+
       <span
+        v-else
         class="bank-result-problem-panel-view-item-status"
         :aria-label="completed ? '已完成' : '未完成'"
       >
