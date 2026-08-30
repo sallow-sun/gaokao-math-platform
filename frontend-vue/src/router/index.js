@@ -57,9 +57,8 @@ const router = createRouter({
     {
       path: '/user/settings/profile',
       name: 'user-settings-profile',
-      component: () => import('../views/UserSettingsView.vue'),
-      props: { activeTab: 'profile' },
-      meta: { studyNavigation: true, title: '个人设置' },
+      redirect: { name: 'user-profile', params: { userId: 'preview' } },
+      meta: { studyNavigation: true, title: '个人主页' },
     },
     {
       path: '/user/settings/preferences',
@@ -78,8 +77,7 @@ const router = createRouter({
     {
       path: '/user',
       name: 'user-profile-missing',
-      component: () => import('../views/UserProfileView.vue'),
-      props: { userId: '' },
+      redirect: { name: 'user-profile', params: { userId: 'preview' } },
       meta: { studyNavigation: true, title: '个人主页' },
     },
     {
@@ -88,6 +86,12 @@ const router = createRouter({
       component: () => import('../views/UserProfileView.vue'),
       props: true,
       meta: { studyNavigation: true, title: '个人主页' },
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('../views/AdminView.vue'),
+      meta: { title: '管理后台' },
     },
     {
       path: '/about',

@@ -1,94 +1,92 @@
+<script setup>
+import { USER_PROFILE_PROTOTYPE } from '../../config/account.js'
+
+const SECURITY_GROUPS = Object.freeze([
+  {
+    key: 'account-information',
+    title: '账号信息',
+    description: '查看公开身份以及尚待确认的账号联系信息。',
+    items: Object.freeze([
+      {
+        key: 'username',
+        label: '用户名',
+        description: '显示在个人主页以及未来的用户内容旁。',
+        value: USER_PROFILE_PROTOTYPE.username,
+        detail: '当前使用静态预览数据，尚未读取账号资料。',
+        status: '静态预览',
+        tone: 'preview',
+      },
+      {
+        key: 'email',
+        label: '邮箱',
+        description: '账号邮箱的用途和验证方式尚未确定。',
+        value: '未读取真实邮箱',
+        detail: '本页不读取真实邮箱；字段和验证流程等待后端契约。',
+        status: '待接入',
+        tone: 'pending',
+      },
+      {
+        key: 'phone',
+        label: '手机号码',
+        description: '是否提供手机号以及验证方式尚未确定。',
+        value: '未读取真实号码',
+        detail: '本页面不会读取、缓存或展示真实手机号。',
+        status: '待接入',
+        tone: 'pending',
+      },
+    ]),
+  },
+  {
+    key: 'login-security',
+    title: '登录安全',
+    description: '管理密码等需要重新验证身份的敏感操作。',
+    items: Object.freeze([
+      {
+        key: 'password',
+        label: '登录密码',
+        description: '修改密码前应验证当前密码或重新认证身份。',
+        value: '修改流程暂不可用',
+        detail: '密码规则、验证方式和接口地址均尚未确定。',
+        status: '待接入',
+        tone: 'pending',
+      },
+    ]),
+  },
+])
+</script>
+
 <template>
   <div class="account-security-list">
-    <form class="account-settings-card account-security-card" @submit.prevent>
-      <div class="account-setting-copy">
-        <h2>修改用户名</h2>
-        <p>用户名会显示在个人主页以及未来的用户内容旁。</p>
-      </div>
-      <div class="account-security-form">
-        <label for="security-username">新用户名</label>
-        <input id="security-username" name="username" type="text" disabled placeholder="待接入" />
-        <button type="submit" disabled>修改用户名（待接入）</button>
-      </div>
-    </form>
+    <section
+      v-for="group in SECURITY_GROUPS"
+      :key="group.key"
+      class="account-settings-card account-security-status-card"
+      :aria-labelledby="`security-group-${group.key}`"
+    >
+      <header class="account-settings-card-header">
+        <div>
+          <h2 :id="`security-group-${group.key}`">{{ group.title }}</h2>
+        </div>
+        <span>{{ group.description }}</span>
+      </header>
 
-    <form class="account-settings-card account-security-card" @submit.prevent>
-      <div class="account-setting-copy">
-        <h2>修改密码</h2>
-        <p>正式功能需要验证当前密码，并遵循后端确定的密码规则。</p>
-      </div>
-      <div class="account-security-form account-security-password-form">
-        <label for="security-current-password">当前密码</label>
-        <input
-          id="security-current-password"
-          name="currentPassword"
-          type="password"
-          autocomplete="current-password"
-          disabled
-          placeholder="接口接入后可填写"
-        />
-        <label for="security-new-password">新密码</label>
-        <input
-          id="security-new-password"
-          name="newPassword"
-          type="password"
-          autocomplete="new-password"
-          disabled
-          placeholder="接口接入后可填写"
-        />
-        <label for="security-confirm-password">确认新密码</label>
-        <input
-          id="security-confirm-password"
-          name="confirmPassword"
-          type="password"
-          autocomplete="new-password"
-          disabled
-          placeholder="接口接入后可填写"
-        />
-        <button type="submit" disabled>修改密码（待接入）</button>
-      </div>
-    </form>
+      <ul class="account-security-items">
+        <li v-for="item in group.items" :key="item.key" class="account-security-item">
+          <div class="account-security-item-copy">
+            <strong>{{ item.label }}</strong>
+            <p>{{ item.description }}</p>
+          </div>
 
-    <form class="account-settings-card account-security-card" @submit.prevent>
-      <div class="account-setting-copy">
-        <h2>修改邮箱</h2>
-        <p>邮箱验证方式尚未确定，本页不会读取或展示真实邮箱。</p>
-      </div>
-      <div class="account-security-form">
-        <label for="security-email">新邮箱</label>
-        <input
-          id="security-email"
-          name="email"
-          type="email"
-          autocomplete="email"
-          disabled
-          placeholder="name@example.com"
-        />
-        <button type="submit" disabled>修改邮箱（待接入）</button>
-      </div>
-    </form>
+          <div class="account-security-item-value">
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.detail }}</small>
+          </div>
 
-    <form class="account-settings-card account-security-card" @submit.prevent>
-      <div class="account-setting-copy">
-        <h2>修改手机</h2>
-        <p>手机号验证方式尚未确定，本页不会读取或展示真实号码。</p>
-      </div>
-      <div class="account-security-form">
-        <label for="security-phone">新手机号</label>
-        <input
-          id="security-phone"
-          name="phone"
-          type="tel"
-          autocomplete="tel"
-          disabled
-          placeholder="接口接入后可填写"
-        />
-        <button type="submit" disabled>修改手机（待接入）</button>
-      </div>
-    </form>
-
-    <p class="account-security-static-note" role="status">
-      所有安全设置均为静态布局。接口和验证规则确定前，不会收集或提交任何账户信息。
-    </p>
+          <span class="account-security-status" :class="`is-${item.tone}`">
+            {{ item.status }}
+          </span>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>

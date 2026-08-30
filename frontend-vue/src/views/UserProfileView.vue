@@ -1,14 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import UserProfileDetails from '../components/account/UserProfileDetails.vue'
+import UserActivityHeatmap from '../components/account/UserActivityHeatmap.vue'
 import UserProfileHero from '../components/account/UserProfileHero.vue'
-import UserProfileStats from '../components/account/UserProfileStats.vue'
-import UserRecentActivity from '../components/account/UserRecentActivity.vue'
+import UserProblemTypeChart from '../components/account/UserProblemTypeChart.vue'
+import UserTagStatsChart from '../components/account/UserTagStatsChart.vue'
 import {
+  USER_ACTIVITY_PROTOTYPE,
   USER_PROFILE_PROTOTYPE,
-  USER_PROFILE_STATS_PROTOTYPE,
-  USER_RECENT_ACTIVITY_PROTOTYPE,
+  USER_PROBLEM_TYPE_STATS_PROTOTYPE,
+  USER_TAG_STATS_PROTOTYPE,
 } from '../config/account.js'
 
 const props = defineProps({
@@ -18,24 +19,18 @@ const props = defineProps({
   },
 })
 
-const routeUserId = computed(() => String(props.userId || '待接入'))
+const isPrototypePreview = computed(() => props.userId === 'preview')
 const hasSupportedUserId = computed(
-  () => props.userId === 'preview' || /^[1-9]\d*$/.test(props.userId),
+  () => isPrototypePreview.value || /^[1-9]\d*$/.test(props.userId),
 )
+// 用户接口尚未接入时，所有有效地址展示的都是同一份本地个人资料。
+// 因此暂时都视为当前用户主页，避免数字地址误进入只读模式。
+const isEditableProfile = computed(() => hasSupportedUserId.value)
 </script>
 
 <template>
   <div class="account-profile-page">
     <main class="account-profile-main">
-      <header class="account-profile-page-heading">
-        <div>
-          <p>PERSONAL SPACE</p>
-          <h1>个人主页</h1>
-          <span>查看公开资料与学习概览。</span>
-        </div>
-        <strong>静态预览</strong>
-      </header>
-
       <section
         v-if="!hasSupportedUserId"
         class="account-profile-route-state"
@@ -48,48 +43,26 @@ const hasSupportedUserId = computed(
       </section>
 
       <template v-else>
+        <UserProfileHero :editable="isEditableProfile" :profile="USER_PROFILE_PROTOTYPE" />
+
         <p class="account-profile-prototype-note" role="status">
-          当前没有连接用户接口。页面中的“示例用户”和待接入状态仅用于确认布局，不代表真实账户数据。
+          当前为可编辑的个人主页前端原型。名称、头像、背景和签名只保存在当前浏览器；等级和学习统计尚未连接用户接口。
         </p>
 
-        <UserProfileHero :profile="USER_PROFILE_PROTOTYPE" :route-user-id="routeUserId" />
-        <UserProfileStats :stats="USER_PROFILE_STATS_PROTOTYPE" />
+        <section
+          id="account-profile-learning-panel"
+          class="account-profile-learning-panel"
+          role="tabpanel"
+          aria-labelledby="account-profile-learning-tab"
+          tabindex="0"
+        >
+          <div class="account-profile-chart-grid">
+            <UserActivityHeatmap :records="USER_ACTIVITY_PROTOTYPE" />
+            <UserProblemTypeChart :items="USER_PROBLEM_TYPE_STATS_PROTOTYPE" />
+          </div>
 
-        <div class="account-profile-layout">
-          <UserProfileDetails :profile="USER_PROFILE_PROTOTYPE" :route-user-id="routeUserId" />
-
-          <aside
-            class="account-profile-panel account-profile-shortcuts"
-            aria-labelledby="shortcuts-title"
-          >
-            <header class="account-profile-panel-header">
-              <div>
-                <h2 id="shortcuts-title">学习入口</h2>
-                <p>继续使用已经迁移的学习页面</p>
-              </div>
-            </header>
-
-            <nav aria-label="个人主页学习入口">
-              <RouterLink :to="{ name: 'problems' }">
-                <span aria-hidden="true">题</span>
-                <span><strong>进入题库</strong><small>浏览和筛选题目</small></span>
-                <span aria-hidden="true">›</span>
-              </RouterLink>
-              <RouterLink :to="{ name: 'training' }">
-                <span aria-hidden="true">单</span>
-                <span><strong>查看题单</strong><small>整理练习内容</small></span>
-                <span aria-hidden="true">›</span>
-              </RouterLink>
-            </nav>
-
-            <div class="account-profile-owner-placeholder">
-              <RouterLink :to="{ name: 'user-settings-profile' }">查看设置页预览</RouterLink>
-              <p>身份判断、真实保存与退出操作将在会话接口确定后接入。</p>
-            </div>
-          </aside>
-        </div>
-
-        <UserRecentActivity :records="USER_RECENT_ACTIVITY_PROTOTYPE" />
+          <UserTagStatsChart :items="USER_TAG_STATS_PROTOTYPE" />
+        </section>
       </template>
     </main>
   </div>

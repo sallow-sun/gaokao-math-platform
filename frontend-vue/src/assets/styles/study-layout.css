@@ -1,0 +1,59 @@
+/*
+ * Shared reading width for study pages.
+ *
+ * Page backgrounds still span the viewport, while the useful content stays
+ * centered with calm, responsive gutters similar to an online judge layout.
+ */
+@media (min-width: 701px) {
+  .study-shell.has-study-navigation .study-shell-content {
+    --study-content-inline-space: clamp(64px, 8vw, 96px);
+  }
+
+  .study-shell.has-study-navigation .problems-main {
+    width: min(calc(100% - var(--study-content-inline-space)), var(--content-width, 1440px));
+  }
+
+  .study-shell.has-study-navigation .question-page {
+    padding-inline: 0;
+  }
+
+  .study-shell.has-study-navigation .question-route-content,
+  .study-shell.has-study-navigation .question-route-state {
+    width: min(calc(100% - var(--study-content-inline-space)), 1440px);
+  }
+
+  .study-shell.has-study-navigation .training-main {
+    width: min(calc(100% - var(--study-content-inline-space)), 1500px);
+  }
+
+  .study-shell.has-study-navigation .training-detail-main {
+    width: min(calc(100% - var(--study-content-inline-space)), 1440px);
+  }
+
+  .study-shell.has-study-navigation .account-profile-main {
+    width: min(calc(100% - var(--study-content-inline-space)), 1280px);
+  }
+
+  .study-shell.has-study-navigation .account-settings-main {
+    width: min(calc(100% - var(--study-content-inline-space)), 1180px);
+  }
+}
+
+@media (min-width: 1180px) {
+  .study-shell.has-study-navigation .study-shell-content {
+    --study-content-inline-space: clamp(112px, 10vw, 192px);
+  }
+}
+
+@media print {
+  .study-shell.has-study-navigation .problems-main,
+  .study-shell.has-study-navigation .question-route-content,
+  .study-shell.has-study-navigation .question-route-state,
+  .study-shell.has-study-navigation .training-main,
+  .study-shell.has-study-navigation .training-detail-main,
+  .study-shell.has-study-navigation .account-profile-main,
+  .study-shell.has-study-navigation .account-settings-main {
+    width: 100%;
+    max-width: none;
+  }
+}
