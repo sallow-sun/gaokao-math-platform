@@ -9,26 +9,6 @@
 
 .home-page {
   color-scheme: light;
-}
-
-/* 夜间模式只覆盖本页使用到的全站变量，不改动题库的默认配色。 */
-.home-page[data-theme='dark'] {
-  color-scheme: dark;
-  --color-canvas: #17222c;
-  --color-surface: #1d2933;
-  --color-paper: #111920;
-  --color-ink: #edf3f7;
-  --color-ink-secondary: #bfd0dc;
-  --color-ink-muted: #9eb0be;
-  --color-border: #4c5f6e;
-  --color-border-light: #354754;
-  --color-blue-900: #9dc4e1;
-  --color-blue-700: #79a9cc;
-  --color-blue-100: #283c4b;
-  --color-blue-050: #22313d;
-}
-
-.home-page {
   --home-background-image: none;
   --home-background-overlay: transparent;
   --home-footer-background: var(--color-canvas);
@@ -63,11 +43,6 @@
 .home-page.has-background {
   --home-background-overlay: rgb(253 253 252 / 48%);
   --home-footer-background: rgb(238 241 244 / 88%);
-}
-
-.home-page[data-theme='dark'].has-background {
-  --home-background-overlay: rgb(9 15 20 / 58%);
-  --home-footer-background: rgb(23 34 44 / 88%);
 }
 
 .home-page h1 {
@@ -322,7 +297,8 @@
 
 .home-text-button:focus-visible,
 .home-footer-link:focus-visible,
-.home-settings-item:focus-visible {
+.home-settings-item:focus-visible,
+.home-background-dialog button:focus-visible {
   outline: 3px solid rgb(45 103 152 / 24%);
   outline-offset: 2px;
 }
@@ -401,9 +377,269 @@
   background: var(--color-blue-050);
 }
 
-.home-settings-theme {
-  margin-top: 6px;
-  border-top: 1px solid var(--color-border-light);
+.home-background-dialog-backdrop {
+  --home-dialog-ink: #0c2134;
+  --home-dialog-muted: #657c90;
+  --home-dialog-border: #d8e1e8;
+  --home-dialog-blue: #104875;
+  --home-dialog-blue-soft: #edf5fa;
+  position: fixed;
+  z-index: 1800;
+  inset: 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: rgb(13 28 41 / 48%);
+  font-family: var(--font-ui);
+}
+
+.home-background-dialog {
+  display: flex;
+  width: min(720px, calc(100vw - 40px));
+  max-height: min(760px, calc(100vh - 40px));
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid #c5d2dc;
+  border-radius: 12px;
+  color: var(--home-dialog-ink);
+  background: #ffffff;
+  box-shadow: 0 22px 60px rgb(8 28 45 / 28%);
+}
+
+.home-background-dialog button {
+  color: inherit;
+  font: inherit;
+}
+
+.home-background-dialog-header {
+  display: flex;
+  padding: 20px 22px 17px;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--home-dialog-border);
+}
+
+.home-background-dialog-header h2,
+.home-background-dialog-body h3 {
+  margin: 0;
+}
+
+.home-background-dialog-header h2 {
+  font-family: var(--font-display);
+  font-size: 21px;
+  line-height: 1.4;
+}
+
+.home-background-dialog-header p {
+  margin: 4px 0 0;
+  color: var(--home-dialog-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.home-background-dialog-close {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--home-dialog-muted);
+  background: transparent;
+  font-size: 24px !important;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.home-background-dialog-close:hover {
+  color: var(--home-dialog-blue);
+  background: var(--home-dialog-blue-soft);
+}
+
+.home-background-dialog-body {
+  display: grid;
+  overflow-y: auto;
+  padding: 20px 22px;
+  gap: 22px;
+}
+
+.home-background-dialog-body h3 {
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.home-background-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-background-option {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--home-dialog-border);
+  border-radius: 9px;
+  color: var(--home-dialog-ink);
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.home-background-option:hover {
+  border-color: #8aaac2;
+  box-shadow: 0 5px 14px rgb(16 72 117 / 12%);
+  transform: translateY(-1px);
+}
+
+.home-background-option.is-selected {
+  border-color: var(--home-dialog-blue);
+  box-shadow: 0 0 0 2px rgb(16 72 117 / 13%);
+}
+
+.home-background-option-preview {
+  display: block;
+  height: 82px;
+  background-position: center;
+  background-size: cover;
+  border-bottom: 1px solid var(--home-dialog-border);
+}
+
+.home-background-option-copy {
+  display: grid;
+  padding: 10px 12px 11px;
+  gap: 2px;
+}
+
+.home-background-option-copy strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.home-background-option-copy small {
+  color: var(--home-dialog-muted);
+  font-size: 12px;
+}
+
+.home-background-option-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: var(--home-dialog-blue);
+  box-shadow: 0 2px 8px rgb(13 35 52 / 24%);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.home-background-upload {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  gap: 18px;
+  border: 1px dashed #aebfcc;
+  border-radius: 9px;
+  background: #f8fafb;
+}
+
+.home-background-upload.is-selected {
+  border-color: var(--home-dialog-blue);
+  background: var(--home-dialog-blue-soft);
+}
+
+.home-background-upload h3 {
+  margin-bottom: 2px;
+}
+
+.home-background-upload p {
+  margin: 0;
+  color: var(--home-dialog-muted);
+  font-size: 12px;
+}
+
+.home-background-upload small {
+  display: block;
+  margin-top: 4px;
+  color: var(--home-dialog-blue);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.home-background-upload button,
+.home-background-dialog-footer button {
+  min-height: 38px;
+  padding: 8px 17px;
+  flex: 0 0 auto;
+  border: 1px solid var(--home-dialog-blue);
+  border-radius: 6px;
+  color: #ffffff;
+  background: var(--home-dialog-blue);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.home-background-upload button:hover,
+.home-background-dialog-footer button:hover {
+  background: #0a3b62;
+}
+
+.home-background-dialog-message {
+  margin: -8px 0 0;
+  padding: 9px 12px;
+  border-radius: 6px;
+  color: #27623c;
+  background: #edf8f0;
+  font-size: 13px;
+}
+
+.home-background-dialog-message.is-error {
+  color: #a22a2a;
+  background: #fff0f0;
+}
+
+.home-background-dialog-footer {
+  display: flex;
+  padding: 13px 22px 16px;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  border-top: 1px solid var(--home-dialog-border);
+}
+
+.home-background-dialog-enter-active,
+.home-background-dialog-leave-active {
+  transition: opacity 150ms ease;
+}
+
+.home-background-dialog-enter-active .home-background-dialog,
+.home-background-dialog-leave-active .home-background-dialog {
+  transition: transform 150ms ease;
+}
+
+.home-background-dialog-enter-from,
+.home-background-dialog-leave-to {
+  opacity: 0;
+}
+
+.home-background-dialog-enter-from .home-background-dialog,
+.home-background-dialog-leave-to .home-background-dialog {
+  transform: translateY(8px) scale(0.985);
 }
 
 /* ==================== 响应式适配 ==================== */
@@ -462,6 +698,41 @@
     bottom: calc(100% + 11px);
     width: min(220px, calc(100vw - 32px));
   }
+
+  .home-background-dialog-backdrop {
+    padding: 12px;
+  }
+
+  .home-background-dialog {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .home-background-dialog-header,
+  .home-background-dialog-body,
+  .home-background-dialog-footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .home-background-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-background-option {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .home-background-option-preview {
+    height: 74px;
+    border-right: 1px solid var(--home-dialog-border);
+    border-bottom: 0;
+  }
+
+  .home-background-upload {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 @media (max-height: 520px) {
@@ -474,7 +745,12 @@
   .home-mode-switch,
   .home-mode-switch::after,
   .home-search-form,
-  .home-text-button {
+  .home-text-button,
+  .home-background-option,
+  .home-background-dialog-enter-active,
+  .home-background-dialog-leave-active,
+  .home-background-dialog-enter-active .home-background-dialog,
+  .home-background-dialog-leave-active .home-background-dialog {
     transition: none;
   }
 }

@@ -4,18 +4,22 @@ import HomeFooter from '../components/home/HomeFooter.vue'
 import HomeModeToggle from '../components/home/HomeModeToggle.vue'
 import HomeSearchPanel from '../components/home/HomeSearchPanel.vue'
 import { useHomePreferences } from '../composables/useHomePreferences'
-import { HOME_ROUTES, RANDOM_PROBLEM_IDS } from '../config/home'
+import {
+  HOME_BACKGROUND_MAX_FILE_SIZE,
+  HOME_BACKGROUND_OPTIONS,
+  HOME_ROUTES,
+  RANDOM_PROBLEM_IDS,
+} from '../config/home'
 import '../assets/styles/home.css'
 
 const router = useRouter()
 const {
-  theme,
-  isDark,
+  backgroundId,
   hasBackground,
   backgroundStyle,
   statusMessage,
   announce,
-  toggleTheme,
+  applyPresetBackground,
   applyBackground,
   pickRandomProblem,
 } = useHomePreferences()
@@ -53,12 +57,7 @@ function goToRandomProblem() {
 </script>
 
 <template>
-  <div
-    class="home-page"
-    :class="{ 'has-background': hasBackground }"
-    :data-theme="theme"
-    :style="backgroundStyle"
-  >
+  <div class="home-page" :class="{ 'has-background': hasBackground }" :style="backgroundStyle">
     <HomeModeToggle @switch="goToNormalHome" />
 
     <main class="home-main">
@@ -73,10 +72,13 @@ function goToRandomProblem() {
     <HomeFooter
       :about-route="HOME_ROUTES.about"
       :help-route="HOME_ROUTES.help"
-      :is-dark="isDark"
+      :background-options="HOME_BACKGROUND_OPTIONS"
+      :selected-background-id="backgroundId"
+      :max-background-file-size="HOME_BACKGROUND_MAX_FILE_SIZE"
       :status-message="statusMessage"
       @background-selected="applyBackground"
-      @toggle-theme="toggleTheme"
+      @preset-background-selected="applyPresetBackground"
+      @background-error="announce"
     />
   </div>
 </template>

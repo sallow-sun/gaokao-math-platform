@@ -1,113 +1,149 @@
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from 'vue'
+import { HOME_BACKGROUND_MAX_FILE_SIZE, HOME_BACKGROUND_OPTIONS } from '../config/home'
 
 const STORAGE_KEYS = {
-  theme: "mathverse-home-theme",
-  background: "mathverse-home-background",
-  lastRandomProblem: "mathverse-home-last-random-problem",
-};
+  background: 'mathverse-home-background',
+  lastRandomProblem: 'mathverse-home-last-random-problem',
+}
+
+const CUSTOM_BACKGROUND_ID = 'custom'
+const DEFAULT_BACKGROUND_ID = HOME_BACKGROUND_OPTIONS[0].id
 
 function readSetting(key) {
   try {
-    return window.localStorage.getItem(key) || "";
+    return window.localStorage.getItem(key) || ''
   } catch {
-    return "";
+    return ''
   }
 }
 
 function saveSetting(key, value) {
   try {
-    window.localStorage.setItem(key, value);
-    return true;
+    window.localStorage.setItem(key, value)
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
-export function useHomePreferences() {
-  const theme = ref("light");
-  const backgroundImage = ref("");
-  const statusMessage = ref("");
+function getBackgroundOption(backgroundId) {
+  return HOME_BACKGROUND_OPTIONS.find(({ id }) => id === backgroundId)
+}
 
-  const isDark = computed(() => theme.value === "dark");
-  const hasBackground = computed(() => backgroundImage.value.startsWith("data:image/"));
+export function useHomePreferences() {
+  const backgroundId = ref(DEFAULT_BACKGROUND_ID)
+  const customBackgroundImage = ref('')
+  const statusMessage = ref('')
+
+  const selectedBackground = computed(() => getBackgroundOption(backgroundId.value))
+  const backgroundImage = computed(() => {
+    if (backgroundId.value === CUSTOM_BACKGROUND_ID) {
+      return customBackgroundImage.value ? `url("${customBackgroundImage.value}")` : 'none'
+    }
+
+    return selectedBackground.value?.image ?? 'none'
+  })
+  const hasBackground = computed(() => backgroundImage.value !== 'none')
   const backgroundStyle = computed(() => ({
-    "--home-background-image": hasBackground.value
-      ? `url("${backgroundImage.value}")`
-      : "none",
-  }));
+    '--home-background-image': backgroundImage.value,
+  }))
 
   function announce(message) {
-    statusMessage.value = message;
+    statusMessage.value = message
   }
 
-  function toggleTheme() {
-    theme.value = isDark.value ? "light" : "dark";
-    saveSetting(STORAGE_KEYS.theme, theme.value);
-    announce(isDark.value ? "夜间模式已开启" : "夜间模式已关闭");
+  function applyPresetBackground(nextBackgroundId) {
+    const option = getBackgroundOption(nextBackgroundId)
+
+    if (!option) {
+      announce('未能应用所选系统背景')
+      return false
+    }
+
+    backgroundId.value = option.id
+    customBackgroundImage.value = ''
+    const isSaved = saveSetting(STORAGE_KEYS.background, `preset:${option.id}`)
+    announce(isSaved ? `已应用“${option.name}”` : `已应用“${option.name}”，但浏览器无法保存此设置`)
+    return true
   }
 
   function applyBackground(file) {
-    if (!file || !file.type.startsWith("image/")) {
-      return;
+    if (!file || !file.type.startsWith('image/')) {
+      announce('上传失败：请选择有效的图片文件')
+      return false
     }
 
-    const reader = new FileReader();
+    if (file.size > HOME_BACKGROUND_MAX_FILE_SIZE) {
+      announce('图片过大，上传失败。请选择不超过 2 MB 的图片')
+      return false
+    }
 
-    reader.addEventListener("load", () => {
-      const imageData = typeof reader.result === "string" ? reader.result : "";
+    announce('正在读取背景图片…')
+    const reader = new FileReader()
+
+    reader.addEventListener('load', () => {
+      const imageData = typeof reader.result === 'string' ? reader.result : ''
 
       if (!imageData) {
-        announce("未能读取所选背景图片");
-        return;
+        announce('上传失败：未能读取所选背景图片')
+        return
       }
 
-      backgroundImage.value = imageData;
-      const isSaved = saveSetting(STORAGE_KEYS.background, imageData);
-      announce(isSaved ? "背景图片已更换" : "背景图片已应用，但浏览器无法长期保存这张图片");
-    });
+      backgroundId.value = CUSTOM_BACKGROUND_ID
+      customBackgroundImage.value = imageData
+      const isSaved = saveSetting(STORAGE_KEYS.background, imageData)
+      announce(isSaved ? '自定义背景已应用' : '背景已应用，但浏览器无法长期保存这张图片')
+    })
 
-    reader.addEventListener("error", () => {
-      announce("未能读取所选背景图片");
-    });
+    reader.addEventListener('error', () => {
+      announce('上传失败：未能读取所选背景图片')
+    })
 
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(file)
+    return true
   }
 
   function pickRandomProblem(problemIds) {
-    const validIds = problemIds.map((id) => id.trim()).filter(Boolean);
+    const validIds = problemIds.map((id) => id.trim()).filter(Boolean)
 
     if (!validIds.length) {
-      return "";
+      return ''
     }
 
-    const lastProblemId = readSetting(STORAGE_KEYS.lastRandomProblem);
-    const availableIds = validIds.length > 1
-      ? validIds.filter((id) => id !== lastProblemId)
-      : validIds;
-    const problemId = availableIds[Math.floor(Math.random() * availableIds.length)];
+    const lastProblemId = readSetting(STORAGE_KEYS.lastRandomProblem)
+    const availableIds =
+      validIds.length > 1 ? validIds.filter((id) => id !== lastProblemId) : validIds
+    const problemId = availableIds[Math.floor(Math.random() * availableIds.length)]
 
-    saveSetting(STORAGE_KEYS.lastRandomProblem, problemId);
-    return problemId;
+    saveSetting(STORAGE_KEYS.lastRandomProblem, problemId)
+    return problemId
   }
 
   onMounted(() => {
-    theme.value = readSetting(STORAGE_KEYS.theme) === "dark" ? "dark" : "light";
+    const savedBackground = readSetting(STORAGE_KEYS.background)
 
-    const savedBackground = readSetting(STORAGE_KEYS.background);
-    if (savedBackground.startsWith("data:image/")) {
-      backgroundImage.value = savedBackground;
+    if (savedBackground.startsWith('data:image/')) {
+      backgroundId.value = CUSTOM_BACKGROUND_ID
+      customBackgroundImage.value = savedBackground
+      return
     }
-  });
+
+    if (savedBackground.startsWith('preset:')) {
+      const savedBackgroundId = savedBackground.slice('preset:'.length)
+      if (getBackgroundOption(savedBackgroundId)) {
+        backgroundId.value = savedBackgroundId
+      }
+    }
+  })
 
   return {
-    theme,
-    isDark,
+    backgroundId,
     hasBackground,
     backgroundStyle,
     statusMessage,
     announce,
-    toggleTheme,
+    applyPresetBackground,
     applyBackground,
     pickRandomProblem,
-  };
+  }
 }
