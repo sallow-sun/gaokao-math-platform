@@ -1,0 +1,19 @@
+package cn.mathsea.backend.user.vo;
+import java.time.OffsetDateTime;
+import java.util.List;
+public record PublicUserVO(
+        Long id,
+        String publicId,
+        String uid,
+        String username,
+        String avatarUrl,
+        String signature,
+        String role,
+        OffsetDateTime joinedAt,
+        UserStatsVO stats,
+        List<UserActivityVO> recentActivity,
+        List<UserDailyStatVO> dailyActivity,
+        List<UserTypeStatVO> typeStats,
+        List<UserTagLevelStatVO> tagStats,
+        boolean canEdit
+) {}

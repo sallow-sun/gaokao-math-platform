@@ -1,0 +1,27 @@
+# Vue
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# Java
+backend/target/
+backend/.m2/
+backend/.idea/
+backend/*.iml
+
+# VS Code
+.vscode/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads / runtime
+backend/uploads/
+
+# Logs
+*.log

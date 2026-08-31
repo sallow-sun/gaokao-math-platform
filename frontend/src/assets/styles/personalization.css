@@ -1,0 +1,25 @@
+.problem-personalization-output-options {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.problem-personalization-page-layout {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.problem-personalization-page-layout legend {
+  margin-bottom: 8px;
+  color: var(--color-ink-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .problem-personalization-page-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

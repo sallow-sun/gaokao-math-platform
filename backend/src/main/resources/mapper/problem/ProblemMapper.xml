@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.mathsea.backend.problem.mapper.ProblemMapper">
+
+    <sql id="filters">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    p.problem_number ILIKE CONCAT('%', #{keyword}, '%')
+                    OR COALESCE(p.title, '') ILIKE CONCAT('%', #{keyword}, '%')
+                    OR p.content ILIKE CONCAT('%', #{keyword}, '%')
+                    OR COALESCE(p.region, '') ILIKE CONCAT('%', #{keyword}, '%')
+                    OR COALESCE(ps.label, '') ILIKE CONCAT('%', #{keyword}, '%')
+                    OR EXISTS (
+                        SELECT 1 FROM problem_tags kpt
+                        JOIN tags kt ON kt.id=kpt.tag_id
+                        WHERE kpt.problem_id=p.id AND kt.name ILIKE CONCAT('%', #{keyword}, '%')
+                    )
+                )
+            </if>
+
+            <if test="years != null and years.size() > 0">
+                AND p.year IN
+                <foreach collection="years" item="v" open="(" separator="," close=")">#{v}</foreach>
+            </if>
+
+            <if test="sources != null and sources.size() > 0">
+                AND p.source_code IN
+                <foreach collection="sources" item="v" open="(" separator="," close=")">#{v}</foreach>
+            </if>
+
+            <if test="types != null and types.size() > 0">
+                AND p.question_type IN
+                <foreach collection="types" item="v" open="(" separator="," close=")">#{v}</foreach>
+            </if>
+
+            <if test="levels != null and levels.size() > 0">
+                AND p.difficulty IN
+                <foreach collection="levels" item="v" open="(" separator="," close=")">#{v}</foreach>
+            </if>
+
+            <if test="tags != null and tags.size() > 0">
+                AND p.id IN (
+                    SELECT fpt.problem_id
+                    FROM problem_tags fpt
+                    JOIN tags ft ON ft.id=fpt.tag_id
+                    WHERE ft.name IN
+                    <foreach collection="tags" item="v" open="(" separator="," close=")">#{v}</foreach>
+                    GROUP BY fpt.problem_id
+                    HAVING COUNT(DISTINCT ft.name) = #{tagCount}
+                )
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectFiltered" resultType="cn.mathsea.backend.problem.mapper.row.ProblemSummaryRow">
+        SELECT
+            p.id,
+            p.problem_number,
+            p.title,
+            p.year,
+            p.region,
+            p.source_code,
+            ps.label AS source_label,
+            p.question_type,
+            p.difficulty,
+            p.content,
+            p.content_format,
+            p.creator_user_id,
+            p.view_count,
+            p.favorite_count,
+            p.created_at,
+            p.updated_at
+        FROM problems p
+        LEFT JOIN problem_sources ps ON ps.code=p.source_code
+        <include refid="filters"/>
+        <choose>
+            <when test="sort == 'newest'">ORDER BY p.created_at DESC, p.id DESC</when>
+            <when test="sort == 'oldest'">ORDER BY p.created_at ASC, p.id ASC</when>
+            <when test="sort == 'view-most'">ORDER BY p.view_count DESC, p.id DESC</when>
+            <when test="sort == 'star-most'">ORDER BY p.favorite_count DESC, p.id DESC</when>
+            <when test="sort == 'easy-first'">
+                ORDER BY CASE p.difficulty
+                    WHEN 'white' THEN 1 WHEN 'green' THEN 2 WHEN 'cyan' THEN 3
+                    WHEN 'blue' THEN 4 WHEN 'yellow' THEN 5 WHEN 'orange' THEN 6
+                    WHEN 'red' THEN 7 WHEN 'purple' THEN 8 WHEN 'black' THEN 9 ELSE 10 END ASC,
+                    p.id ASC
+            </when>
+            <when test="sort == 'hard-first'">
+                ORDER BY CASE p.difficulty
+                    WHEN 'black' THEN 1 WHEN 'purple' THEN 2 WHEN 'red' THEN 3
+                    WHEN 'orange' THEN 4 WHEN 'yellow' THEN 5 WHEN 'blue' THEN 6
+                    WHEN 'cyan' THEN 7 WHEN 'green' THEN 8 WHEN 'white' THEN 9 ELSE 10 END ASC,
+                    p.id ASC
+            </when>
+            <otherwise>ORDER BY p.created_at DESC, p.id DESC</otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countFiltered" resultType="long">
+        SELECT COUNT(*)
+        FROM problems p
+        LEFT JOIN problem_sources ps ON ps.code=p.source_code
+        <include refid="filters"/>
+    </select>
+</mapper>
