@@ -28,7 +28,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['keyword-change', 'page-change', 'retry', 'status-request'])
+const emit = defineEmits(['delete-request', 'keyword-change', 'page-change', 'retry', 'status-request'])
 
 function roleLabel(role) {
   return role === 'admin' ? '管理员' : '学生'
@@ -102,14 +102,24 @@ function statusLabel(status) {
               </span>
             </td>
             <td>
-              <button
-                type="button"
-                :class="['admin-inline-action', { 'is-danger': user.status !== 'banned' }]"
-                :disabled="user.role === 'admin' || pendingUserId === user.id"
-                @click="emit('status-request', user)"
-              >
-                {{ user.status === 'banned' ? '解除封禁' : '封禁' }}
-              </button>
+              <div class="admin-row-actions">
+                <button
+                  type="button"
+                  :class="['admin-inline-action', { 'is-danger': user.status !== 'banned' }]"
+                  :disabled="user.role === 'admin' || pendingUserId === user.id"
+                  @click="emit('status-request', user)"
+                >
+                  {{ user.status === 'banned' ? '解除封禁' : '封禁' }}
+                </button>
+                <button
+                  type="button"
+                  class="admin-inline-action is-danger"
+                  :disabled="user.role === 'admin' || pendingUserId === user.id"
+                  @click="emit('delete-request', user)"
+                >
+                  删除
+                </button>
+              </div>
             </td>
           </tr>
           <tr v-if="!loading && !error && users.length === 0">

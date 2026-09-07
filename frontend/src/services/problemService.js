@@ -49,6 +49,7 @@ export function normalizeApiProblem(problem) {
     id: String(problem?.id ?? '').trim().toUpperCase(),
     year: problem?.year == null ? '' : String(problem.year),
     tags: Array.isArray(problem?.tags) ? problem.tags : [],
+    assets: Array.isArray(problem?.assets) ? problem.assets : [],
     stats: {
       views: problem?.stats?.views ?? 0,
       passes: problem?.stats?.passes ?? 0,

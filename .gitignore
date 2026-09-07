@@ -25,3 +25,8 @@ backend/uploads/
 
 # Logs
 *.log
+
+backend/app.jar
+backend/target/
+frontend/dist/
+frontend/node_modules/

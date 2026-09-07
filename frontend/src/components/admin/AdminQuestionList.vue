@@ -14,6 +14,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  pendingProblemId: {
+    type: String,
+    default: '',
+  },
   pagination: {
     type: Object,
     required: true,
@@ -24,7 +28,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['edit', 'keyword-change', 'page-change', 'retry'])
+const emit = defineEmits(['delete-request', 'edit', 'keyword-change', 'page-change', 'retry'])
 </script>
 
 <template>
@@ -67,9 +71,24 @@ const emit = defineEmits(['edit', 'keyword-change', 'page-change', 'retry'])
               {{ problem.typeLabel || '题型未设置' }}
             </p>
           </div>
-          <button type="button" class="admin-inline-action" @click="emit('edit', problem)">
-            编辑
-          </button>
+          <div class="admin-row-actions">
+            <button
+              type="button"
+              class="admin-inline-action"
+              :disabled="pendingProblemId === problem.id"
+              @click="emit('edit', problem)"
+            >
+              编辑
+            </button>
+            <button
+              type="button"
+              class="admin-inline-action is-danger"
+              :disabled="pendingProblemId === problem.id"
+              @click="emit('delete-request', problem)"
+            >
+              删除
+            </button>
+          </div>
         </div>
         <strong>{{ problem.title || '标题未设置' }}</strong>
         <p class="admin-question-preview">{{ problem.content }}</p>

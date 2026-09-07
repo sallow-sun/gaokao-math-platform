@@ -8,8 +8,10 @@ const REQUIRED_SERVICE_METHODS = [
   'getProblems',
   'getProblem',
   'updateUserStatus',
+  'deleteUser',
   'createProblem',
   'updateProblem',
+  'deleteProblem',
 ]
 
 function createEmptyPagination(pageSize = DEFAULT_PAGE_SIZE) {
@@ -174,6 +176,10 @@ export function useAdminDashboard(service, { pageSize = DEFAULT_PAGE_SIZE } = {}
     return service.updateUserStatus(userId, status)
   }
 
+  async function deleteUser(userId) {
+    return service.deleteUser(userId)
+  }
+
   async function createProblem(value) {
     return service.createProblem(value)
   }
@@ -184,6 +190,10 @@ export function useAdminDashboard(service, { pageSize = DEFAULT_PAGE_SIZE } = {}
 
   async function updateProblem(problemId, value) {
     return service.updateProblem(problemId, value)
+  }
+
+  async function deleteProblem(problemId) {
+    return service.deleteProblem(problemId)
   }
 
   onMounted(() => {
@@ -211,6 +221,8 @@ export function useAdminDashboard(service, { pageSize = DEFAULT_PAGE_SIZE } = {}
     usersPagination,
     usersQuery,
     createProblem,
+    deleteProblem,
+    deleteUser,
     getProblem,
     loadDashboard,
     loadProblemCatalogs,

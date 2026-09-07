@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import ProblemListItem from '../problems/ProblemListItem.vue'
+import MathText from '../content/MathText.vue'
 import { stripPracticeListSourceNumber } from '../../composables/usePracticeListArrangement.js'
 
 const props = defineProps({
@@ -104,7 +105,7 @@ function moveBy(offset) {
       <div class="training-exam-problem-row">
         <strong>【{{ problem.typeLabel }}】</strong>
         <span>{{ index + 1 }}.</span>
-        <pre>{{ previewContent }}</pre>
+        <MathText class="training-exam-problem-content" :text="previewContent" />
       </div>
 
       <div class="training-exam-problem-actions" aria-label="本题操作">
@@ -124,6 +125,15 @@ function moveBy(offset) {
           @click="emit('toggle-completed', !completed)"
         >
           {{ completed ? '改为未做' : '标记已做' }}
+        </button>
+        <button
+          v-if="editable"
+          type="button"
+          class="is-danger-text"
+          :aria-label="`从题单移除题目 ${item.problemId}`"
+          @click="emit('remove')"
+        >
+          移出题单
         </button>
       </div>
     </section>

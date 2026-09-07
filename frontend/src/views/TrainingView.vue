@@ -53,6 +53,10 @@ async function changeTab(tab) {
 }
 
 function openCreateDialog() {
+  if (!practiceListsStore.authenticated) {
+    void router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
   createDialogOpen.value = true
 }
 
@@ -201,12 +205,12 @@ onBeforeUnmount(() => {
             <header class="training-panel-header">
               <div class="training-panel-heading">
                 <h2>我的题单</h2>
-                <p>{{ practiceListsStore.authenticated ? '题单已保存到账号数据库。' : '未登录时题单暂存在此浏览器。' }}</p>
+                <p>{{ practiceListsStore.authenticated ? '题单已保存到账号数据库。' : '登录后可创建和管理个人题单。' }}</p>
               </div>
               <div class="training-panel-actions">
                 <span>{{ practiceListsStore.lists.length }} 份题单</span>
                 <button type="button" class="training-primary-action" @click="openCreateDialog">
-                  创建题单
+                  {{ practiceListsStore.authenticated ? '创建题单' : '登录后创建' }}
                 </button>
               </div>
             </header>
@@ -227,7 +231,7 @@ onBeforeUnmount(() => {
               <p>创建第一份题单，再从题库中逐步加入需要练习的题目。</p>
               <div class="training-empty-actions">
                 <button type="button" class="training-primary-action" @click="openCreateDialog">
-                  创建第一份题单
+                  {{ practiceListsStore.authenticated ? '创建第一份题单' : '登录后创建题单' }}
                 </button>
                 <RouterLink class="training-secondary-action" to="/problems">浏览题库</RouterLink>
               </div>
@@ -238,6 +242,7 @@ onBeforeUnmount(() => {
     </main>
 
     <TrainingCreateDialog
+      v-if="practiceListsStore.authenticated"
       :allow-official="practiceListsStore.authUser?.officialListOwner === true"
       :open="createDialogOpen"
       @cancel="closeCreateDialog"

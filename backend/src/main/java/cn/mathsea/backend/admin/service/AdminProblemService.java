@@ -50,7 +50,7 @@ public class AdminProblemService {
 
     @Transactional
     public AdminProblemVO create(Long adminId, AdminProblemRequest r) {
-        String number = r.problemNumber().trim();
+        String number = normalizeProblemNumber(r.problemNumber());
         if (problemMapper.findByProblemNumber(number) != null) throw BusinessException.conflict("PROBLEM_NUMBER_TAKEN", "题目编号已存在");
         validate(r);
         Problem p = new Problem();
@@ -81,8 +81,15 @@ public class AdminProblemService {
         String content = sections.getOrDefault("content", "").trim();
         if (content.isEmpty()) throw BusinessException.badRequest("MARKDOWN_CONTENT_REQUIRED", "Markdown 中缺少 content 段落");
 
-        String identity = firstNonBlank(metadata.get("id"), filename);
-        String problemNumber = markdownProblemNumber(metadata.get("problem_number"), identity);
+        String filenameStem = fileStem(filename);
+        String identity = firstNonBlank(metadata.get("id"), filenameStem);
+        // Exported question files use `id` as the platform-wide problem number.
+        // Keep `problem_number` only as a fallback for older Markdown files.
+        String suppliedNumber = firstNonBlank(metadata.get("id"), metadata.get("problem_number"));
+        if ((suppliedNumber == null || suppliedNumber.isBlank()) && isProblemNumberCandidate(filenameStem)) {
+            suppliedNumber = filenameStem;
+        }
+        String problemNumber = markdownProblemNumber(suppliedNumber, identity);
         if (problemMapper.findByProblemNumber(problemNumber) != null) throw BusinessException.conflict("PROBLEM_NUMBER_TAKEN", "该 Markdown 已导入或题目编号已存在：" + problemNumber);
 
         List<String> tags = splitCsv(metadata.get("tags"));
@@ -110,7 +117,7 @@ public class AdminProblemService {
     public AdminProblemVO update(Long adminId, String problemNumber, AdminProblemRequest r) {
         Problem p = requireProblem(problemNumber);
         validate(r);
-        String newNumber = r.problemNumber().trim();
+        String newNumber = normalizeProblemNumber(r.problemNumber());
         Problem same = problemMapper.findByProblemNumber(newNumber);
         if (same != null && !same.getId().equals(p.getId())) throw BusinessException.conflict("PROBLEM_NUMBER_TAKEN", "题目编号已存在");
         apply(p, r);
@@ -132,6 +139,7 @@ public class AdminProblemService {
     public ProblemAssetVO uploadAsset(Long adminId, String problemNumber, MultipartFile file, String altText) {
         Problem p = requireProblem(problemNumber);
         if (altText != null && altText.length() > 255) throw BusinessException.badRequest("ALT_TEXT_TOO_LONG", "图片说明不能超过255个字符");
+        validateAssetFilename(p.getProblemNumber(), file);
         var stored = storageService.saveProblemImage(file, problemNumber);
         ProblemAsset asset = new ProblemAsset();
         asset.setProblemId(p.getId());
@@ -175,7 +183,7 @@ public class AdminProblemService {
     }
 
     private void apply(Problem p, AdminProblemRequest r) {
-        p.setProblemNumber(r.problemNumber().trim());
+        p.setProblemNumber(normalizeProblemNumber(r.problemNumber()));
         p.setTitle(blankToNull(r.title()));
         p.setYear(r.year());
         p.setRegion(blankToNull(r.region()));
@@ -222,6 +230,7 @@ public class AdminProblemService {
         return names.stream().filter(Objects::nonNull).map(String::trim).filter(s -> !s.isEmpty()).distinct().toList();
     }
     private String blankToNull(String s) { return s == null || s.isBlank() ? null : s.trim(); }
+    private String normalizeProblemNumber(String value) { return value.trim().toUpperCase(Locale.ROOT); }
 
     private Map<String, String> parseFrontMatter(String raw) {
         Map<String, String> result = new LinkedHashMap<>();
@@ -249,10 +258,41 @@ public class AdminProblemService {
 
     private String markdownProblemNumber(String supplied, String identity) {
         if (supplied != null && supplied.trim().matches("[1-9]\\d*")) return "P" + supplied.trim();
-        if (supplied != null && supplied.trim().toUpperCase(Locale.ROOT).matches("P[1-9]\\d*")) return supplied.trim().toUpperCase(Locale.ROOT);
+        if (supplied != null) {
+            String normalized = supplied.trim().toUpperCase(Locale.ROOT);
+            if (normalized.matches("[A-Z0-9][A-Z0-9_-]{0,31}")) return normalized;
+            throw BusinessException.badRequest(
+                    "INVALID_MARKDOWN_PROBLEM_NUMBER",
+                    "题目编号只能包含英文字母、数字、下划线和连字符，且不能超过 32 个字符"
+            );
+        }
         CRC32 crc = new CRC32();
         crc.update(identity.getBytes(StandardCharsets.UTF_8));
         return "P" + crc.getValue();
+    }
+
+    private void validateAssetFilename(String problemNumber, MultipartFile file) {
+        if (file == null || file.isEmpty()) return;
+        String originalFilename = Optional.ofNullable(file.getOriginalFilename()).orElse("");
+        String stem = fileStem(originalFilename);
+        if (!stem.equalsIgnoreCase(problemNumber)) {
+            throw BusinessException.badRequest(
+                    "ASSET_FILENAME_MISMATCH",
+                    "图片主文件名必须与题目编号一致，例如 " + problemNumber + ".png"
+            );
+        }
+    }
+
+    private String fileStem(String filename) {
+        String clean = Optional.ofNullable(filename).orElse("").replace('\\', '/');
+        int slash = clean.lastIndexOf('/');
+        if (slash >= 0) clean = clean.substring(slash + 1);
+        int dot = clean.lastIndexOf('.');
+        return (dot > 0 ? clean.substring(0, dot) : clean).trim();
+    }
+
+    private boolean isProblemNumberCandidate(String value) {
+        return value != null && value.trim().matches("(?:[1-9]\\d*|[A-Za-z0-9][A-Za-z0-9_-]{0,31})");
     }
 
     private String mapQuestionType(String value) {

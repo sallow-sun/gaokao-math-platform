@@ -1,5 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
+import MathText from '../content/MathText.vue'
 
 defineProps({
   completed: {
@@ -125,7 +126,7 @@ const emit = defineEmits([
           </RouterLink>
           <slot name="title-extra"></slot>
         </h3>
-        <p class="bank-problem-detail">{{ problem.detail }}</p>
+        <MathText class="bank-problem-detail" inline :text="problem.detail" />
         <slot name="summary-extra"></slot>
       </div>
 

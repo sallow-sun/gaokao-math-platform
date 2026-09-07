@@ -5,6 +5,7 @@ import ProblemExportMenu from './ProblemExportMenu.vue'
 import ProblemEngagementBar from './ProblemEngagementBar.vue'
 import ProblemSolutionDrawer from './ProblemSolutionDrawer.vue'
 import MathText from '../content/MathText.vue'
+import ProblemAssets from '../content/ProblemAssets.vue'
 import { normalizeProblemPrintContent } from '../../composables/useProblemPrintPreferences.js'
 
 const props = defineProps({
@@ -126,6 +127,7 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
         <span class="bank-problem-print-type-prefix">【{{ problem.typeLabel }}】</span>
         <MathText :text="printContent" />
       </div>
+      <ProblemAssets :assets="problem.assets" />
     </div>
 
     <footer class="bank-result-problem-panel-view-card-footer">

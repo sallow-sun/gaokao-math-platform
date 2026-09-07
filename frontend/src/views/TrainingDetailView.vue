@@ -721,7 +721,7 @@ async function exportPracticeListPdf(includeAnswers) {
       pageLayout: printPageLayout.value,
     })
     showOperationFeedback(
-      result.ok ? '请在打印窗口中选择“另存为 PDF”' : 'PDF 内容准备失败，请稍后重试',
+      result.ok ? 'PDF 文件已导出' : 'PDF 导出失败，请稍后重试',
     )
   } catch (error) {
     showOperationFeedback(error?.message || 'PDF 内容准备失败')

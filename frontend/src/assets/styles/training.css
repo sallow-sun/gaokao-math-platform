@@ -1345,7 +1345,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.training-exam-problem-row > pre,
+.training-exam-problem-row > .training-exam-problem-content,
 .training-exam-problem-row > p {
   min-width: 0;
   margin: 0;
@@ -2106,7 +2106,7 @@
   }
 
   .training-exam-problem-row > span,
-  .training-exam-problem-row > pre {
+  .training-exam-problem-row > .training-exam-problem-content {
     font-size: 16px;
   }
 

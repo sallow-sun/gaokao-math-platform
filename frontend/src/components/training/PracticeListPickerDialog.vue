@@ -1,8 +1,13 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import '../../assets/styles/practice-list-picker.css'
 
 const props = defineProps({
+  authenticated: {
+    type: Boolean,
+    default: false,
+  },
   defaultListId: {
     type: String,
     default: '',
@@ -204,7 +209,7 @@ onBeforeUnmount(() => {
             <p>还没有可用的个人题单，请先创建一份。</p>
           </div>
 
-          <div class="practice-list-picker-create">
+          <div v-if="authenticated" class="practice-list-picker-create">
             <button v-if="!creatingList" type="button" @click="showCreateForm">＋ 新建题单</button>
 
             <form v-else @submit.prevent="createPracticeList">
@@ -238,6 +243,12 @@ onBeforeUnmount(() => {
                 <button type="submit" class="is-primary">创建并选中</button>
               </div>
             </form>
+          </div>
+          <div v-else class="practice-list-picker-empty">
+            <p>登录后才可以创建和管理个人题单。</p>
+            <RouterLink class="is-primary" :to="{ name: 'login' }" @click="cancel">
+              前往登录
+            </RouterLink>
           </div>
 
           <footer class="practice-list-picker-footer">

@@ -13,6 +13,7 @@ import { adminService } from '../services/adminService.js'
 import '../assets/styles/admin.css'
 
 const SEARCH_DELAY = 250
+const IMAGE_FILE_PATTERN = /\.(?:png|jpe?g|gif|webp)$/i
 
 const activeTab = ref('users')
 const userKeyword = ref('')
@@ -20,8 +21,9 @@ const problemKeyword = ref('')
 const problemDraft = ref(createEmptyAdminProblem())
 const editingProblemId = ref('')
 const pendingProblemSave = ref(false)
-const pendingMarkdownImport = ref(false)
+const pendingBatchImport = ref(false)
 const pendingUserId = ref('')
+const pendingProblemId = ref('')
 const pendingConfirmation = ref(null)
 const formFeedback = ref('')
 const operationFeedback = ref('')
@@ -50,6 +52,8 @@ const {
   usersPagination,
   usersQuery,
   createProblem,
+  deleteProblem,
+  deleteUser,
   getProblem,
   loadProblemCatalogs,
   loadProblems,
@@ -107,6 +111,7 @@ function requestUserStatusChange(user) {
   const banning = user.status !== 'banned'
 
   pendingConfirmation.value = {
+    kind: 'user-status',
     userId: user.id,
     status: banning ? 'banned' : 'active',
     title: banning ? `封禁“${user.username}”？` : `解除“${user.username}”的封禁？`,
@@ -117,8 +122,28 @@ function requestUserStatusChange(user) {
   }
 }
 
+function requestUserDelete(user) {
+  pendingConfirmation.value = {
+    kind: 'delete-user',
+    userId: user.id,
+    title: `删除用户“${user.username}”？`,
+    description: '该用户的登录账号、学习状态和个人题单将从数据库永久删除，此操作不可撤销。',
+    confirmLabel: '确认删除用户',
+  }
+}
+
+function requestProblemDelete(problem) {
+  pendingConfirmation.value = {
+    kind: 'delete-problem',
+    problemId: problem.id,
+    title: `删除题目 ${problem.id}？`,
+    description: '该题目将直接从题库删除，并同时从所有题单和用户学习记录中移除，此操作不可撤销。',
+    confirmLabel: '确认删除题目',
+  }
+}
+
 function cancelUserStatusChange() {
-  if (!pendingUserId.value) {
+  if (!pendingUserId.value && !pendingProblemId.value) {
     pendingConfirmation.value = null
   }
 }
@@ -130,17 +155,29 @@ async function confirmUserStatusChange() {
     return
   }
 
-  pendingUserId.value = action.userId
-
   try {
-    const result = await updateUserStatus(action.userId, action.status)
+    let result
+    if (action.kind === 'delete-problem') {
+      pendingProblemId.value = action.problemId
+      result = await deleteProblem(action.problemId)
+      if (editingProblemId.value === action.problemId) resetProblemEditor()
+      await Promise.all([loadProblems(problemsQuery.value), loadSummary()])
+    } else if (action.kind === 'delete-user') {
+      pendingUserId.value = action.userId
+      result = await deleteUser(action.userId)
+      await Promise.all([loadUsers(usersQuery.value), loadSummary()])
+    } else {
+      pendingUserId.value = action.userId
+      result = await updateUserStatus(action.userId, action.status)
+      await Promise.all([loadUsers(usersQuery.value), loadSummary()])
+    }
     pendingConfirmation.value = null
-    await Promise.all([loadUsers(usersQuery.value), loadSummary()])
     showOperationFeedback(result.message)
   } catch (error) {
-    showOperationFeedback(error instanceof Error ? error.message : '无法修改用户状态')
+    showOperationFeedback(error instanceof Error ? error.message : '管理操作失败')
   } finally {
     pendingUserId.value = ''
+    pendingProblemId.value = ''
   }
 }
 
@@ -220,29 +257,51 @@ async function saveProblem() {
   }
 }
 
-async function importMarkdownFiles(files) {
-  if (pendingMarkdownImport.value || !files.length) return
-  pendingMarkdownImport.value = true
-  const results = []
+function fileStem(filename) {
+  const name = String(filename ?? '').split(/[\\/]/).pop() ?? ''
+  const dotIndex = name.lastIndexOf('.')
+  return (dotIndex > 0 ? name.slice(0, dotIndex) : name).trim().toUpperCase()
+}
 
-  for (const file of files) {
+async function importProblemFiles(files) {
+  if (pendingBatchImport.value || !files.length) return
+  pendingBatchImport.value = true
+  const results = []
+  const markdownFiles = files.filter((file) => file.name.toLowerCase().endsWith('.md'))
+  const imageFiles = files.filter((file) => IMAGE_FILE_PATTERN.test(file.name))
+
+  for (const file of markdownFiles) {
     try {
       const problem = await adminService.importMarkdown(file)
-      results.push(`${file.name} → ${problem.id}`)
+      results.push(`${file.name} → 题目 ${problem.id}`)
     } catch (error) {
       results.push(`${file.name}：${error?.message || '导入失败'}`)
     }
   }
 
-  formFeedback.value = `Markdown 导入完成：${results.join('；')}`
-  showOperationFeedback(`已处理 ${files.length} 个 Markdown 文件`)
-  await Promise.all([
-    loadProblems({ ...problemsQuery.value, keyword: '', page: 1 }),
-    loadProblemCatalogs(),
-    loadSummary(),
-  ])
-  problemKeyword.value = ''
-  pendingMarkdownImport.value = false
+  for (const file of imageFiles) {
+    const problemId = fileStem(file.name)
+    try {
+      await adminService.uploadProblemAsset(problemId, file)
+      results.push(`${file.name} → 题目 ${problemId} 配图`)
+    } catch (error) {
+      results.push(`${file.name}：${error?.message || '上传失败'}`)
+    }
+  }
+
+  formFeedback.value = `一键添加完成：${results.join('；')}`
+  showOperationFeedback(`已处理 ${markdownFiles.length} 个题目文件、${imageFiles.length} 张图片`)
+
+  try {
+    await Promise.all([
+      loadProblems({ ...problemsQuery.value, keyword: '', page: 1 }),
+      loadProblemCatalogs(),
+      loadSummary(),
+    ])
+    problemKeyword.value = ''
+  } finally {
+    pendingBatchImport.value = false
+  }
 }
 
 onBeforeUnmount(() => {
@@ -290,6 +349,7 @@ onBeforeUnmount(() => {
         @keyword-change="updateUserKeyword"
         @page-change="changeUserPage"
         @retry="retryUsers"
+        @delete-request="requestUserDelete"
         @status-request="requestUserStatusChange"
       />
 
@@ -317,13 +377,13 @@ onBeforeUnmount(() => {
             :feedback="formFeedback"
             :level-options="levelOptions"
             :model-value="problemDraft"
-            :pending="pendingProblemSave || pendingMarkdownImport"
+            :pending="pendingProblemSave || pendingBatchImport"
             :source-options="sourceOptions"
             :tag-options="tagOptions"
             :type-options="typeOptions"
             @cancel="resetProblemEditor"
             @field-change="updateProblemDraft"
-            @import-files="importMarkdownFiles"
+            @import-files="importProblemFiles"
             @submit="saveProblem"
             @tag-change="updateProblemTag"
           />
@@ -332,7 +392,9 @@ onBeforeUnmount(() => {
             :keyword="problemKeyword"
             :loading="problemsLoading"
             :pagination="problemsPagination"
+            :pending-problem-id="pendingProblemId"
             :problems="problems"
+            @delete-request="requestProblemDelete"
             @edit="editProblem"
             @keyword-change="updateProblemKeyword"
             @page-change="changeProblemPage"
@@ -343,7 +405,7 @@ onBeforeUnmount(() => {
     </main>
 
     <AdminConfirmDialog
-      :busy="Boolean(pendingUserId)"
+      :busy="Boolean(pendingUserId || pendingProblemId)"
       :confirm-label="pendingConfirmation?.confirmLabel"
       :description="pendingConfirmation?.description"
       :open="Boolean(pendingConfirmation)"

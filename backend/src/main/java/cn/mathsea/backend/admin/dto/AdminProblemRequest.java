@@ -4,7 +4,12 @@ import jakarta.validation.constraints.*;
 import java.util.List;
 
 public record AdminProblemRequest(
-        @NotBlank @Pattern(regexp="^P\\d+$", message="题目编号格式应为 P 加数字") String problemNumber,
+        @NotBlank
+        @Size(max=32)
+        @Pattern(
+                regexp="^[A-Za-z0-9][A-Za-z0-9_-]*$",
+                message="题目编号只能包含英文字母、数字、下划线和连字符"
+        ) String problemNumber,
         @Size(max=255) String title,
         Integer year,
         @Size(max=100) String region,

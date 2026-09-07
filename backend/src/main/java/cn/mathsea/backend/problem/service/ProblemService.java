@@ -129,6 +129,19 @@ public class ProblemService {
             tags.computeIfAbsent(row.getProblemId(), k -> new ArrayList<>()).add(row.getTagName());
         }
 
+        Map<Long, List<ProblemAssetVO>> assets = new HashMap<>();
+        List<ProblemAsset> problemAssets = assetMapper.selectList(new LambdaQueryWrapper<ProblemAsset>()
+                .in(ProblemAsset::getProblemId, ids)
+                .orderByAsc(ProblemAsset::getProblemId)
+                .orderByAsc(ProblemAsset::getSortOrder)
+                .orderByAsc(ProblemAsset::getId));
+        for (ProblemAsset asset : problemAssets) {
+            assets.computeIfAbsent(asset.getProblemId(), k -> new ArrayList<>()).add(
+                    new ProblemAssetVO(asset.getId().toString(), asset.getUrl(), asset.getMimeType(), asset.getAltText(),
+                            Optional.ofNullable(asset.getSortOrder()).orElse(0))
+            );
+        }
+
         Map<Long, UserProblemState> states = new HashMap<>();
         Set<Long> inLists = new HashSet<>();
         if (viewerUserId != null) {
@@ -151,6 +164,7 @@ public class ProblemService {
                     r.getSourceCode(), sourceLabel, r.getQuestionType(), type == null ? r.getQuestionType() : type.label(),
                     r.getDifficulty(), tags.getOrDefault(r.getId(), List.of()), sourceText(r.getYear(), sourceLabel, r.getRegion()),
                     r.getContent(), Optional.ofNullable(r.getContentFormat()).orElse("markdown-latex-v1"),
+                    assets.getOrDefault(r.getId(), List.of()),
                     new ProblemStatsVO(Optional.ofNullable(r.getViewCount()).orElse(0L), Optional.ofNullable(r.getFavoriteCount()).orElse(0L)), vs));
         }
         return result;

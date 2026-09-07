@@ -1,5 +1,6 @@
 import { nextTick, readonly, ref } from 'vue'
 import { PROBLEMS_PRINT_OPTION_OPTIONS } from '../config/problems.js'
+import { exportProblemsAsPdf } from './useProblemPdfExport.js'
 
 export const PROBLEM_PRINT_BODY_CLASS = 'is-printing-problems'
 
@@ -64,6 +65,21 @@ export function useProblemPrint() {
 
     if (!hasProblemContent && !hasNotes) {
       return { ok: false, reason: 'no-content' }
+    }
+
+    if (forPdf) {
+      try {
+        return await exportProblemsAsPdf({
+          documentTitle,
+          entries: printableEntries,
+          header,
+          includeHeader: Boolean(includeHeader),
+          options: { ...options },
+          pageLayout,
+        })
+      } catch {
+        return { ok: false, reason: 'pdf-unavailable' }
+      }
     }
 
     finishProblemPrint()

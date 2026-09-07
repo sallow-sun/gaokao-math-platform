@@ -364,6 +364,12 @@
   border-color: color-mix(in srgb, var(--color-red) 32%, var(--color-border));
 }
 
+.admin-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .admin-inline-action:disabled,
 .admin-primary-action:disabled,
 .admin-dialog-actions button:disabled {

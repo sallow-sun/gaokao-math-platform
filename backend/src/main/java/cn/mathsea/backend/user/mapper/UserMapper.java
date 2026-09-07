@@ -9,6 +9,9 @@ import java.util.UUID;
 
 @Mapper
 public interface UserMapper extends BaseMapper<UserAccount> {
+    @Update("LOCK TABLE users IN SHARE UPDATE EXCLUSIVE MODE")
+    void lockRegistrationBootstrap();
+
     @Select("""
         SELECT * FROM users
         WHERE username = #{account}

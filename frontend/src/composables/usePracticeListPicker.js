@@ -10,6 +10,7 @@ export function usePracticeListPicker() {
   const selectedPracticeListIds = ref([])
 
   const practiceLists = computed(() => practiceListsStore.lists)
+  const authenticated = computed(() => practiceListsStore.authenticated)
   const defaultPracticeListId = computed(() => practiceListsStore.defaultListId)
 
   function closePracticeListPicker() {
@@ -125,6 +126,7 @@ export function usePracticeListPicker() {
   }
 
   return {
+    authenticated,
     defaultPracticeListId,
     pickerMode,
     pickerOpen,

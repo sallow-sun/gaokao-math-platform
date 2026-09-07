@@ -3,10 +3,8 @@ import { authService } from '../services/authService.js'
 import { practiceListService } from '../services/practiceListService.js'
 import { normalizeProblemIds } from '../composables/useProblemsSelection.js'
 import {
-  createPracticeListRecord,
+  createEmptyPracticeListsState,
   normalizePracticeListsState,
-  readPracticeListsState,
-  writePracticeListsState,
 } from '../composables/usePracticeListsStorage.js'
 
 function getCurrentTimestamp() {
@@ -20,7 +18,7 @@ function findPracticeList(lists, listId) {
 
 export const usePracticeListsStore = defineStore('practiceLists', {
   state: () => ({
-    ...readPracticeListsState(),
+    ...createEmptyPracticeListsState(),
     authenticated: false,
     authUser: null,
     authRevision: 0,
@@ -74,15 +72,17 @@ export const usePracticeListsStore = defineStore('practiceLists', {
           )
           this.lists = details
           this.defaultListId = details.find((list) => list.isDefault)?.id ?? null
-        } else if (wasAuthenticated) {
-          this.replaceState(readPracticeListsState())
+        } else if (wasAuthenticated || this.lists.length) {
+          this.replaceState(createEmptyPracticeListsState())
         }
       } catch (error) {
         if (revision === this.authRevision) {
           if (error?.status === 401) {
             this.authenticated = false
             this.authUser = null
-            if (wasAuthenticated) this.replaceState(readPracticeListsState())
+            if (wasAuthenticated || this.lists.length) {
+              this.replaceState(createEmptyPracticeListsState())
+            }
           }
           this.syncError = error?.message || '题单数据同步失败'
         }
@@ -122,6 +122,27 @@ export const usePracticeListsStore = defineStore('practiceLists', {
       return this.authenticated
     },
 
+    clearSession() {
+      ++this.authRevision
+      this.authenticated = false
+      this.authUser = null
+      this.initialized = true
+      this.loading = false
+      this.syncError = ''
+      this.viewedLists = {}
+      this.replaceState(createEmptyPracticeListsState())
+    },
+
+    async logout() {
+      try {
+        await authService.logout()
+      } catch (error) {
+        // An expired session is already logged out from the server's perspective.
+        if (error?.status !== 401) throw error
+      }
+      this.clearSession()
+    },
+
     async loadPublicLists(kind) {
       const normalizedKind = kind === 'official' ? 'official' : 'square'
       const lists = await practiceListService.listPublic(normalizedKind)
@@ -153,15 +174,7 @@ export const usePracticeListsStore = defineStore('practiceLists', {
     },
 
     persist() {
-      if (this.authenticated) {
-        return true
-      }
-
-      return writePracticeListsState({
-        schemaVersion: this.schemaVersion,
-        defaultListId: this.defaultListId,
-        lists: this.lists,
-      })
+      return this.authenticated
     },
 
     replaceState(value, { persist = false } = {}) {
@@ -181,18 +194,17 @@ export const usePracticeListsStore = defineStore('practiceLists', {
       isPublic = true,
       isOfficial = false,
     } = {}) {
-      let practiceList
-      if (this.authenticated) {
-        const summary = await practiceListService.create({
-          description,
-          title,
-          isPublic,
-          isOfficial,
-        })
-        practiceList = await practiceListService.detail(summary.id, true)
-      } else {
-        practiceList = createPracticeListRecord({ description, title })
+      if (!this.authenticated) {
+        throw new Error('请先登录后再创建题单')
       }
+
+      const summary = await practiceListService.create({
+        description,
+        title,
+        isPublic,
+        isOfficial,
+      })
+      const practiceList = await practiceListService.detail(summary.id, true)
       this.lists.push(practiceList)
 
       if (!this.defaultListId) {

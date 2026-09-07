@@ -40,8 +40,11 @@ const fileInput = ref(null)
 const draggingFiles = ref(false)
 
 function selectFiles(files) {
-  const markdownFiles = Array.from(files ?? []).filter((file) => file.name.toLowerCase().endsWith('.md'))
-  if (markdownFiles.length) emit('import-files', markdownFiles)
+  const supportedExtensions = ['.md', '.png', '.jpg', '.jpeg', '.gif', '.webp']
+  const importFiles = Array.from(files ?? []).filter((file) =>
+    supportedExtensions.some((extension) => file.name.toLowerCase().endsWith(extension)),
+  )
+  if (importFiles.length) emit('import-files', importFiles)
   draggingFiles.value = false
   if (fileInput.value) fileInput.value.value = ''
 }
@@ -80,12 +83,12 @@ function updateTag(tag, checked) {
         <input
           ref="fileInput"
           type="file"
-          accept=".md,text/markdown,text/plain"
+          accept=".md,.png,.jpg,.jpeg,.gif,.webp,text/markdown,image/png,image/jpeg,image/gif,image/webp"
           multiple
           @change="selectFiles($event.target.files)"
         />
-        <strong>拖入一个或多个 Markdown 题目文件</strong>
-        <span>也可以点击选择文件；每个文件会单独解析并写入题库</span>
+        <strong>一键添加 Markdown 题目和配图</strong>
+        <span>可同时选择多个文件；图片主文件名须与题目编号一致，例如 P10003.md + P10003.png</span>
       </section>
 
       <div class="admin-form-grid">
@@ -94,8 +97,11 @@ function updateTag(tag, checked) {
           <input
             name="id"
             required
+            maxlength="32"
+            pattern="[A-Za-z0-9][A-Za-z0-9_-]*"
             autocomplete="off"
-            placeholder="P10003"
+            placeholder="例如：P10003A 或 MOCK-01"
+            title="只能包含英文字母、数字、下划线和连字符"
             :disabled="editing"
             :value="modelValue.id"
             @input="updateField('id', $event.target.value.toUpperCase())"

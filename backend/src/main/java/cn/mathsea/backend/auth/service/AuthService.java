@@ -52,6 +52,12 @@ public class AuthService {
         if (!req.password().equals(req.confirmPassword())) {
             throw BusinessException.badRequest("PASSWORD_MISMATCH", "两次输入的密码不一致");
         }
+
+        String passwordHash = passwordEncoder.encode(req.password());
+
+        // Serialize registration writes so the bootstrap decision and uniqueness checks
+        // cannot become stale while another registration commits.
+        userMapper.lockRegistrationBootstrap();
         if (userMapper.countByUsername(username) > 0) throw BusinessException.conflict("USERNAME_TAKEN", "该用户名已被使用");
         if (userMapper.countByEmail(email) > 0) throw BusinessException.conflict("EMAIL_TAKEN", "该邮箱已被注册");
         if (phone != null && userMapper.countByPhone(phone) > 0) throw BusinessException.conflict("PHONE_TAKEN", "该手机号已被使用");
@@ -62,10 +68,13 @@ public class AuthService {
         user.setUsername(username);
         user.setEmail(email);
         user.setPhone(phone);
-        user.setPasswordHash(passwordEncoder.encode(req.password()));
+        user.setPasswordHash(passwordHash);
         user.setSignature("");
-        user.setRole("USER");
         user.setStatus("ACTIVE");
+
+        // The database trigger remains the final guard, but the application must insert
+        // the first account as ADMIN itself so the UID update cannot demote it to USER.
+        user.setRole(userMapper.firstUserId() == null ? "ADMIN" : "USER");
         userMapper.insert(user);
 
         String uid = "UID%08d".formatted(user.getId());

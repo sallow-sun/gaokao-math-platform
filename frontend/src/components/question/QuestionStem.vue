@@ -1,5 +1,6 @@
 <script setup>
 import MathText from '../content/MathText.vue'
+import ProblemAssets from '../content/ProblemAssets.vue'
 
 defineProps({
   problem: {
@@ -14,6 +15,7 @@ defineProps({
     <h2 id="question-stem-title" class="question-visually-hidden">题目内容</h2>
     <div class="question-stem-content">
       <MathText :text="problem.content" />
+      <ProblemAssets :assets="problem.assets" />
     </div>
   </section>
 </template>

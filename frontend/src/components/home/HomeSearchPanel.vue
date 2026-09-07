@@ -25,7 +25,7 @@ function submitSearch() {
 
 <template>
   <section class="home-search-panel" aria-labelledby="home-logo">
-    <h1 id="home-logo" class="home-logo">mathverse</h1>
+    <h1 id="home-logo" class="home-logo">Mathverse</h1>
 
     <form class="home-search-form" role="search" @submit.prevent="submitSearch">
       <label class="visually-hidden" for="home-search-input">搜索题目、知识点或试卷</label>

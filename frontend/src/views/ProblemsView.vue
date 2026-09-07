@@ -64,6 +64,7 @@ const { displayOptions, viewMode, setAllDisplayOptions, setDisplayOption, setVie
   useProblemsDisplayPreferences()
 const { practiceProblemIds } = useProblemsPracticeList()
 const {
+  authenticated: practiceListsAuthenticated,
   defaultPracticeListId,
   pickerMode,
   pickerOpen,
@@ -355,7 +356,7 @@ async function startPrint(problemIds, title, forPdf = false) {
   }
 
   if (forPdf) {
-    showOperationFeedback('请在打印窗口中选择“另存为 PDF”')
+    showOperationFeedback('正在生成 PDF 文件……')
   }
 
   const result = await openProblemPrintDialog({
@@ -370,6 +371,10 @@ async function startPrint(problemIds, title, forPdf = false) {
 
   if (result.reason === 'no-content') {
     showOperationFeedback('请先在“个性化设置”的“打印内容”中至少选择一项')
+  } else if (forPdf && result.ok) {
+    showOperationFeedback('PDF 文件已导出')
+  } else if (result.reason === 'pdf-unavailable') {
+    showOperationFeedback('PDF 导出失败，请稍后重试')
   } else if (result.reason === 'print-unavailable') {
     showOperationFeedback('无法打开打印窗口，请检查浏览器设置')
   }
@@ -563,6 +568,7 @@ watch(loadedProblems, (items) => syncMarksFromProblems(items), { immediate: true
     />
 
     <PracticeListPickerDialog
+      :authenticated="practiceListsAuthenticated"
       :default-list-id="defaultPracticeListId"
       :lists="practiceLists"
       :mode="pickerMode"

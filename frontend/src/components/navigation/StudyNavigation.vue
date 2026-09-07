@@ -1,10 +1,13 @@
 <script setup>
-import { computed } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { usePracticeListsStore } from '../../stores/practiceLists.js'
 
 const route = useRoute()
+const router = useRouter()
 const practiceListsStore = usePracticeListsStore()
+const loggingOut = ref(false)
+const logoutError = ref('')
 
 const baseNavigationItems = [
   {
@@ -80,6 +83,20 @@ const accountStatus = computed(() => {
 function isNavigationItemActive(item) {
   return item.routeNames.includes(activeRouteName.value)
 }
+
+async function logout() {
+  if (loggingOut.value) return
+  loggingOut.value = true
+  logoutError.value = ''
+  try {
+    await practiceListsStore.logout()
+    await router.replace({ name: 'login' })
+  } catch (error) {
+    logoutError.value = error?.message || '退出失败，请稍后重试'
+  } finally {
+    loggingOut.value = false
+  }
+}
 </script>
 
 <template>
@@ -119,6 +136,21 @@ function isNavigationItemActive(item) {
         <span>{{ accountLabel }}</span>
         <small>{{ accountStatus }}</small>
       </RouterLink>
+      <button
+        v-if="practiceListsStore.authenticated"
+        class="study-navigation-logout"
+        type="button"
+        :disabled="loggingOut"
+        :title="logoutError || (loggingOut ? '正在退出登录' : '退出登录')"
+        @click="logout"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10 5H5v14h5" />
+          <path d="M14 8l4 4-4 4" />
+          <path d="M8 12h10" />
+        </svg>
+        <span>{{ loggingOut ? '退出中' : '退出' }}</span>
+      </button>
     </div>
   </aside>
 </template>

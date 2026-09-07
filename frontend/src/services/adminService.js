@@ -46,6 +46,7 @@ function normalizeProblem(problem) {
     answer: String(problem.answer ?? ''),
     solution: String(problem.solution ?? ''),
     contentFormat: String(problem.contentFormat ?? 'markdown-latex-v1'),
+    assets: Array.isArray(problem.assets) ? problem.assets : [],
   }
 }
 
@@ -133,6 +134,13 @@ export const adminService = {
     return { item, message: status === 'banned' ? '用户已封禁' : '用户已解除封禁' }
   },
 
+  async deleteUser(userId) {
+    await apiRequest(`/api/v1/admin/users/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+    })
+    return { message: '用户已删除' }
+  },
+
   async createProblem(value) {
     const item = normalizeProblem(
       await apiRequest('/api/v1/admin/problems', {
@@ -151,6 +159,17 @@ export const adminService = {
     )
   },
 
+  async uploadProblemAsset(problemId, file) {
+    const normalizedProblemId = String(problemId ?? '').trim().toUpperCase()
+    const body = new FormData()
+    body.append('file', file)
+    body.append('altText', `题目 ${normalizedProblemId} 配图`)
+    return apiRequest(`/api/v1/admin/problems/${encodeURIComponent(normalizedProblemId)}/assets`, {
+      method: 'POST',
+      body,
+    })
+  },
+
   async updateProblem(problemId, value) {
     const item = normalizeProblem(
       await apiRequest(`/api/v1/admin/problems/${encodeURIComponent(problemId)}`, {
@@ -159,5 +178,12 @@ export const adminService = {
       }),
     )
     return { item, message: `题目 ${item.id} 已保存` }
+  },
+
+  async deleteProblem(problemId) {
+    await apiRequest(`/api/v1/admin/problems/${encodeURIComponent(problemId)}`, {
+      method: 'DELETE',
+    })
+    return { message: `题目 ${problemId} 已删除` }
   },
 }

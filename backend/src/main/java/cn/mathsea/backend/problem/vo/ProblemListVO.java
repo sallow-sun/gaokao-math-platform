@@ -14,6 +14,7 @@ public record ProblemListVO(
         String sourceText,
         String content,
         String contentFormat,
+        List<ProblemAssetVO> assets,
         ProblemStatsVO stats,
         ViewerStateVO viewerState
 ) {}
