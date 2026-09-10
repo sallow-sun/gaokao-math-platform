@@ -98,6 +98,53 @@ class EditorialIntegrationTest {
   }
 
   @Test
+  void draftBatchTrashIsAtomicPermissionCheckedAndRestorable() {
+    long manager=actor("delete-manager"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    long other=actor("delete-other"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    var a=service.manual(manager); var b=service.manual(manager);
+    var ids=List.of((UUID)a.get("id"),(UUID)b.get("id")).stream().sorted().toList();
+    var targets=ids.stream().map(id -> new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(id,version(service.detail(id)))).toList();
+    assertThrows(BusinessException.class,()->trash.deleteDrafts(other,targets));
+    assertThrows(BusinessException.class,()->trash.deleteDrafts(manager,List.of(targets.get(0),new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(ids.get(1),999))));
+    assertEquals("DRAFT",service.detail(ids.getFirst()).get("status"));
+    assertThrows(BusinessException.class,()->trash.deleteDrafts(manager,List.of(targets.get(0),targets.get(0))));
+    service.releaseLease(manager,ids.get(1)); service.acquire(other,ids.get(1));
+    assertThrows(BusinessException.class,()->trash.deleteDrafts(manager,targets));
+    assertEquals("DRAFT",service.detail(ids.getFirst()).get("status"));
+    service.releaseLease(other,ids.get(1));
+    long count=db.queryForObject("SELECT count(*) FROM problems",Long.class);
+    trash.deleteDrafts(manager,targets);
+    assertEquals(count,db.queryForObject("SELECT count(*) FROM problems",Long.class));
+    assertThrows(BusinessException.class,()->service.detail(ids.getFirst()));
+    var listed=(Map<?,?>)trash.list(manager,"",1);
+    assertTrue(((List<Map<String,Object>>)listed.get("items")).stream().anyMatch(r->"draft".equals(r.get("kind")) && ids.getFirst().toString().equals(r.get("id"))));
+    trash.restoreDraft(manager,ids.getFirst());
+    assertEquals("DRAFT",service.detail(ids.getFirst()).get("status"));
+    assertTrue(version(service.detail(ids.getFirst()))>targets.getFirst().version());
+  }
+
+  @Test
+  void discardingRevisionDoesNotDeletePublicQuestionOrRestoreItAccidentally() {
+    long manager=actor("revision-delete"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    UUID paper=(UUID)service.paper(manager,"删除测试卷"+UUID.randomUUID()).get("id");
+    UUID batch=(UUID)service.batch(manager,"delete-test").get("id");
+    UUID id=(UUID)service.importFile(manager,batch,paper,"T1.md",markdown("公开题干"),List.of()).get("itemId");
+    var published=service.action(manager,id,new EditorialService.Action(version(service.detail(id)),"PUBLISH","",null));
+    String number=(String)published.get("problem_number");
+    var draft=service.save(manager,id,new EditorialService.Save(version(published),(EditorialDocument)published.get("document"),"修订"));
+    trash.deleteDrafts(manager,List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(id,version(draft))));
+    assertFalse(db.queryForObject("SELECT deleted FROM problems WHERE problem_number=?",Boolean.class,number));
+    assertThrows(BusinessException.class,()->trash.delete(manager,List.of(number,"GS999999")));
+    assertFalse(db.queryForObject("SELECT deleted FROM problems WHERE problem_number=?",Boolean.class,number));
+    trash.delete(manager,List.of(number));
+    assertThrows(BusinessException.class,()->trash.restoreDraft(manager,id));
+    trash.restore(manager,number);
+    assertEquals("TRASH",db.queryForObject("SELECT status FROM editorial_items WHERE id=?",String.class,id));
+    trash.restoreDraft(manager,id);
+    assertEquals("DRAFT",service.detail(id).get("status"));
+  }
+
+  @Test
   void draftsArePrivateDuplicateSafeAndPublishingRetainsThePreviousVersion() {
     long editor = actor("editor" + UUID.randomUUID().toString().substring(0, 8), "EDITOR"),
         reviewer = actor("reviewer" + UUID.randomUUID().toString().substring(0, 8), "REVIEWER");

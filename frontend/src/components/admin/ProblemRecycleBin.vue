@@ -32,9 +32,17 @@ async function run(fn) {
   }
 }
 async function restore(entry) {
-  if (!confirm(`恢复 ${entry.id} · ${entry.title} 到公开题库？`)) return
+  if (
+    !confirm(
+      `恢复 ${entry.number || entry.id} · ${entry.title} 到${entry.kind === 'draft' ? '初审队列（不直接发布）' : '公开题库'}？`,
+    )
+  )
+    return
   await run(async () => {
-    await apiRequest(`/api/v1/admin/problem-trash/${entry.id}/restore`, { method: 'POST' })
+    await apiRequest(
+      `/api/v1/admin/problem-trash/${entry.kind === 'draft' ? 'drafts/' : ''}${entry.id}/restore`,
+      { method: 'POST' },
+    )
     await load()
     message.value = '已恢复'
   })
@@ -60,7 +68,7 @@ onMounted(() => run(load))
 <template>
   <section class="recycle-bin" aria-label="题目回收站">
     <h3>回收站</h3>
-    <p>已从公开题库移除，恢复后保留原题号。</p>
+    <p>初审草稿恢复到审核队列；已发布题目恢复到公开题库，保留原题号。</p>
     <form
       class="editorial-filters"
       @submit.prevent="
@@ -77,10 +85,14 @@ onMounted(() => run(load))
       </button>
     </form>
     <p v-if="message" role="status">{{ message }}</p>
-    <div v-for="entry in rows" :key="entry.id" class="editorial-paper-row">
-      <span>{{ entry.id }} · {{ entry.title }}</span
+    <div v-for="entry in rows" :key="`${entry.kind}:${entry.id}`" class="editorial-paper-row">
+      <span
+        >{{ entry.kind === 'draft' ? '初审草稿' : '已发布' }} · {{ entry.number || entry.id }} ·
+        {{ entry.title }}</span
       ><button :disabled="busy" @click="restore(entry)">恢复</button
-      ><button :disabled="busy" @click="purge(entry)">彻底删除</button>
+      ><button v-if="entry.kind !== 'draft'" :disabled="busy" @click="purge(entry)">
+        彻底删除
+      </button>
     </div>
     <p v-if="!rows.length && !busy">回收站为空或没有匹配题目</p>
     <div class="editorial-actions">

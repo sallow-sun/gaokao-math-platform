@@ -8,4 +8,4 @@
 
 反馈按题目分组，修改发布和解决选定反馈在同一事务完成；后来新增的反馈保持待处理。题目删除进入回收站，恢复和彻底删除由负责人操作。题号全局递增，不重用。
 
-后端主要代码在 `admin/editorial/`、`feedback/`、`curriculum/`；集成验证位于 `EditorialIntegrationTest`。迁移只追加新版本，不修改已上线 V1～V10。更多入口见 [开发交接](../../docs/DEVELOPMENT.md)。
+后端主要代码在 `admin/editorial/`、`feedback/`、`curriculum/`；集成验证位于 `EditorialIntegrationTest`。迁移只追加新版本，不修改已上线 V1～V11。更多入口见 [开发交接](../../docs/DEVELOPMENT.md)。

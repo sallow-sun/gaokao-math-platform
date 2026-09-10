@@ -29,6 +29,16 @@ const papers = ref([]),
   keyword = ref('')
 const editorTab = ref('content')
 const directoryOpen = ref(false)
+const deleteMode = ref(false),
+  deleteSelected = ref([])
+const deletionEntries = computed(() =>
+  tab.value === 'published' ? published.value : queue.value.items,
+)
+function startDeletion() {
+  deleteMode.value = true
+  deleteSelected.value = []
+  if (tab.value === 'queue') directoryOpen.value = true
+}
 const feedbackTask = ref(null)
 const queuePositions = new Map()
 const editing = ref(false),
@@ -100,6 +110,10 @@ const statusLabels = {
   FAILED: '失败',
 }
 const clone = (value) => JSON.parse(JSON.stringify(value))
+watch([tab, status, paperId, keyword, publishedPage, () => queue.value.page], () => {
+  deleteSelected.value = []
+  deleteMode.value = false
+})
 let recoveryTimer
 const recoveryKey = () => `mathsea:editorial:${me.value?.id}:${item.value?.id}`
 
@@ -126,6 +140,12 @@ async function refresh() {
   })
   if (paperId.value) query.set('paperId', paperId.value)
   queue.value = await api.get(`/items?${query}`)
+  deleteSelected.value = []
+  const lastPage = Math.max(1, Math.ceil(queue.value.total / 40))
+  if (queue.value.page > lastPage) {
+    queue.value.page = lastPage
+    return refresh()
+  }
 }
 function previewText(section) {
   let text = draft.value?.[section] || ''
@@ -229,21 +249,49 @@ async function startReview() {
   const target = queue.value.items.find((q) => q.id === id) || queue.value.items[0]
   if (target) await open(target.id)
 }
-async function deletePublished(entry) {
+async function deletePublished(entries) {
   if (!discardAllowed()) return
-  if (!window.confirm(`将 ${entry.id} · ${entry.title} 移入回收站？`)) return
+  if (
+    !entries.length ||
+    !window.confirm(
+      `将以下 ${entries.length} 道已发布题目移入回收站？题目将从公开题库下架，可恢复。\n\n${entries.map((e) => `${e.id} · ${e.title}`).join('\n')}`,
+    )
+  )
+    return
   await run(async () => {
     await apiRequest('/api/v1/admin/problem-trash', {
       method: 'POST',
-      body: { numbers: [entry.id] },
+      body: { numbers: entries.map((e) => e.id) },
     })
-    if (entry.id === item.value?.problem_number) {
+    if (entries.some((e) => e.id === item.value?.problem_number)) {
       item.value = null
       draft.value = null
     }
     await refreshPublished()
     await refresh()
+    deleteMode.value = false
     message.value = '已移入回收站，可恢复'
+  })
+}
+async function deleteSelection() {
+  const entries = deletionEntries.value.filter((e) => deleteSelected.value.includes(e.id))
+  if (tab.value === 'published') return deletePublished(entries)
+  if (!entries.length || !discardAllowed()) return
+  if (
+    !window.confirm(
+      `将以下 ${entries.length} 道初审草稿移入回收站？可恢复到初审；已有公开版本保持不变。\n\n${entries.map((e) => `${e.problem_number || e.original_id} · ${e.title}`).join('\n')}`,
+    )
+  )
+    return
+  await run(async () => {
+    await apiRequest('/api/v1/admin/problem-trash/drafts', {
+      method: 'POST',
+      body: { items: entries.map(({ id, version }) => ({ id, version })) },
+    })
+    if (entries.some((e) => e.id === item.value?.id)) await nextItem()
+    else await refresh()
+    deleteMode.value = false
+    message.value = `已将 ${entries.length} 道初审草稿移入回收站，可恢复`
   })
 }
 async function newItem() {
@@ -446,6 +494,7 @@ async function loadPublished() {
   await run(refreshPublished)
 }
 async function refreshPublished() {
+  deleteSelected.value = []
   const data = await apiRequestPublished()
   const lastPage = Math.max(1, Math.ceil(data.pagination.total / 40))
   if (publishedPage.value > lastPage) {
@@ -639,6 +688,44 @@ onBeforeUnmount(() => {
     <ProblemRecycleBin v-if="tab === 'trash' && me?.permission === 'MANAGER'" />
     <CurriculumSettings v-if="tab === 'curriculum' && me?.permission === 'MANAGER'" />
     <p v-if="message" class="editorial-message" role="status">{{ message }}</p>
+    <div
+      v-if="deleteMode && me?.permission === 'MANAGER'"
+      class="editorial-delete-toolbar"
+      role="group"
+      aria-label="批量删除题目"
+    >
+      <label
+        ><input
+          type="checkbox"
+          :disabled="busy || !deletionEntries.length"
+          :checked="deletionEntries.length > 0 && deleteSelected.length === deletionEntries.length"
+          :indeterminate="
+            deleteSelected.length > 0 && deleteSelected.length < deletionEntries.length
+          "
+          @change="deleteSelected = $event.target.checked ? deletionEntries.map((e) => e.id) : []"
+        />选择当前页</label
+      >
+      <span>已选 {{ deleteSelected.length }} 题</span>
+      <button
+        class="editorial-delete-button"
+        :disabled="busy || !deleteSelected.length"
+        @click="deleteSelection"
+      >
+        删除所选
+      </button>
+      <button
+        :disabled="busy"
+        @click="
+          () => {
+            deleteMode = false
+            deleteSelected = []
+          }
+        "
+      >
+        取消选择
+      </button>
+      <small>仅删除所选题目，可从“更多 → 回收站”恢复</small>
+    </div>
 
     <div v-show="tab === 'import'" class="editorial-import">
       <h3>按目录导入题目和配图</h3>
@@ -810,11 +897,27 @@ onBeforeUnmount(() => {
         </button>
         <button :disabled="busy">筛选</button
         ><button type="button" :disabled="busy" @click="newItem">手动录题</button>
+        <button
+          v-if="status === 'PENDING' && me?.permission === 'MANAGER' && !deleteMode"
+          type="button"
+          :disabled="busy || !queue.items.length"
+          @click="startDeletion"
+        >
+          批量删除
+        </button>
       </form>
       <div class="editorial-layout" :class="{ 'has-directory': directoryOpen }">
         <aside v-if="directoryOpen" class="editorial-queue">
           <p>共 {{ queue.total }} 题</p>
           <div v-for="entry in queue.items" :key="entry.id" class="editorial-queue-row">
+            <input
+              v-if="deleteMode"
+              v-model="deleteSelected"
+              type="checkbox"
+              :value="entry.id"
+              :disabled="busy"
+              :aria-label="`选择初审题目 ${entry.title}`"
+            />
             <button
               :aria-current="entry.id === item?.id ? 'true' : undefined"
               :disabled="busy"
@@ -1209,15 +1312,31 @@ onBeforeUnmount(() => {
         <input v-model="keyword" placeholder="搜索已发布题目" aria-label="搜索已发布题目" /><button>
           搜索
         </button>
+        <button
+          v-if="me?.permission === 'MANAGER' && !deleteMode"
+          type="button"
+          :disabled="busy || !published.length"
+          @click="startDeletion"
+        >
+          批量删除
+        </button>
       </form>
       <p>创建修订不会改变当前公开版本。</p>
       <div v-for="entry in published" :key="entry.id" class="editorial-paper-row">
+        <input
+          v-if="deleteMode"
+          v-model="deleteSelected"
+          type="checkbox"
+          :value="entry.id"
+          :disabled="busy"
+          :aria-label="`选择已发布题目 ${entry.id}`"
+        />
         <span>{{ entry.id }} · {{ entry.title }}</span>
         ><button :disabled="busy" @click="editPublished(entry.id)">校对 / 修改</button
         ><button
           v-if="me?.permission === 'MANAGER'"
           :disabled="busy"
-          @click="deletePublished(entry)"
+          @click="deletePublished([entry])"
         >
           删除
         </button>

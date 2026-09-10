@@ -13,6 +13,9 @@ public class ProblemTrashController {
   private final ProblemTrashService service;
   public record Selection(List<String> numbers) {}
   public record Confirmation(String number) {}
+  public record DraftSelection(List<ProblemTrashService.DraftTarget> items) {}
+  @PostMapping("/drafts") public void deleteDrafts(Authentication auth,@RequestBody DraftSelection body) { service.deleteDrafts(SecurityUtils.requireUserId(auth),body.items()); }
+  @PostMapping("/drafts/{id}/restore") public void restoreDraft(Authentication auth,@PathVariable UUID id) { service.restoreDraft(SecurityUtils.requireUserId(auth),id); }
   @GetMapping public Object list(Authentication auth,@RequestParam(defaultValue="") String keyword,@RequestParam(defaultValue="1") int page) { return service.list(SecurityUtils.requireUserId(auth),keyword,page); }
   @PostMapping public void delete(Authentication auth,@RequestBody Selection body) { service.delete(SecurityUtils.requireUserId(auth),body.numbers()); }
   @PostMapping("/{number}/restore") public void restore(Authentication auth,@PathVariable String number) { service.restore(SecurityUtils.requireUserId(auth),number); }

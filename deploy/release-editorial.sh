@@ -70,7 +70,7 @@ for attempt in $(seq 1 60); do
   sleep 1
 done
 [[ $healthy == true ]]
-sudo -u postgres psql -d mathsea -Atc "SELECT version || ':' || success FROM flyway_schema_history WHERE version='10'" | grep -qx '10:true'
+sudo -u postgres psql -d mathsea -Atc "SELECT version || ':' || success FROM flyway_schema_history WHERE version='11'" | grep -qx '11:true'
 sudo -u postgres psql -d mathsea -Atc "SELECT count(*) FROM problems WHERE problem_number !~ '^[GETN][CMFS][0-9]{6}$'" | grep -qx '0'
 sudo -u postgres psql -d mathsea -c "COPY (SELECT p.id,p.problem_number,a.old_number,p.title FROM problems p LEFT JOIN problem_number_aliases a ON a.problem_id=p.id ORDER BY p.id,a.old_number) TO STDOUT WITH CSV HEADER" > "$backup_dir/question-numbers-after.csv"
 

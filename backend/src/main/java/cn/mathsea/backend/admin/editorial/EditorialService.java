@@ -415,8 +415,12 @@ public class EditorialService {
     number = problems.detail(number).problemNumber();
     // Serialize the initial copy so concurrent editors share one work item.
     db.queryForList("SELECT id FROM problems WHERE problem_number=? FOR UPDATE", number);
-    var existing = db.queryForList("SELECT id FROM editorial_items WHERE problem_number=?", number);
-    if (!existing.isEmpty()) return detail((UUID) existing.getFirst().get("id"));
+    var existing = db.queryForList("SELECT id,status FROM editorial_items WHERE problem_number=?", number);
+    if (!existing.isEmpty()) {
+      if ("TRASH".equals(existing.getFirst().get("status")))
+        throw BusinessException.conflict("DRAFT_TRASHED","此题的修订草稿已在回收站，请负责人恢复草稿后继续修改；公开版本未改变");
+      return detail((UUID) existing.getFirst().get("id"));
+    }
     var p = problems.detail(number);
     UUID id = UUID.randomUUID();
     var assets =

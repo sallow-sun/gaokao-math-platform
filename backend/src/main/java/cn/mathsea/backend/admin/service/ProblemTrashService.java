@@ -22,8 +22,11 @@ public class ProblemTrashService {
   public Object list(Long actor, String keyword, int page) {
     manager(actor);
     String q = "%" + Objects.toString(keyword, "").trim() + "%";
-    var total = db.queryForObject("SELECT count(*) FROM problems WHERE deleted AND purged_at IS NULL AND (problem_number ILIKE ? OR title ILIKE ?)", Long.class,q,q);
-    var items = db.queryForList("SELECT problem_number AS id,title,deleted_at FROM problems WHERE deleted AND purged_at IS NULL AND (problem_number ILIKE ? OR title ILIKE ?) ORDER BY deleted_at DESC,id LIMIT 40 OFFSET ?",q,q,(Math.max(1,page)-1)*40);
+    String union = "(SELECT problem_number AS id,problem_number AS number,title,deleted_at,'published' AS kind FROM problems WHERE deleted AND purged_at IS NULL"
+        + " UNION ALL SELECT id::text,problem_number,coalesce(payload->>'title',original_id),trashed_at,'draft' FROM editorial_items WHERE status='TRASH' AND trash_scope='DRAFT') t";
+    String where = " WHERE (id ILIKE ? OR title ILIKE ? OR coalesce(number,'') ILIKE ?)";
+    var total = db.queryForObject("SELECT count(*) FROM " + union + where, Long.class,q,q,q);
+    var items = db.queryForList("SELECT * FROM " + union + where + " ORDER BY deleted_at DESC,id LIMIT 40 OFFSET ?",q,q,q,(Math.max(1,page)-1)*40);
     return Map.of("items",items,"total",total,"page",Math.max(1,page));
   }
   private Map<String,Object> lock(String number) {
@@ -40,7 +43,7 @@ public class ProblemTrashService {
       var p=lock(number);
       if (Boolean.TRUE.equals(p.get("deleted"))) continue;
       db.update("UPDATE problems SET deleted=true,deleted_at=now() WHERE id=?",p.get("id"));
-      db.update("UPDATE editorial_items SET trash_previous_status=status,status='TRASH',claimed_by=NULL,claimed_at=NULL,version=version+1 WHERE problem_number=?",number);
+      db.update("UPDATE editorial_items SET trash_previous_status=status,status='TRASH',trash_scope='PROBLEM',trashed_at=now(),claimed_by=NULL,claimed_at=NULL,version=version+1 WHERE problem_number=? AND status<>'TRASH'",number);
       audit.log(actor,"PROBLEM_TRASH","PROBLEM",number,"移入回收站");
     }
   }
@@ -49,8 +52,39 @@ public class ProblemTrashService {
     manager(actor); var p=lock(number);
     if (!Boolean.TRUE.equals(p.get("deleted")) || p.get("purged_at")!=null) throw BusinessException.conflict("TRASH_STATE","此题不在可恢复的回收站中");
     db.update("UPDATE problems SET deleted=false,deleted_at=NULL WHERE id=?",p.get("id"));
-    db.update("UPDATE editorial_items SET status=coalesce(trash_previous_status,'PUBLISHED'),trash_previous_status=NULL,version=version+1 WHERE problem_number=? AND status='TRASH'",number);
+    db.update("UPDATE editorial_items SET status=coalesce(trash_previous_status,'PUBLISHED'),trash_previous_status=NULL,trash_scope=NULL,trashed_at=NULL,version=version+1 WHERE problem_number=? AND status='TRASH' AND trash_scope='PROBLEM'",number);
     audit.log(actor,"PROBLEM_RESTORE","PROBLEM",number,"恢复公开题目及原审核状态");
+  }
+  public record DraftTarget(UUID id, long version) {}
+  @Transactional
+  public void deleteDrafts(Long actor, List<DraftTarget> items) {
+    manager(actor);
+    if (items == null || items.isEmpty() || items.size()>100 || items.stream().anyMatch(t -> t==null || t.id()==null)
+        || items.stream().map(DraftTarget::id).distinct().count()!=items.size())
+      throw BusinessException.badRequest("SELECTION","请选择1至100道不重复的题目");
+    for (var target : items.stream().sorted(Comparator.comparing(DraftTarget::id)).toList()) {
+      var rows = db.queryForList("SELECT *,claimed_by IS NOT NULL AND claimed_at>now()-interval '20 minutes' AS occupied FROM editorial_items WHERE id=? FOR UPDATE",target.id());
+      if(rows.isEmpty()) throw BusinessException.notFound("WORK_ITEM","草稿不存在，请刷新列表");
+      var row=rows.getFirst();
+      if(((Number)row.get("version")).longValue()!=target.version()) throw BusinessException.conflict("EDIT_CONFLICT","所选题目已更新，请刷新列表后重新选择");
+      if(!List.of("DRAFT","REVIEW").contains(row.get("status"))) throw BusinessException.conflict("TRASH_STATE","仅可删除初审中的题目，请刷新列表");
+      if(Boolean.TRUE.equals(row.get("occupied")) && ((Number)row.get("claimed_by")).longValue()!=actor)
+        throw BusinessException.conflict("CLAIMED","所选题目正在由其他管理员处理，请稍后重试");
+      db.update("UPDATE editorial_items SET trash_previous_status=status,status='TRASH',trash_scope='DRAFT',trashed_at=now(),claimed_by=NULL,claimed_at=NULL,version=version+1,updated_at=now(),updated_by=? WHERE id=?",actor,target.id());
+      audit.log(actor,"DRAFT_TRASH","EDITORIAL_ITEM",target.id().toString(),"初审草稿移入回收站；公开版本保持不变");
+    }
+  }
+  @Transactional
+  public void restoreDraft(Long actor, UUID id) {
+    manager(actor);
+    var rows=db.queryForList("SELECT * FROM editorial_items WHERE id=? FOR UPDATE",id);
+    if(rows.isEmpty()) throw BusinessException.notFound("WORK_ITEM","草稿不存在");
+    var row=rows.getFirst();
+    if(!"TRASH".equals(row.get("status")) || !"DRAFT".equals(row.get("trash_scope"))) throw BusinessException.conflict("TRASH_STATE","此草稿不在回收站中");
+    if(db.queryForObject("SELECT count(*) FROM problems WHERE problem_number=? AND deleted",Long.class,row.get("problem_number"))>0)
+      throw BusinessException.conflict("TRASH_STATE","请先恢复对应的已发布题目，再恢复修订草稿");
+    db.update("UPDATE editorial_items SET status=coalesce(trash_previous_status,'DRAFT'),trash_previous_status=NULL,trash_scope=NULL,trashed_at=NULL,version=version+1,updated_at=now(),updated_by=? WHERE id=?",actor,id);
+    audit.log(actor,"DRAFT_RESTORE","EDITORIAL_ITEM",id.toString(),"恢复到初审队列，不直接发布");
   }
   @Transactional
   public void purge(Long actor,String number,String confirmation) {
@@ -62,7 +96,7 @@ public class ProblemTrashService {
     db.update("DELETE FROM problem_assets WHERE problem_id=?",p.get("id"));
     db.update("DELETE FROM editorial_assets WHERE item_id IN (SELECT id FROM editorial_items WHERE problem_number=?)",number);
     db.update("DELETE FROM editorial_history WHERE item_id IN (SELECT id FROM editorial_items WHERE problem_number=?)",number);
-    db.update("UPDATE editorial_items SET payload='{}'::jsonb,raw_markdown=NULL,version=version+1 WHERE problem_number=?",number);
+    db.update("UPDATE editorial_items SET payload='{}'::jsonb,raw_markdown=NULL,trash_scope='PROBLEM',trash_previous_status=NULL,version=version+1 WHERE problem_number=?",number);
     db.update("UPDATE problems SET content='',answer='',solution='',title='题目已删除',purged_at=now() WHERE id=?",p.get("id"));
     // Keep the number and user/list references as tombstones. Only delete unshared files after commit.
     var unused=urls.stream().filter(url -> db.queryForObject("SELECT (SELECT count(*) FROM problem_assets WHERE url=?)+(SELECT count(*) FROM editorial_assets WHERE url=?)",Long.class,url,url)==0).toList();

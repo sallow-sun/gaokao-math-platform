@@ -1,6 +1,6 @@
 # 数海 MathSea 后端
 
-这是数海的 Spring Boot 后端，不依赖旧 Flask 或 SQLite。当前交接入口为 [开发说明](../docs/DEVELOPMENT.md) 和 [部署说明](../deploy/README.md)，含 V1～V10 迁移、内容初审、反馈、回收站与学习进度。
+这是数海的 Spring Boot 后端，不依赖旧 Flask 或 SQLite。当前交接入口为 [开发说明](../docs/DEVELOPMENT.md) 和 [部署说明](../deploy/README.md)，含 V1～V11 迁移、内容初审、反馈、回收站与学习进度。
 
 ## 技术栈
 
