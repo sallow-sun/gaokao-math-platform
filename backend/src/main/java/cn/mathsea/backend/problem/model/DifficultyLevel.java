@@ -3,15 +3,15 @@ package cn.mathsea.backend.problem.model;
 import java.util.Arrays;
 
 public enum DifficultyLevel {
-    WHITE("white", "WHITE", 1),
-    GREEN("green", "GREEN", 2),
-    CYAN("cyan", "CYAN", 3),
-    BLUE("blue", "BLUE", 4),
-    YELLOW("yellow", "YELLOW", 5),
-    ORANGE("orange", "ORANGE", 6),
-    RED("red", "RED", 7),
-    PURPLE("purple", "PURPLE", 8),
-    BLACK("black", "BLACK", 9);
+    RED("red", "D1 · RED", 1),
+    ORANGE("orange", "D2 · ORANGE", 2),
+    YELLOW("yellow", "D3 · YELLOW", 3),
+    GREEN("green", "D4 · GREEN", 4),
+    CYAN("cyan", "D5 · CYAN", 5),
+    BLUE("blue", "D6 · BLUE", 6),
+    PURPLE("purple", "D7 · PURPLE", 7),
+    BLACK("black", "BLACK（保留）", 8),
+    WHITE("white", "WHITE（保留）", 9);
 
     private final String code;
     private final String label;

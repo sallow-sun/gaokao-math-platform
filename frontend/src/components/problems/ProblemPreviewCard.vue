@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import ProblemExportMenu from './ProblemExportMenu.vue'
 import ProblemEngagementBar from './ProblemEngagementBar.vue'
 import ProblemSolutionDrawer from './ProblemSolutionDrawer.vue'
@@ -57,6 +57,20 @@ const emit = defineEmits([
   'toggle-solution',
 ])
 const printContent = computed(() => normalizeProblemPrintContent(props.problem.content))
+const router = useRouter()
+function openCard(event) {
+  if (props.printing || event.defaultPrevented || event.button !== 0) return
+  if (
+    event.target.closest(
+      'a,button,input,label,select,textarea,summary,[role="button"],.bank-problem-solution-drawer,.bank-result-problem-solution-drawer,.math-formula-scroll',
+    )
+  )
+    return
+  if (window.getSelection()?.toString()) return
+  const target = { name: 'question', params: { problemNumber: props.problem.id } }
+  if (event.ctrlKey || event.metaKey) window.open(router.resolve(target).href, '_blank', 'noopener')
+  else router.push(target)
+}
 </script>
 
 <template>
@@ -71,6 +85,7 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
     :data-source="problem.source"
     :data-type="problem.type"
     :data-level="problem.level"
+    @click="openCard"
   >
     <header class="bank-result-problem-panel-view-card-header">
       <label v-if="displayOptions.selection" class="bank-result-problem-select">
@@ -122,8 +137,8 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
     </header>
 
     <div class="bank-result-problem-panel-view-card-content">
-      <MathText class="bank-problem-screen-content" :text="problem.content" />
-      <div class="bank-problem-print-content" aria-hidden="true">
+      <MathText v-if="!printing" class="bank-problem-screen-content" :text="problem.content" />
+      <div v-else class="bank-problem-print-content" aria-hidden="true">
         <span class="bank-problem-print-type-prefix">【{{ problem.typeLabel }}】</span>
         <MathText :text="printContent" />
       </div>
@@ -131,7 +146,12 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
     </div>
 
     <footer class="bank-result-problem-panel-view-card-footer">
-      <p v-show="displayOptions.source" class="bank-problem-source">{{ problem.sourceText }}</p>
+      <p
+        v-show="displayOptions.source && !problem.title.includes(String(problem.year))"
+        class="bank-problem-source"
+      >
+        {{ problem.sourceText }}
+      </p>
 
       <ProblemEngagementBar
         v-if="!printing"
@@ -172,3 +192,16 @@ const printContent = computed(() => normalizeProblemPrintContent(props.problem.c
     />
   </article>
 </template>
+<style scoped>
+.bank-result-problem-panel-view-card {
+  cursor: pointer;
+}
+.bank-result-problem-panel-view-card .math-text {
+  cursor: text;
+}
+.bank-result-problem-panel-view-card-content {
+  min-height: 0;
+  padding-top: 26px;
+  padding-bottom: 26px;
+}
+</style>

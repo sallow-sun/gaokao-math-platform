@@ -1,0 +1,10 @@
+Cmnd_Alias MATHSEA_BACKEND_SERVICE = /usr/bin/systemctl start mathsea-backend.service, \
+  /usr/bin/systemctl stop mathsea-backend.service, \
+  /usr/bin/systemctl restart mathsea-backend.service, \
+  /usr/bin/systemctl status mathsea-backend.service, \
+  /usr/bin/systemctl enable mathsea-backend.service, \
+  /usr/bin/systemctl disable mathsea-backend.service, \
+  /usr/bin/systemctl is-active mathsea-backend.service, \
+  /usr/bin/systemctl is-enabled mathsea-backend.service
+
+backend-deploy ALL=(root) NOPASSWD: MATHSEA_BACKEND_SERVICE

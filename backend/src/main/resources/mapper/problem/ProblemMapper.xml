@@ -4,9 +4,26 @@
 
     <sql id="filters">
         <where>
+            p.deleted=false
+            <if test="learning">
+                AND EXISTS (SELECT 1 FROM effective_problem_chapters pc WHERE pc.problem_id=p.id)
+                <choose>
+                    <when test="learned != null and learned.size() > 0">
+                        AND NOT EXISTS (SELECT 1 FROM effective_problem_chapters pc WHERE pc.problem_id=p.id AND pc.chapter_code NOT IN
+                          <foreach collection="learned" item="c" open="(" separator="," close=")">#{c}</foreach>)
+                    </when>
+                    <otherwise>AND FALSE</otherwise>
+                </choose>
+            </if>
+            <if test="chapters != null and chapters.size() > 0">
+                AND EXISTS (SELECT 1 FROM problem_curriculum pc JOIN problem_chapters ch USING(problem_id,curriculum_code)
+                  WHERE pc.problem_id=p.id AND pc.curriculum_code='PEP-A-2019' AND pc.confirmed AND ch.chapter_code IN
+                  <foreach collection="chapters" item="c" open="(" separator="," close=")">#{c}</foreach>)
+            </if>
             <if test="keyword != null and keyword != ''">
                 AND (
                     p.problem_number ILIKE CONCAT('%', #{keyword}, '%')
+                    OR EXISTS (SELECT 1 FROM problem_number_aliases a WHERE a.problem_id=p.id AND a.old_number ILIKE CONCAT('%', #{keyword}, '%'))
                     OR COALESCE(p.title, '') ILIKE CONCAT('%', #{keyword}, '%')
                     OR p.content ILIKE CONCAT('%', #{keyword}, '%')
                     OR COALESCE(p.region, '') ILIKE CONCAT('%', #{keyword}, '%')
@@ -47,7 +64,6 @@
                     WHERE ft.name IN
                     <foreach collection="tags" item="v" open="(" separator="," close=")">#{v}</foreach>
                     GROUP BY fpt.problem_id
-                    HAVING COUNT(DISTINCT ft.name) = #{tagCount}
                 )
             </if>
         </where>
@@ -81,16 +97,16 @@
             <when test="sort == 'star-most'">ORDER BY p.favorite_count DESC, p.id DESC</when>
             <when test="sort == 'easy-first'">
                 ORDER BY CASE p.difficulty
-                    WHEN 'white' THEN 1 WHEN 'green' THEN 2 WHEN 'cyan' THEN 3
-                    WHEN 'blue' THEN 4 WHEN 'yellow' THEN 5 WHEN 'orange' THEN 6
-                    WHEN 'red' THEN 7 WHEN 'purple' THEN 8 WHEN 'black' THEN 9 ELSE 10 END ASC,
+                    WHEN 'red' THEN 1 WHEN 'orange' THEN 2 WHEN 'yellow' THEN 3
+                    WHEN 'green' THEN 4 WHEN 'cyan' THEN 5 WHEN 'blue' THEN 6
+                    WHEN 'purple' THEN 7 WHEN 'black' THEN 8 WHEN 'white' THEN 9 ELSE 10 END ASC,
                     p.id ASC
             </when>
             <when test="sort == 'hard-first'">
                 ORDER BY CASE p.difficulty
-                    WHEN 'black' THEN 1 WHEN 'purple' THEN 2 WHEN 'red' THEN 3
-                    WHEN 'orange' THEN 4 WHEN 'yellow' THEN 5 WHEN 'blue' THEN 6
-                    WHEN 'cyan' THEN 7 WHEN 'green' THEN 8 WHEN 'white' THEN 9 ELSE 10 END ASC,
+                    WHEN 'purple' THEN 1 WHEN 'blue' THEN 2 WHEN 'cyan' THEN 3
+                    WHEN 'green' THEN 4 WHEN 'yellow' THEN 5 WHEN 'orange' THEN 6
+                    WHEN 'red' THEN 7 WHEN 'black' THEN 8 WHEN 'white' THEN 9 ELSE 10 END ASC,
                     p.id ASC
             </when>
             <otherwise>ORDER BY p.created_at DESC, p.id DESC</otherwise>

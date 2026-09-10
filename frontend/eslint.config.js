@@ -26,5 +26,11 @@ export default defineConfig([
 
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
+  {
+    files: ['tests/**/*.cjs'],
+    languageOptions: { globals: globals.node },
+    rules: { 'no-empty': ['error', { allowEmptyCatch: true }] },
+  },
+
   skipFormatting,
 ])

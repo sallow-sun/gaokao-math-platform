@@ -14,7 +14,7 @@ const normalizedItems = computed(() =>
     const hasValue = item.value !== null && item.value !== '' && Number.isFinite(numericValue)
 
     return {
-      color: String(item.color || 'blue'),
+      color: 'blue',
       key: String(item.key || index),
       label: String(item.label || '未命名题型'),
       value: hasValue ? Math.max(0, numericValue) : null,
@@ -88,3 +88,8 @@ function getBarHeight(value) {
     </p>
   </section>
 </template>
+<style scoped>
+.account-profile-type-column .account-profile-type-column-track span { background: #719bc3; }
+.account-profile-type-column.is-total .account-profile-type-column-track span { background: #335f85; }
+.account-profile-type-column-track { background: #eef3f7; border-radius: 5px 5px 2px 2px; }
+</style>

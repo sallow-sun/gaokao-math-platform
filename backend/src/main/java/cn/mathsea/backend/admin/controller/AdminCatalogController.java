@@ -17,6 +17,7 @@ import java.util.List;
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
 public class AdminCatalogController {
+    private final cn.mathsea.backend.admin.editorial.EditorialService editorial;
     private final AdminCatalogService service;
 
     @GetMapping("/tags")
@@ -24,14 +25,17 @@ public class AdminCatalogController {
     @PostMapping("/tags")
     @ResponseStatus(HttpStatus.CREATED)
     public AdminTagVO createTag(@Valid @RequestBody AdminTagCreateRequest request, Authentication auth) {
+        editorial.manager(SecurityUtils.requireUserId(auth));
         return service.createTag(SecurityUtils.requireUserId(auth), request);
     }
     @PatchMapping("/tags/{id}")
     public AdminTagVO updateTag(@PathVariable Long id, @Valid @RequestBody AdminTagUpdateRequest request, Authentication auth) {
+        editorial.manager(SecurityUtils.requireUserId(auth));
         return service.updateTag(SecurityUtils.requireUserId(auth), id, request);
     }
     @DeleteMapping("/tags/{id}")
     public SimpleMessage deleteTag(@PathVariable Long id, Authentication auth) {
+        editorial.manager(SecurityUtils.requireUserId(auth));
         service.deleteTag(SecurityUtils.requireUserId(auth), id); return new SimpleMessage("标签已删除");
     }
 
@@ -40,14 +44,17 @@ public class AdminCatalogController {
     @PostMapping("/sources")
     @ResponseStatus(HttpStatus.CREATED)
     public AdminSourceVO createSource(@Valid @RequestBody AdminSourceCreateRequest request, Authentication auth) {
+        editorial.manager(SecurityUtils.requireUserId(auth));
         return service.createSource(SecurityUtils.requireUserId(auth), request);
     }
     @PatchMapping("/sources/{code}")
     public AdminSourceVO updateSource(@PathVariable String code, @Valid @RequestBody AdminSourceUpdateRequest request, Authentication auth) {
+        editorial.manager(SecurityUtils.requireUserId(auth));
         return service.updateSource(SecurityUtils.requireUserId(auth), code, request);
     }
     @DeleteMapping("/sources/{code}")
     public SimpleMessage deleteSource(@PathVariable String code, Authentication auth) {
+        editorial.manager(SecurityUtils.requireUserId(auth));
         service.deleteSource(SecurityUtils.requireUserId(auth), code); return new SimpleMessage("来源已删除");
     }
 }

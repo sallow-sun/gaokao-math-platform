@@ -41,6 +41,14 @@ export function useProblemsQuery() {
   const route = useRoute()
   const router = useRouter()
 
+  const tags = computed(() => normalizeProblemsQueryValues(route.query.tag, value => value.trim()))
+  const learning = computed(() => route.query.learning === 'true')
+  const learned = computed(() =>
+    normalizeProblemsQueryValues(route.query.learned, (value) => value.trim().toUpperCase()),
+  )
+  const chapters = computed(() =>
+    normalizeProblemsQueryValues(route.query.chapter, (value) => value.trim().toUpperCase()),
+  )
   const keyword = computed(() => readSingleQueryValue(route.query.keyword))
   const levels = computed(() =>
     normalizeProblemsQueryValues(route.query.level, normalizeProblemLevel),
@@ -139,6 +147,11 @@ export function useProblemsQuery() {
   function clearFilters() {
     const query = { ...route.query }
 
+    delete query.tag
+    delete query.learning
+    delete query.learned
+    delete query.chapter
+    delete query.progress
     delete query.keyword
     delete query.level
     delete query.source
@@ -149,6 +162,10 @@ export function useProblemsQuery() {
   }
 
   return {
+    tags,
+    learning,
+    learned,
+    chapters,
     keyword,
     level,
     levels,

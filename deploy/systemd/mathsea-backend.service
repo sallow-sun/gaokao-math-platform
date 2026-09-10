@@ -1,0 +1,34 @@
+[Unit]
+Description=MathSea backend API
+Wants=network-online.target
+After=network-online.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=backend-deploy
+Group=backend-deploy
+WorkingDirectory=/srv/mathsea/backend
+EnvironmentFile=/srv/mathsea/backend/.env
+ExecStart=/usr/bin/java -Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -jar /srv/mathsea/backend/target/mathsea-backend-0.1.0-SNAPSHOT.jar
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+SuccessExitStatus=143
+UMask=0077
+MemoryHigh=700M
+MemoryMax=900M
+TasksMax=256
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/mathsea/backend/uploads
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

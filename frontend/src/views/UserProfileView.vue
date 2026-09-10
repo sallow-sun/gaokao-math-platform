@@ -68,6 +68,7 @@ watch(() => props.userId, loadProfile, { immediate: true })
 
       <template v-else-if="profile">
         <UserProfileHero :editable="false" :profile="profile" :show-settings="profile.canEdit" />
+        <RouterLink v-if="profile.canEdit" class="profile-feedback-link" :to="{ name: 'feedback' }">我的反馈 →</RouterLink>
 
         <UserProfileStats :stats="overviewStats" />
 

@@ -1,5 +1,6 @@
 <script setup>
 defineProps({
+  problemNumber: { type: String, required: true },
   completed: {
     type: Boolean,
     default: false,
@@ -22,6 +23,6 @@ const emit = defineEmits(['toggle-completed', 'toggle-favorite'])
     <button type="button" :aria-pressed="favorite" @click="emit('toggle-favorite')">
       {{ favorite ? '取消收藏' : '收藏题目' }}
     </button>
-    <button type="button" disabled title="题目反馈页面尚未接入">题目反馈</button>
+    <RouterLink :to="{ name: 'feedback', query: { number: problemNumber } }">题目反馈</RouterLink>
   </div>
 </template>

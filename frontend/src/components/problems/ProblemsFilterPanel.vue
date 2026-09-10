@@ -1,4 +1,6 @@
 <script setup>
+import TagFilter from './TagFilter.vue'
+import LearningProgressFilter from '../curriculum/LearningProgressFilter.vue'
 import { ref, watch } from 'vue'
 import ProblemsFilterGroup from './ProblemsFilterGroup.vue'
 
@@ -184,6 +186,9 @@ function updateFilterMode(event) {
         @pin-change="emit('type-pin-change', $event)"
         @select="emit('type-change', $event)"
       />
+
+      <TagFilter />
+      <LearningProgressFilter />
 
       <ProblemsFilterGroup
         filter-key="level"

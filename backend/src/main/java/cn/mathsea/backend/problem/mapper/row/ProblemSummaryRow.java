@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 
 @Data
 public class ProblemSummaryRow {
+    private Boolean deleted;
     private Long id;
     private String problemNumber;
     private String title;

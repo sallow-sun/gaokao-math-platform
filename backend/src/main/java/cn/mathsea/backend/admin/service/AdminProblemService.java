@@ -38,6 +38,7 @@ public class AdminProblemService {
     private final ProblemService problemService;
     private final LocalFileStorageService storageService;
     private final AuditLogService auditLogService;
+    private final ProblemTrashService trash;
 
     public PageResponse<ProblemListVO> list(String keyword, int page, int pageSize) {
         return problemService.query(new ProblemQuery(keyword, List.of(), List.of(), List.of(), List.of(), List.of(), "newest", page, pageSize), null);
@@ -130,8 +131,7 @@ public class AdminProblemService {
     @Transactional
     public void delete(Long adminId, String problemNumber) {
         Problem p = requireProblem(problemNumber);
-        for (ProblemAsset a : assetMapper.findByProblemId(p.getId())) storageService.deleteUrl(a.getUrl());
-        problemMapper.deleteById(p.getId());
+        trash.delete(adminId, List.of(p.getProblemNumber()));
         auditLogService.log(adminId, "PROBLEM_DELETE", "PROBLEM", problemNumber, null);
     }
 
@@ -222,7 +222,7 @@ public class AdminProblemService {
 
     private Problem requireProblem(String number) {
         Problem p = problemMapper.findByProblemNumber(number);
-        if (p == null) throw BusinessException.notFound("PROBLEM_NOT_FOUND", "题目不存在");
+        if (p == null || Boolean.TRUE.equals(p.getDeleted())) throw BusinessException.notFound("PROBLEM_NOT_FOUND", "题目不存在");
         return p;
     }
     private List<String> cleanTags(List<String> names) {

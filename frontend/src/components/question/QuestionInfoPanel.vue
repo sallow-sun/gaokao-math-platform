@@ -48,6 +48,7 @@ const levelLabel = computed(() => String(props.problem.level || '未知').toUppe
     </dl>
 
     <QuestionActions
+      :problem-number="problem.id"
       :completed="completed"
       :favorite="favorite"
       @toggle-completed="emit('toggle-completed')"

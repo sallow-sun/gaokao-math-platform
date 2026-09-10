@@ -150,7 +150,7 @@ public class PracticeListService {
         int position = itemMapper.maxPosition(list.getId()) + 1;
         for (String number : request.problemIds().stream().filter(Objects::nonNull).map(String::trim).filter(s -> !s.isEmpty()).distinct().toList()) {
             Problem p = problemMapper.findByProblemNumber(number);
-            if (p == null) { notFound.add(number); continue; }
+            if (p == null || Boolean.TRUE.equals(p.getDeleted())) { notFound.add(number); continue; }
             long exists = itemMapper.selectCount(new LambdaQueryWrapper<PracticeListItem>()
                     .eq(PracticeListItem::getPracticeListId, list.getId()).eq(PracticeListItem::getProblemId, p.getId()));
             if (exists > 0) { existing.add(number); continue; }

@@ -1,20 +1,22 @@
 package cn.mathsea.backend.problem.vo;
+
 import java.util.List;
+
 public record ProblemListVO(
-        String id,
-        String title,
-        String detail,
-        Integer year,
-        String source,
-        String sourceLabel,
-        String type,
-        String typeLabel,
-        String level,
-        List<String> tags,
-        String sourceText,
-        String content,
-        String contentFormat,
-        List<ProblemAssetVO> assets,
-        ProblemStatsVO stats,
-        ViewerStateVO viewerState
-) {}
+    String id,
+    String title,
+    String detail,
+    Integer year,
+    String source,
+    String sourceLabel,
+    String type,
+    String typeLabel,
+    String level,
+    List<String> tags,
+    String sourceText,
+    String content,
+    String contentFormat,
+    List<ProblemAssetVO> assets,
+    ProblemStatsVO stats,
+    ViewerStateVO viewerState,
+    cn.mathsea.backend.curriculum.CurriculumAnnotation curriculum) {}

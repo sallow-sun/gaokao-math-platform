@@ -9,7 +9,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProblemModelTest {
     @Test
     void difficultyOrderMatchesProductRule() {
-        assertTrue(DifficultyLevel.WHITE.rank() < DifficultyLevel.GREEN.rank());
+        assertTrue(DifficultyLevel.RED.rank() < DifficultyLevel.ORANGE.rank());
+        assertTrue(DifficultyLevel.YELLOW.rank() < DifficultyLevel.GREEN.rank());
+        assertTrue(DifficultyLevel.GREEN.rank() < DifficultyLevel.CYAN.rank());
+        assertTrue(DifficultyLevel.CYAN.rank() < DifficultyLevel.BLUE.rank());
+        assertTrue(DifficultyLevel.BLUE.rank() < DifficultyLevel.PURPLE.rank());
         assertTrue(DifficultyLevel.RED.rank() < DifficultyLevel.PURPLE.rank());
         assertTrue(DifficultyLevel.PURPLE.rank() < DifficultyLevel.BLACK.rank());
     }

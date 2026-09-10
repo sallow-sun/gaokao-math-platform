@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { usePracticeListsStore } from '../../stores/practiceLists.js'
+import { lastProblemsVisit } from '../../services/problemNavigation.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,17 +42,18 @@ const baseNavigationItems = [
   },
 ]
 const navigationItems = computed(() => {
-  const items = [...baseNavigationItems]
+  const items = baseNavigationItems.map((item) =>
+    item.key === 'problems' && route.name === 'question'
+      ? { ...item, route: lastProblemsVisit.path }
+      : item,
+  )
   if (String(practiceListsStore.authUser?.role ?? '').toUpperCase() === 'ADMIN') {
     items.push({
       key: 'admin',
       label: '管理',
       route: { name: 'admin' },
       routeNames: ['admin'],
-      iconPaths: [
-        'M12 3l7 3v5c0 4.6-2.8 8-7 10-4.2-2-7-5.4-7-10V6z',
-        'M9 12l2 2 4-4',
-      ],
+      iconPaths: ['M12 3l7 3v5c0 4.6-2.8 8-7 10-4.2-2-7-5.4-7-10V6z', 'M9 12l2 2 4-4'],
     })
   }
   return items
@@ -127,7 +129,9 @@ async function logout() {
         :class="{ 'is-active': isAccountNavigationActive }"
         :to="accountRoute"
         :aria-current="isAccountNavigationActive ? 'page' : undefined"
-        :aria-label="practiceListsStore.authenticated ? `当前用户：${accountLabel}` : '进入账户登录页'"
+        :aria-label="
+          practiceListsStore.authenticated ? `当前用户：${accountLabel}` : '进入账户登录页'
+        "
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="8" r="3.5" />

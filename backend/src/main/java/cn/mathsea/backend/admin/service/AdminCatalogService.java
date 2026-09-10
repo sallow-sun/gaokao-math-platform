@@ -24,7 +24,7 @@ public class AdminCatalogService {
     private final AuditLogService auditLogService;
 
     public List<AdminTagVO> tags() {
-        return tagMapper.selectList(new LambdaQueryWrapper<Tag>().orderByAsc(Tag::getSortOrder).orderByAsc(Tag::getId)).stream().map(this::tagVo).toList();
+        return tagMapper.selectList(new LambdaQueryWrapper<Tag>().eq(Tag::getActive,true).orderByAsc(Tag::getSortOrder).orderByAsc(Tag::getId)).stream().map(this::tagVo).toList();
     }
 
     @Transactional

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { lastProblemsVisit } from '../services/problemNavigation.js'
 import QuestionAnswerSection from '../components/question/QuestionAnswerSection.vue'
 import QuestionConfirmDialog from '../components/question/QuestionConfirmDialog.vue'
 import QuestionForumPlaceholder from '../components/question/QuestionForumPlaceholder.vue'
@@ -298,7 +299,7 @@ onBeforeUnmount(() => {
 
     <section v-else-if="error" class="question-route-state" role="alert">
       <p>题目暂时无法加载，请稍后再试。</p>
-      <RouterLink :to="{ name: 'problems' }">返回题库</RouterLink>
+      <RouterLink :to="lastProblemsVisit.path">返回题库</RouterLink>
     </section>
 
     <section
@@ -309,7 +310,7 @@ onBeforeUnmount(() => {
       <p class="question-route-state-code">404</p>
       <h1 id="question-not-found-title">没有找到这道题</h1>
       <p>题号“{{ normalizedProblemNumber || problemNumber }}”当前不在前端原型数据中。</p>
-      <RouterLink :to="{ name: 'problems' }">返回题库</RouterLink>
+      <RouterLink :to="lastProblemsVisit.path">返回题库</RouterLink>
     </section>
 
     <article v-else class="question-route-content" aria-labelledby="question-page-title">

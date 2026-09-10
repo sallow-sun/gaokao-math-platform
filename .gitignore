@@ -26,3 +26,34 @@ backend/uploads/
 # Logs
 *.log
 backend/app.jar
+
+# Local build / verification caches (never ship with a release)
+.tmp/
+.m2/
+
+# Machine-local environments and duplicate checkout
+.venv/
+__pycache__/
+frontend-vue/
+**/node_modules/
+**/dist/
+**/.eslintcache
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*-key
+*-key.pub
+
+# Private legacy data and working reference corpus (not required to build)
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+/TEST/
+/bug.pdf
+/*.pdf
+/2024*.md
+/release/
+/deploy/provision-test-server.sh
+/deploy/sudoers/backend-deploy-full

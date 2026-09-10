@@ -44,7 +44,8 @@ public class LocalFileStorageService {
         if (file.getSize() > maxBytes) throw new BusinessException(org.springframework.http.HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", "图片文件过大");
 
         try {
-            byte[] head = file.getInputStream().readNBytes(16);
+            byte[] head;
+            try (var input = file.getInputStream()) { head = input.readNBytes(16); }
             ImageType type = detect(head);
             if (type == null) throw BusinessException.badRequest("INVALID_IMAGE", "仅支持 PNG、JPEG、GIF 或 WEBP 图片");
 

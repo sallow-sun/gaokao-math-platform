@@ -4,10 +4,15 @@ const API_PREFIX = String(import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/
 const problemCache = new Map()
 
 function findPrototypeProblem(problemNumber) {
-  const normalizedId = String(problemNumber ?? '').trim().toUpperCase()
+  const normalizedId = String(problemNumber ?? '')
+    .trim()
+    .toUpperCase()
   return (
     PROBLEMS_PROTOTYPE_ITEMS.find(
-      (problem) => String(problem.id ?? '').trim().toUpperCase() === normalizedId,
+      (problem) =>
+        String(problem.id ?? '')
+          .trim()
+          .toUpperCase() === normalizedId,
     ) ?? null
   )
 }
@@ -46,7 +51,9 @@ function appendQueryValue(params, name, value) {
 export function normalizeApiProblem(problem) {
   const normalized = {
     ...problem,
-    id: String(problem?.id ?? '').trim().toUpperCase(),
+    id: String(problem?.id ?? '')
+      .trim()
+      .toUpperCase(),
     year: problem?.year == null ? '' : String(problem.year),
     tags: Array.isArray(problem?.tags) ? problem.tags : [],
     assets: Array.isArray(problem?.assets) ? problem.assets : [],
@@ -71,6 +78,9 @@ export function normalizeApiProblem(problem) {
 
 export async function listProblems(query = {}, { signal } = {}) {
   const params = new URLSearchParams()
+  appendQueryValue(params, 'learning', query.learning ? 'true' : '')
+  appendQueryValue(params, 'learned', query.learned)
+  appendQueryValue(params, 'chapter', query.chapters)
   appendQueryValue(params, 'keyword', query.keyword)
   appendQueryValue(params, 'year', query.years)
   appendQueryValue(params, 'source', query.sources)
@@ -95,7 +105,9 @@ export async function listProblems(query = {}, { signal } = {}) {
 }
 
 export async function getProblem(problemNumber, { force = false, signal } = {}) {
-  const normalizedId = String(problemNumber ?? '').trim().toUpperCase()
+  const normalizedId = String(problemNumber ?? '')
+    .trim()
+    .toUpperCase()
 
   if (!normalizedId) {
     throw new ApiError('题目编号不能为空', { status: 400 })
@@ -135,6 +147,8 @@ export async function getProblem(problemNumber, { force = false, signal } = {}) 
 }
 
 export function getCachedProblem(problemNumber) {
-  const normalizedId = String(problemNumber ?? '').trim().toUpperCase()
+  const normalizedId = String(problemNumber ?? '')
+    .trim()
+    .toUpperCase()
   return problemCache.get(normalizedId) ?? findPrototypeProblem(normalizedId)
 }

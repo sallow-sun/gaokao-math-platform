@@ -1,4 +1,5 @@
 <script setup>
+import CurriculumBadges from '../curriculum/CurriculumBadges.vue'
 import MathText from '../content/MathText.vue'
 import ProblemAssets from '../content/ProblemAssets.vue'
 
@@ -16,6 +17,7 @@ defineProps({
     <div class="question-stem-content">
       <MathText :text="problem.content" />
       <ProblemAssets :assets="problem.assets" />
+      <CurriculumBadges :annotation="problem.curriculum" />
     </div>
   </section>
 </template>

@@ -1,4 +1,5 @@
-import { escapeHtml, renderMathText } from '../utils/renderMathText.js'
+import { escapeHtml, renderQuestionText } from '../utils/renderMathText.js'
+import mathTextStyles from '../assets/styles/math-text.css?raw'
 
 const PAGE_WIDTH = 794
 const PAGE_HEIGHT = 1123
@@ -19,7 +20,7 @@ function safeFileName(value) {
 }
 
 function math(value) {
-  return renderMathText(String(value ?? ''), { output: 'mathml' })
+  return renderQuestionText(String(value ?? ''), { output: 'mathml' })
 }
 
 function renderHeader(header, entryCount) {
@@ -45,6 +46,17 @@ function renderEntry(entry, options) {
         ? `<div class="pdf-content">${options.type ? `<strong>【${escapeHtml(problem.typeLabel ?? '题目')}】</strong>` : ''}<div class="math-text">${math(problem.content)}</div></div>`
         : ''
     }
+    ${
+      options.content
+        ? (problem.assets || [])
+            .filter((asset) => /^\/uploads\/[A-Za-z0-9_./-]+$/.test(asset.url))
+            .map(
+              (asset) =>
+                `<img class="pdf-asset" src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.altText || '题目配图')}" />`,
+            )
+            .join('')
+        : ''
+    }
     ${options.tags && problem.tags?.length ? `<p class="pdf-secondary">知识点：${problem.tags.map(escapeHtml).join('、')}</p>` : ''}
     ${options.value ? `<p class="pdf-secondary">训练价值：${escapeHtml(problem.level)}</p>` : ''}
     ${options.source ? `<p class="pdf-secondary">来源：${escapeHtml(problem.sourceText)}</p>` : ''}
@@ -68,6 +80,7 @@ function documentMarkup({ entries, header, includeHeader, options, pageLayout })
 }
 
 const DOCUMENT_STYLES = `
+  ${mathTextStyles}
   * { box-sizing: border-box; }
   .pdf-document { width: ${PAGE_WIDTH}px; padding: 58px 64px 66px; color: #111; background: #fff; font-family: "Noto Serif SC", "Songti SC", STSong, SimSun, serif; font-size: 16px; line-height: 1.7; }
   .pdf-header { margin-bottom: 34px; padding-bottom: 18px; border-bottom: 1px solid #222; }
@@ -82,7 +95,8 @@ const DOCUMENT_STYLES = `
   .pdf-problem h2 { margin: 0 0 10px; font-size: 18px; line-height: 1.5; }
   .pdf-content { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 10px; }
   .pdf-content > strong { white-space: nowrap; font-size: 14px; }
-  .math-text { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .math-text { --question-font-size: 16px; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.9; }
+  .pdf-asset { display: block; max-width: 100%; max-height: 480px; margin: 16px auto; object-fit: contain; }
   .math-text math[display="block"] { display: block; margin: 10px auto; }
   .pdf-secondary { margin: 8px 0 0; color: #444; font: 12px/1.6 "Microsoft YaHei", sans-serif; }
   .pdf-answer, .pdf-note { margin: 18px 0 0 32px; padding-top: 10px; border-top: 1px solid #777; }
@@ -157,15 +171,25 @@ function createPdf(pageImages) {
   const objects = []
   const pageIds = pageImages.map((_, index) => 3 + index * 3)
   objects[1] = ascii('<< /Type /Catalog /Pages 2 0 R >>')
-  objects[2] = ascii(`<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] >>`)
+  objects[2] = ascii(
+    `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] >>`,
+  )
 
   pageImages.forEach((jpeg, index) => {
     const pageId = pageIds[index]
     const imageId = pageId + 1
     const contentId = pageId + 2
-    objects[pageId] = ascii(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PDF_WIDTH} ${PDF_HEIGHT}] /Resources << /XObject << /Im0 ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`)
-    objects[imageId] = streamObject(`/Type /XObject /Subtype /Image /Width ${IMAGE_WIDTH} /Height ${IMAGE_HEIGHT} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode`, jpeg)
-    objects[contentId] = streamObject('', ascii(`q\n${PDF_WIDTH} 0 0 ${PDF_HEIGHT} 0 0 cm\n/Im0 Do\nQ`))
+    objects[pageId] = ascii(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PDF_WIDTH} ${PDF_HEIGHT}] /Resources << /XObject << /Im0 ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`,
+    )
+    objects[imageId] = streamObject(
+      `/Type /XObject /Subtype /Image /Width ${IMAGE_WIDTH} /Height ${IMAGE_HEIGHT} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode`,
+      jpeg,
+    )
+    objects[contentId] = streamObject(
+      '',
+      ascii(`q\n${PDF_WIDTH} 0 0 ${PDF_HEIGHT} 0 0 cm\n/Im0 Do\nQ`),
+    )
   })
 
   const parts = [ascii('%PDF-1.4\n%PDFDATA\n')]
@@ -184,7 +208,9 @@ function createPdf(pageImages) {
     xref.push(`${String(offsets[id]).padStart(10, '0')} 00000 n \n`)
   }
   parts.push(ascii(xref.join('')))
-  parts.push(ascii(`trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`))
+  parts.push(
+    ascii(`trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`),
+  )
   return joinBytes(parts)
 }
 
@@ -196,7 +222,7 @@ export async function exportProblemsAsPdf({
   options,
   pageLayout,
 }) {
-  const markup = documentMarkup({ entries, header, includeHeader, options, pageLayout })
+  let markup = documentMarkup({ entries, header, includeHeader, options, pageLayout })
   const measurement = document.createElement('div')
   measurement.style.cssText = `position:fixed;left:-100000px;top:0;width:${PAGE_WIDTH}px;background:#fff;pointer-events:none;`
   measurement.innerHTML = `<style>${DOCUMENT_STYLES}</style>${markup}`
@@ -204,6 +230,25 @@ export async function exportProblemsAsPdf({
 
   try {
     await document.fonts?.ready
+    // SVG foreignObject cannot load external resources; embed each attachment first.
+    for (const img of measurement.querySelectorAll('img')) {
+      const url = img.getAttribute('src')
+      if (!url?.startsWith('/uploads/')) throw new Error('PDF 图片地址不合法')
+      const prefix = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+      const response = await fetch(`${prefix}${url}`, { credentials: 'include' })
+      if (!response.ok) throw new Error('PDF 配图读取失败，请稍后重试')
+      const blob = await response.blob()
+      const data = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+      img.loading = 'eager'
+      img.src = data
+      await img.decode()
+    }
+    markup = new XMLSerializer().serializeToString(measurement.querySelector('.pdf-document'))
     const totalHeight = Math.max(PAGE_HEIGHT, Math.ceil(measurement.scrollHeight))
     const pageCount = Math.ceil(totalHeight / PAGE_HEIGHT)
     const images = []

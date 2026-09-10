@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 @Data
 @TableName("problems")
 public class Problem {
+    @TableLogic(value = "false", delval = "true") private Boolean deleted = false;
     @TableId(type = IdType.AUTO) private Long id;
     @TableField("problem_number") private String problemNumber;
     private String title;

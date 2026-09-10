@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import { authService } from '../services/authService.js'
+import { lastProblemsVisit } from '../services/problemNavigation.js'
 
 async function redirectToCurrentUser(to) {
   try {
@@ -16,7 +17,29 @@ async function redirectToCurrentUser(to) {
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    if (
+      !savedPosition &&
+      from.name === 'question' &&
+      to.fullPath === lastProblemsVisit.path &&
+      Date.now() - lastProblemsVisit.at < 120000
+    ) {
+      savedPosition = { top: lastProblemsVisit.top }
+    }
+    if (savedPosition)
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve(savedPosition)))
+      })
+    if (to.name === 'problems' && from.name === 'problems') return false
+    return { top: 0 }
+  },
   routes: [
+    {
+      path: '/feedback',
+      name: 'feedback',
+      component: () => import('../views/FeedbackView.vue'),
+      meta: { studyNavigation: true, title: '题目反馈' },
+    },
     {
       path: '/',
       name: 'home',

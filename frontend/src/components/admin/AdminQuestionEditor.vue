@@ -208,8 +208,10 @@ function updateTag(tag, checked) {
             rows="8"
             required
             :value="modelValue.content"
+            aria-describedby="material-font-help"
             @input="updateField('content', $event.target.value)"
           ></textarea>
+          <small id="material-font-help">中文正文使用宋体，英文和数字使用 Times New Roman。材料段落前单独写一行 :::material，结束后单独写一行 :::，材料中文将使用楷体。</small>
         </label>
 
         <label class="admin-form-full">

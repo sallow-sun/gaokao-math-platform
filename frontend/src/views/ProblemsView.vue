@@ -38,6 +38,10 @@ import {
 } from '../config/problems'
 
 const {
+  tags,
+  learning,
+  learned,
+  chapters,
   keyword,
   level,
   levels,
@@ -96,8 +100,7 @@ const {
   setProblemCompleted,
   setProblemFavorite,
   syncMarksFromProblems,
-} =
-  useProblemsUserMarks(PROBLEMS_PROTOTYPE_ITEMS)
+} = useProblemsUserMarks(PROBLEMS_PROTOTYPE_ITEMS)
 const openSolutionProblemIds = ref([])
 const pendingConfirmation = ref(null)
 const operationFeedbackMessage = ref('')
@@ -108,18 +111,26 @@ const {
   hasMoreProblems,
   isFallback: isUsingFallbackProblems,
   isLoading: isLoadingMore,
+  isRefreshing,
   loadMoreProblems,
   problems: loadedProblems,
   reloadProblems,
   totalCount: problemsTotalCount,
-} = useProblemsData({
-  keyword,
-  levels,
-  questionTypes,
-  sort,
-  sources,
-  years,
-}, PROBLEMS_PAGE_SIZE)
+} = useProblemsData(
+  {
+    tags,
+    learning,
+    learned,
+    chapters,
+    keyword,
+    levels,
+    questionTypes,
+    sort,
+    sources,
+    years,
+  },
+  PROBLEMS_PAGE_SIZE,
+)
 const visibleProblemIds = computed(() => loadedProblems.value.map((problem) => problem.id))
 const visibleSelectedCount = computed(
   () =>
@@ -500,12 +511,12 @@ watch(loadedProblems, (items) => syncMarksFromProblems(items), { immediate: true
         />
 
         <div
-          v-if="isLoadingMore && loadedProblems.length === 0"
+          v-if="isLoadingMore && (loadedProblems.length === 0 || isRefreshing)"
           class="bank-problems-data-state"
           role="status"
           aria-live="polite"
         >
-          正在从题库加载题目……
+          {{ loadedProblems.length ? '正在更新筛选结果…' : '正在从题库加载题目…' }}
         </div>
 
         <div
@@ -517,17 +528,14 @@ watch(loadedProblems, (items) => syncMarksFromProblems(items), { immediate: true
           <button type="button" @click="reloadProblems">重新连接</button>
         </div>
 
-        <div
-          v-else-if="problemsError"
-          class="bank-problems-data-state is-warning"
-          role="alert"
-        >
+        <div v-else-if="problemsError" class="bank-problems-data-state is-warning" role="alert">
           <span>{{ problemsError.message || '加载题目失败，请稍后重试。' }}</span>
           <button type="button" @click="reloadProblems">重新加载</button>
         </div>
 
         <ProblemsResults
           v-if="!isLoadingMore || loadedProblems.length > 0"
+          :refreshing="isRefreshing"
           :completed-problem-ids="completedProblemIds"
           :display-options="displayOptions"
           :favorite-problem-ids="favoriteProblemIds"

@@ -1,6 +1,6 @@
 # 数海 MathSea 后端
 
-这是数海 2.0 的全新后端，不依赖旧 Flask `app.py`，也不迁移旧 SQLite 数据。
+这是数海的 Spring Boot 后端，不依赖旧 Flask 或 SQLite。当前交接入口为 [开发说明](../docs/DEVELOPMENT.md) 和 [部署说明](../deploy/README.md)，含 V1～V10 迁移、内容初审、反馈、回收站与学习进度。
 
 ## 技术栈
 
@@ -74,7 +74,7 @@ mvn spring-boot:run
 第一次启动时 Flyway 自动执行：
 
 ```text
-src/main/resources/db/migration/V1__init.sql
+src/main/resources/db/migration/V1__init.sql 至 V10__simple_tags_and_feedback.sql
 ```
 
 它会从零创建 PostgreSQL 表，并预置来源和标签。
@@ -192,7 +192,9 @@ manage-admin.bat revoke user@example.com
 
 程序会同步增加 `session_version`，使目标用户现有会话失效。被授予或撤销权限的用户需要重新登录。
 
-## 8. 新 Tag 存储方式
+## 8. Tag 存储方式
+
+当前规范为 10 个大类，名称、别名与学习进度映射见 `src/main/resources/tag-taxonomy.json`。下列关系表结构示例用于解释存储；当前名称以规范文件与 V10 迁移为准。
 
 不再把：
 
@@ -233,7 +235,7 @@ problem_id | tag_id
 
 ```json
 {
-  "id": "P10001",
+  "id": "GC000001",
   "tags": ["函数", "导数", "不等式"]
 }
 ```
@@ -346,4 +348,4 @@ STORAGE_ROOT
 mvn test
 ```
 
-当前测试不会连接真实 PostgreSQL/Redis；完整联调请先运行 `docker compose up -d` 后启动应用，并使用 Swagger 或 Vue 调用真实 API。
+集成测试会启动独立的临时 PostgreSQL 并执行全部迁移；不需要外部数据库或 Redis。首次运行会下载二进制，Linux 应使用非 root 用户。完整应用联调仍需启动 Docker Compose。

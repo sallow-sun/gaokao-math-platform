@@ -4,6 +4,7 @@ import ProblemListItem from './ProblemListItem.vue'
 import ProblemPreviewCard from './ProblemPreviewCard.vue'
 
 const props = defineProps({
+  refreshing: { type: Boolean, default: false },
   displayOptions: {
     type: Object,
     required: true,
@@ -56,7 +57,9 @@ const isMinimalDisplay = computed(
 
 <template>
   <section
-    v-show="viewMode === 'preview-view'"
+    v-if="viewMode === 'preview-view'"
+    :inert="refreshing || undefined"
+    :aria-busy="refreshing"
     id="preview-view"
     class="bank-result-problem-panel-view"
     :class="{
@@ -86,7 +89,9 @@ const isMinimalDisplay = computed(
   </section>
 
   <section
-    v-show="viewMode === 'list-view'"
+    v-else
+    :inert="refreshing || undefined"
+    :aria-busy="refreshing"
     id="list-view"
     class="bank-result-problem-panel-view"
     :data-empty="problems.length === 0"
