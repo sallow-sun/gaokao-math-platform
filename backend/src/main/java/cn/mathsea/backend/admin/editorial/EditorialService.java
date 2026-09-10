@@ -415,14 +415,15 @@ public class EditorialService {
     number = problems.detail(number).problemNumber();
     // Serialize the initial copy so concurrent editors share one work item.
     db.queryForList("SELECT id FROM problems WHERE problem_number=? FOR UPDATE", number);
-    var existing = db.queryForList("SELECT id,status FROM editorial_items WHERE problem_number=?", number);
-    if (!existing.isEmpty()) {
+    var existing = db.queryForList("SELECT id,status,purged_at,version FROM editorial_items WHERE problem_number=? FOR UPDATE", number);
+    boolean renew = !existing.isEmpty() && existing.getFirst().get("purged_at") != null;
+    if (!existing.isEmpty() && !renew) {
       if ("TRASH".equals(existing.getFirst().get("status")))
         throw BusinessException.conflict("DRAFT_TRASHED","此题的修订草稿已在回收站，请负责人恢复草稿后继续修改；公开版本未改变");
       return detail((UUID) existing.getFirst().get("id"));
     }
     var p = problems.detail(number);
-    UUID id = UUID.randomUUID();
+    UUID id = renew ? (UUID) existing.getFirst().get("id") : UUID.randomUUID();
     var assets =
         p.assets().stream()
             .map(
@@ -452,7 +453,9 @@ public class EditorialService {
             curriculum.forProblem(
                 db.queryForObject(
                     "SELECT id FROM problems WHERE problem_number=?", Long.class, number)));
-    db.update(
+    if(renew) {
+      db.update("UPDATE editorial_items SET status='PUBLISHED',payload=?::jsonb,purged_at=NULL,trash_scope=NULL,trashed_at=NULL,trash_previous_status=NULL,version=version+1,updated_by=?,updated_at=now() WHERE id=?",encode(doc),actor,id);
+    } else db.update(
         "INSERT INTO"
             + " editorial_items(id,original_number,original_id,problem_number,status,payload,created_by,updated_by)"
             + " VALUES (?,'0',?,?,'PUBLISHED',?::jsonb,?,?)",
@@ -471,7 +474,7 @@ public class EditorialService {
           a.id(),
           a.url(),
           a.mimeType());
-    event(actor, id, 1, "BASELINE", "已发布内容快照", doc);
+    event(actor, id, renew ? ((Number)existing.getFirst().get("version")).longValue()+1 : 1, "BASELINE", "已发布内容快照", doc);
     return detail(id);
   }
 

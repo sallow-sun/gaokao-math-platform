@@ -12,7 +12,7 @@
 ## 项目结构
 
 ```text
-backend/       Java 21 / Spring Boot，PostgreSQL、Redis、Flyway V1～V11
+backend/       Java 21 / Spring Boot，PostgreSQL、Redis、Flyway V1～V12
 frontend/      Vue 3 / JavaScript / Vite，KaTeX，单元与浏览器测试
 docs/          开发交接文档
 deploy/        发布打包、已有服务器升级脚本及服务配置参考

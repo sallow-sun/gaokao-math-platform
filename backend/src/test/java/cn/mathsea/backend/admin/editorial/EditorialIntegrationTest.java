@@ -57,6 +57,22 @@ class EditorialIntegrationTest {
   @Autowired cn.mathsea.backend.problem.service.ProblemService publicProblems;
   @Autowired cn.mathsea.backend.problem.mapper.ProblemMapper problemMapper;
   @Autowired cn.mathsea.backend.admin.service.ProblemTrashService trash;
+  @Autowired org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+  @org.springframework.test.context.bean.override.mockito.MockitoBean cn.mathsea.backend.common.rate.RateLimitService purgeRateLimit;
+
+  cn.mathsea.backend.admin.service.ProblemTrashService.PurgeTarget purgeTarget(String kind,String id) {
+    String generation=db.queryForObject(kind.equals("draft") ? "SELECT version::text FROM editorial_items WHERE id=?::uuid" : "SELECT deleted_at::text FROM problems WHERE problem_number=?",String.class,id);
+    return new cn.mathsea.backend.admin.service.ProblemTrashService.PurgeTarget(kind,id,generation);
+  }
+  cn.mathsea.backend.admin.service.ProblemTrashService.PurgeRequest purgeRequest(List<cn.mathsea.backend.admin.service.ProblemTrashService.PurgeTarget> items,String account,String password) {
+    return new cn.mathsea.backend.admin.service.ProblemTrashService.PurgeRequest(items,account,password,"彻底删除");
+  }
+  String approver() {
+    String account="approve"+UUID.randomUUID().toString().substring(0,8);
+    long id=actor(account,"REVIEWER");
+    db.update("UPDATE users SET password_hash=? WHERE id=?",passwordEncoder.encode("test-approval-password"),id);
+    return account;
+  }
 
   long actor(String name, String permission) {
     Long id =
@@ -95,6 +111,66 @@ class EditorialIntegrationTest {
 
   long version(Map<String, Object> item) {
     return ((Number) item.get("version")).longValue();
+  }
+
+  @Test
+  void purgeRequiresDifferentActiveAdminAndIsAtomic() throws Exception {
+    String account=approver();
+    long approverId=users.findByAccount(account).getId();
+    long manager=actor("purge"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    String own=users.selectById(manager).getUsername();
+    db.update("UPDATE users SET password_hash=? WHERE id=?",passwordEncoder.encode("own-password"),manager);
+    var a=service.manual(manager); var b=service.manual(manager);
+    UUID aid=(UUID)a.get("id"),bid=(UUID)b.get("id");
+    trash.deleteDrafts(manager,List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(aid,version(a)),new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(bid,version(b))));
+    var targets=List.of(purgeTarget("draft",aid.toString()),purgeTarget("draft",bid.toString()));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,own,"own-password")));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"wrong")));
+    db.update("UPDATE users SET role='USER' WHERE id=?",approverId);
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password")));
+    db.update("UPDATE users SET role='ADMIN',status='BANNED' WHERE id=?",approverId);
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password")));
+    db.update("UPDATE users SET status='ACTIVE' WHERE id=?",approverId);
+    trash.restoreDraft(manager,bid);
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password")));
+    assertNull(db.queryForObject("SELECT purged_at FROM editorial_items WHERE id=?",Object.class,aid));
+    trash.deleteDrafts(manager,List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(bid,version(service.detail(bid)))));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password")));
+    var current=List.of(purgeTarget("draft",aid.toString()),purgeTarget("draft",bid.toString()));
+    var principal=new CustomUserPrincipal(users.selectById(manager));
+    mvc.perform(delete("/api/v1/admin/problem-trash/GC000001").with(user(principal)).with(csrf()).contentType("application/json").content("{\"number\":\"GC000001\"}")).andExpect(status().isForbidden());
+    var requestBody=new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(purgeRequest(current,account,"test-approval-password"));
+    mvc.perform(post("/api/v1/admin/problem-trash/purge").with(user(principal)).contentType("application/json").content(requestBody)).andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/admin/problem-trash/purge").with(user(principal)).with(csrf()).contentType("application/json").content(requestBody)).andExpect(status().isOk()).andExpect(org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated().withUsername(own));
+    assertEquals(2,db.queryForObject("SELECT count(*) FROM editorial_items WHERE id IN (?,?) AND purged_at IS NOT NULL AND payload='{}'::jsonb",Integer.class,aid,bid));
+    assertEquals(2,db.queryForObject("SELECT count(*) FROM audit_logs WHERE actor_user_id=? AND action='DRAFT_PURGE' AND details LIKE ?",Integer.class,manager,"%认证管理员="+approverId+"；%"));
+    assertThrows(BusinessException.class,()->trash.restoreDraft(manager,aid));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(current,account,"test-approval-password")));
+    org.mockito.Mockito.verify(purgeRateLimit,org.mockito.Mockito.atLeastOnce()).check(org.mockito.ArgumentMatchers.eq("purge-approval"),org.mockito.ArgumentMatchers.eq(Long.toString(manager)),org.mockito.ArgumentMatchers.eq(10),org.mockito.ArgumentMatchers.eq(java.time.Duration.ofMinutes(10)));
+  }
+
+  @Test
+  void purgedRevisionCanStartFreshFromPublicVersion() {
+    long manager=actor("renew"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    UUID paper=(UUID)service.paper(manager,"重新修订"+UUID.randomUUID()).get("id");
+    UUID batch=(UUID)service.batch(manager,"renew").get("id");
+    UUID id=(UUID)service.importFile(manager,batch,paper,"T1.md",markdown("公开内容"),List.of()).get("itemId");
+    var published=service.action(manager,id,new EditorialService.Action(1,"PUBLISH","",null));
+    String number=published.get("problem_number").toString();
+    // Model an initial-review revision of an already published question.
+    long pid=problemMapper.findByProblemNumber(number).getId();
+    db.update("INSERT INTO problem_assets(problem_id,url,mime_type,alt_text,sort_order) VALUES (?,'/uploads/shared-purge-test.png','image/png','test',0)",pid);
+    db.update("INSERT INTO editorial_assets(id,item_id,filename,checksum,url,mime_type) VALUES (?,?,'shared.png','shared','/uploads/shared-purge-test.png','image/png')",UUID.randomUUID(),id);
+    db.update("UPDATE editorial_items SET status='DRAFT' WHERE id=?",id);
+    trash.deleteDrafts(manager,List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(id,version(service.detail(id)))));
+    trash.purgeBatch(manager,purgeRequest(List.of(purgeTarget("draft",id.toString())),approver(),"test-approval-password"));
+    assertEquals("公开内容",publicProblems.detail(number,null).content());
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM problem_assets WHERE problem_id=?",Integer.class,pid));
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM editorial_assets WHERE item_id=?",Integer.class,id));
+    var fresh=service.fromPublished(manager,number);
+    assertEquals(id,fresh.get("id"));
+    assertEquals("PUBLISHED",fresh.get("status"));
+    assertNull(db.queryForObject("SELECT purged_at FROM editorial_items WHERE id=?",Object.class,id));
   }
 
   @Test
@@ -562,8 +638,10 @@ class EditorialIntegrationTest {
     assertEquals("PUBLISHED",service.detail(id).get("status"));
     assertEquals(1,db.queryForObject("SELECT count(*) FROM user_problem_states WHERE problem_id=? AND favorite",Integer.class,pid));
     trash.delete(manager,List.of(number));
-    assertThrows(BusinessException.class,()->trash.purge(manager,number,"wrong"));
-    trash.purge(manager,number,number);
+    String account=approver();
+    var targets=List.of(purgeTarget("published",number));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"wrong")));
+    trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password"));
     assertThrows(BusinessException.class,()->trash.restore(manager,number));
     assertEquals("",db.queryForObject("SELECT content FROM problems WHERE id=?",String.class,pid));
     assertEquals(number,problemMapper.findByProblemNumber(number).getProblemNumber());

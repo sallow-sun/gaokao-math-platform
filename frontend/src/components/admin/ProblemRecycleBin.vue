@@ -1,6 +1,29 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { apiRequest } from '../../services/apiClient.js'
+import PurgeApprovalDialog from './PurgeApprovalDialog.vue'
+const selecting = ref(false),
+  selected = ref([]),
+  approval = ref(null)
+const key = (entry) => `${entry.kind}:${entry.id}`
+const allSelected = computed(
+  () => rows.value.length > 0 && selected.value.length === rows.value.length,
+)
+function beginApproval(items) {
+  approval.value = items.map((item) => ({ ...item }))
+}
+function toggleSelection() {
+  selecting.value = !selecting.value
+  selected.value = []
+}
+async function purged(count) {
+  approval.value = null
+  selecting.value = false
+  await run(async () => {
+    await load()
+    message.value = `已彻底删除 ${count} 题，保留题号及操作记录`
+  })
+}
 const rows = ref([]),
   total = ref(0),
   page = ref(1),
@@ -8,6 +31,7 @@ const rows = ref([]),
   busy = ref(false),
   message = ref('')
 async function load() {
+  selected.value = []
   const data = await apiRequest(
     `/api/v1/admin/problem-trash?${new URLSearchParams({ keyword: keyword.value, page: page.value })}`,
   )
@@ -47,22 +71,6 @@ async function restore(entry) {
     message.value = '已恢复'
   })
 }
-async function purge(entry) {
-  const number = prompt(`彻底删除 ${entry.id} · ${entry.title}？此操作不能恢复。请输入题号确认：`)
-  if (number === null) return
-  if (number !== entry.id) {
-    message.value = '题号不一致，未删除'
-    return
-  }
-  await run(async () => {
-    await apiRequest(`/api/v1/admin/problem-trash/${entry.id}`, {
-      method: 'DELETE',
-      body: { number },
-    })
-    await load()
-    message.value = '已彻底删除内容，题号不再使用'
-  })
-}
 onMounted(() => run(load))
 </script>
 <template>
@@ -85,14 +93,45 @@ onMounted(() => run(load))
       </button>
     </form>
     <p v-if="message" role="status">{{ message }}</p>
+    <div class="trash-selection">
+      <button
+        :disabled="busy || !rows.length"
+        @click="toggleSelection"
+      >
+        {{ selecting ? '取消选择' : '批量彻底删除' }}
+      </button>
+      <template v-if="selecting">
+        <label
+          ><input
+            type="checkbox"
+            :checked="allSelected"
+            :disabled="busy"
+            @change="selected = $event.target.checked ? rows.map(key) : []"
+          />选择当前页</label
+        >
+        <span>已选 {{ selected.length }} 题</span>
+        <button
+          :disabled="busy || !selected.length"
+          @click="beginApproval(rows.filter((entry) => selected.includes(key(entry))))"
+        >
+          彻底删除所选
+        </button>
+      </template>
+    </div>
     <div v-for="entry in rows" :key="`${entry.kind}:${entry.id}`" class="editorial-paper-row">
+      <input
+        v-if="selecting"
+        v-model="selected"
+        type="checkbox"
+        :value="key(entry)"
+        :disabled="busy"
+        :aria-label="`选择 ${entry.number || entry.title}`"
+      />
       <span
         >{{ entry.kind === 'draft' ? '初审草稿' : '已发布' }} · {{ entry.number || entry.id }} ·
         {{ entry.title }}</span
       ><button :disabled="busy" @click="restore(entry)">恢复</button
-      ><button v-if="entry.kind !== 'draft'" :disabled="busy" @click="purge(entry)">
-        彻底删除
-      </button>
+      ><button :disabled="busy" @click="beginApproval([entry])">彻底删除</button>
     </div>
     <p v-if="!rows.length && !busy">回收站为空或没有匹配题目</p>
     <div class="editorial-actions">
@@ -119,5 +158,29 @@ onMounted(() => run(load))
         下一页
       </button>
     </div>
+    <PurgeApprovalDialog
+      v-if="approval"
+      :items="approval"
+      @close="approval = null"
+      @purged="purged"
+    />
   </section>
 </template>
+<style scoped>
+.trash-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+.trash-selection label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.editorial-paper-row > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+</style>

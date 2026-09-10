@@ -12,7 +12,7 @@ let browser,server
  browser=await chromium.launch({executablePath:browserExecutable,headless:true})
  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[]
  page.on('pageerror',e=>errors.push(e.message))
- let permission='MANAGER',deletedDrafts=[],deletedPublic=[]
+ let permission='MANAGER',deletedDrafts=[],deletedPublic=[],purgeCalls=0
  const drafts=[1,2,3].map(i=>({id:`00000000-0000-4000-8000-00000000000${i}`,title:`测试题${i}`,version:1,status:'DRAFT',original_number:String(i),original_id:`T${i}`,history:[],document:{title:`测试题${i}`,content:'题干 $x=1$',answer:'1',solution:'解析',tags:[],assets:[],imageReferences:[],originalMetadata:{}}}))
  const published=[{id:'GC000101',title:'公开题1'},{id:'GC000102',title:'公开题2'}]
  await page.route('**/api/**',async r=>{
@@ -27,9 +27,15 @@ let browser,server
   else if(p.endsWith('/problem-trash/drafts') && method==='POST'){
    const items=r.request().postDataJSON().items;assert.deepEqual(items.map(d=>d.version),[1,1]);deletedDrafts.push(...items.map(d=>d.id))
   } else if(p.includes('/problem-trash/drafts/')&&p.endsWith('/restore')) deletedDrafts=deletedDrafts.filter(id=>!p.includes(id))
-  else if(p.endsWith('/problem-trash')){
+  else if(p.endsWith('/problem-trash/purge')) {
+   const data=r.request().postDataJSON();purgeCalls++
+   assert.equal(data.items.length,3);assert.ok(data.items.every(i=>i.generation==='1'))
+   assert.equal(data.confirmation,'彻底删除');assert.equal(data.account,'second-admin')
+   if(purgeCalls===1){await r.fulfill({status:403,json:{error:{message:'认证失败，请重试'}}});return}
+   deletedDrafts=[];deletedPublic=[]
+  } else if(p.endsWith('/problem-trash')){
    if(method==='POST')deletedPublic.push(...r.request().postDataJSON().numbers)
-   else {const items=[...drafts.filter(d=>deletedDrafts.includes(d.id)).map(d=>({...d,kind:'draft'})),...published.filter(d=>deletedPublic.includes(d.id)).map(d=>({...d,kind:'published'}))];body={items,total:items.length,page:1}}
+   else {const items=[...drafts.filter(d=>deletedDrafts.includes(d.id)).map(d=>({...d,kind:'draft',generation:'1'})),...published.filter(d=>deletedPublic.includes(d.id)).map(d=>({...d,kind:'published',generation:'1'}))];body={items,total:items.length,page:1}}
   } else if(p.endsWith('/admin/users'))body={items:[],pagination:{total:0}}
   else if(p.endsWith('/admin/stats'))body={}
   await r.fulfill({json:body})
@@ -59,11 +65,30 @@ let browser,server
  await page.getByRole('button',{name:'更多',exact:true}).click()
  await page.getByRole('button',{name:'回收站',exact:true}).click()
  const draftRow=page.locator('.recycle-bin .editorial-paper-row').filter({hasText:'测试题1'})
- assert.equal(await draftRow.getByRole('button',{name:'彻底删除',exact:true}).count(),0)
+ await draftRow.getByRole('button',{name:'彻底删除',exact:true}).waitFor()
  page.once('dialog',d=>{assert.ok(d.message().includes('初审队列'));return d.accept()})
  await draftRow.getByRole('button',{name:'恢复',exact:true}).click()
  await page.getByText('已恢复',{exact:true}).waitFor()
  assert.equal(deletedDrafts.length,1)
+ await page.getByRole('button',{name:'批量彻底删除',exact:true}).click()
+ await page.locator('.trash-selection').getByLabel('选择当前页',{exact:true}).check()
+ await page.getByRole('button',{name:'彻底删除所选',exact:true}).click()
+ await page.getByRole('heading',{name:'彻底删除 3 题',exact:true}).waitFor()
+ await page.getByLabel('另一位管理员账号').fill('second-admin')
+ await page.getByLabel('管理员密码',{exact:true}).fill('wrong-password')
+ await page.getByLabel('我已核对所选题目，确认彻底删除且不可恢复').check()
+ await page.getByRole('button',{name:'认证并彻底删除',exact:true}).click()
+ await page.getByRole('alert').filter({hasText:'认证失败，请重试'}).waitFor()
+ assert.equal(await page.getByLabel('管理员密码',{exact:true}).inputValue(),'')
+ assert.equal(purgeCalls,1)
+ await page.setViewportSize({width:390,height:844})
+ assert.ok(await page.locator('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth+2))
+ await page.screenshot({path:path.join(root,'.tmp/purge-mobile.png'),fullPage:true})
+ await page.getByLabel('管理员密码',{exact:true}).fill('valid-password')
+ await page.getByRole('button',{name:'认证并彻底删除',exact:true}).click()
+ await page.getByText('已彻底删除 3 题，保留题号及操作记录',{exact:true}).waitFor()
+ assert.equal(purgeCalls,2)
+
  await page.getByRole('button',{name:'初审',exact:true}).click()
  await page.getByRole('button',{name:'批量删除',exact:true}).click()
  await page.setViewportSize({width:390,height:844})

@@ -8,4 +8,8 @@
 
 反馈按题目分组，修改发布和解决选定反馈在同一事务完成；后来新增的反馈保持待处理。题目删除进入回收站，恢复和彻底删除由负责人操作。题号全局递增，不重用。
 
-后端主要代码在 `admin/editorial/`、`feedback/`、`curriculum/`；集成验证位于 `EditorialIntegrationTest`。迁移只追加新版本，不修改已上线 V1～V11。更多入口见 [开发交接](../../docs/DEVELOPMENT.md)。
+彻底删除统一使用 `POST /api/v1/admin/problem-trash/purge`，请求包含 `items: [{kind, id, generation}]`、另一管理员的 `account` / `password` 及 `confirmation: "彻底删除"`。`generation` 必须使用回收站列表返回值。操作人需 MANAGER，认证人需不同的 ACTIVE ADMIN。仅调用 AuthenticationManager 校验认证，不建立新会话；认证按操作人限流，每10分钟最多10次。不得记录请求正文或密码。旧 DELETE 入口明确拒绝操作，不能绕过认证。
+
+整批校验并锁定后在同一事务内清理；审计记录操作人与认证人，提交后才清理无引用图片。V12 使用草稿 `purged_at` 保留占位；公开内容仍存在时可从其重新建立修订，不能恢复已清除的草稿内容。
+
+后端主要代码在 `admin/editorial/`、`feedback/`、`curriculum/`；集成验证位于 `EditorialIntegrationTest`。迁移只追加新版本，不修改已上线 V1～V12。更多入口见 [开发交接](../../docs/DEVELOPMENT.md)。

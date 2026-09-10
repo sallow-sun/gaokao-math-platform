@@ -63,8 +63,8 @@ for (let n = 1; n <= 2; n++) fs.writeFileSync(path.join(fixture, `T${n}.md`), `-
       } else body = { items: trashed && !purged ? [publishedEntry] : [], total: trashed && !purged ? 1 : 0, page: 1 }
     }
     else if (pathname === '/api/v1/admin/problem-trash/GC000001/restore') trashed = false
-    else if (pathname === '/api/v1/admin/problem-trash/GC000001' && request.method() === 'DELETE') {
-      assert.equal(request.postDataJSON().number, 'GC000001')
+    else if (pathname === '/api/v1/admin/problem-trash/purge' && request.method() === 'POST') {
+      assert.equal(request.postDataJSON().items[0].id, 'GC000001')
       purged = true
     }
     else if (pathname.endsWith('/admin/problems')) body = { items: trashed ? [] : [publishedEntry], pagination: { total: trashed ? 0 : 1, page: 1, pageSize: 40 } }
@@ -132,13 +132,15 @@ for (let n = 1; n <= 2; n++) fs.writeFileSync(path.join(fixture, `T${n}.md`), `-
   await page.getByRole('button', { name: '删除', exact: true }).click()
   await page.getByText('已移入回收站，可恢复', { exact: true }).waitFor()
   await page.getByRole('button', { name: '回收站', exact: true }).click()
-  page.once('dialog', dialog => dialog.accept('wrong'))
   await page.getByRole('button', { name: '彻底删除', exact: true }).click()
-  await page.getByText('题号不一致，未删除', { exact: true }).waitFor()
+  await page.getByRole('button', { name: '取消', exact: true }).click()
   assert.equal(purged, false)
-  page.once('dialog', dialog => dialog.accept('GC000001'))
   await page.getByRole('button', { name: '彻底删除', exact: true }).click()
-  await page.getByText('已彻底删除内容，题号不再使用', { exact: true }).waitFor()
+  await page.getByLabel('另一位管理员账号').fill('reviewer')
+  await page.getByLabel('管理员密码', {exact:true}).fill('test-password')
+  await page.getByLabel('我已核对所选题目，确认彻底删除且不可恢复').check()
+  await page.getByRole('button', { name: '认证并彻底删除', exact: true }).click()
+  await page.getByText('已彻底删除 1 题，保留题号及操作记录', { exact: true }).waitFor()
   assert.equal(purged, true)
   await page.evaluate(() => window.scrollTo(0, 0))
   await page.screenshot({ path: path.join(output, 'editorial-desktop.png'), fullPage: true })

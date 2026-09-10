@@ -26,7 +26,7 @@ npm run dev
 
 本地默认数据库连接与 `backend/docker-compose.yml` 一致。`backend/.env.example` 是配置参考；**Spring Boot 不自动读取 `.env`**，覆盖默认值时请导出对应环境变量或通过运行配置传入。生产环境由 systemd 的 EnvironmentFile 读取。
 
-首次启动会执行 Flyway V1～V11，包括初始题、题目审核、稳定题号、教材目录、修订队列、回收站及 TAG/反馈表。不需要任何 SQLite 文件或生产数据库备份。已执行的迁移不能编辑，后续变更新增 V12、V13 等迁移。
+首次启动会执行 Flyway V1～V12，包括初始题、题目审核、稳定题号、教材目录、修订队列、回收站及 TAG/反馈表。不需要任何 SQLite 文件或生产数据库备份。已执行的迁移不能编辑，后续变更新增 V13、V14 等迁移。
 
 ## 本地管理员
 
