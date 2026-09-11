@@ -10,16 +10,16 @@
 .paper-builder * {
   box-sizing: border-box;
 }
-.paper-builder button,
-.paper-builder input,
-.paper-builder select {
+.paper-builder button:not(:where(.bank-filter-panel *)),
+.paper-builder input:not(:where(.bank-filter-panel *)),
+.paper-builder select:not(:where(.bank-filter-panel *)) {
   font: inherit;
 }
-.paper-builder button,
-.paper-builder select {
+.paper-builder button:not(:where(.bank-filter-panel *)),
+.paper-builder select:not(:where(.bank-filter-panel *)) {
   cursor: pointer;
 }
-.paper-builder button {
+.paper-builder button:not(:where(.bank-filter-panel *)) {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-ink-secondary);
@@ -30,22 +30,22 @@
     background 0.15s,
     border-color 0.15s;
 }
-.paper-builder button:hover {
+.paper-builder button:not(:where(.bank-filter-panel *)):hover {
   background: var(--color-blue-050);
   border-color: var(--color-blue-700);
 }
-.paper-builder button:disabled {
+.paper-builder button:not(:where(.bank-filter-panel *)):disabled {
   opacity: 0.4;
   cursor: default;
 }
-.paper-builder button:focus-visible,
-.paper-builder select:focus-visible,
-.paper-builder input:focus-visible {
+.paper-builder button:not(:where(.bank-filter-panel *)):focus-visible,
+.paper-builder select:not(:where(.bank-filter-panel *)):focus-visible,
+.paper-builder input:not(:where(.bank-filter-panel *)):focus-visible {
   outline: 2px solid var(--color-blue-700);
   outline-offset: 3px;
 }
-.paper-builder input,
-.paper-builder select {
+.paper-builder input:not(:where(.bank-filter-panel *)),
+.paper-builder select:not(:where(.bank-filter-panel *)) {
   min-width: 0;
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -110,7 +110,8 @@
 }
 .paper-workbench {
   display: grid;
-  grid-template-columns: minmax(330px, var(--bank-width, 40%)) 5px minmax(0, 1fr);
+  padding: 18px 22px 22px;
+  grid-template-columns: minmax(330px, var(--bank-width, 40%)) 20px minmax(0, 1fr);
   flex: 1;
   min-height: 0;
 }
@@ -170,126 +171,6 @@
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-}
-.paper-search {
-  display: flex;
-  margin: 0 20px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 4px;
-  background: var(--color-blue-050);
-}
-.paper-search input {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  padding: 7px;
-  font-size: 13px;
-}
-.paper-search button {
-  border: 0;
-  background: transparent;
-}
-.paper-quick-types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 0 20px 13px;
-}
-.paper-quick-types button {
-  border-color: transparent;
-  font-size: 12px;
-  padding: 6px 9px;
-}
-.paper-builder button[aria-pressed='true'],
-.paper-builder button.selected {
-  color: var(--paper-accent);
-  background: var(--color-blue-100);
-  border-color: var(--color-blue-700);
-}
-.paper-filters {
-  max-height: 40vh;
-  flex-shrink: 0;
-  overflow: auto;
-  padding: 0 20px 12px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-.paper-filters fieldset {
-  border: 0;
-  padding: 8px 0;
-  margin: 0;
-}
-.paper-filters legend {
-  font-size: 12px;
-  color: var(--color-ink-secondary);
-}
-.paper-filters legend small {
-  font-size: 10px;
-  color: var(--color-ink-muted);
-  margin-left: 8px;
-}
-.paper-filter-options {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-.paper-filter-options button {
-  padding: 4px 7px;
-  font-size: 11px;
-}
-.paper-filter-options.is-years {
-  max-height: 94px;
-  overflow: auto;
-}
-.paper-filter-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  margin-top: 8px;
-}
-.paper-filters summary {
-  font-size: 12px;
-  color: var(--paper-accent);
-  cursor: pointer;
-  padding: 7px 0;
-}
-.paper-chapters {
-  max-height: 170px;
-  overflow: auto;
-  font-size: 11px;
-}
-.paper-chapters > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 5px;
-  padding: 4px 0;
-}
-.paper-chapters label,
-.paper-learning-switch {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.paper-learning-switch {
-  font-size: 12px;
-  padding-bottom: 8px;
-}
-.paper-chapters small {
-  color: var(--color-ink-muted);
-}
-.paper-active-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 6px 20px;
-  max-height: 75px;
-  overflow: auto;
-}
-.paper-active-filters button {
-  padding: 3px 6px;
-  font-size: 10px;
-  background: var(--color-blue-050);
 }
 .paper-sortbar {
   display: flex;
@@ -462,8 +343,7 @@
   overflow: auto;
   padding: 15px 28px 35px;
   overscroll-behavior: contain;
-  background-image: radial-gradient(var(--color-border) 0.6px, transparent 0.6px);
-  background-size: 14px 14px;
+  background: #dce3eb;
 }
 .paper-page-wrap {
   margin: 0 auto 24px;
@@ -721,7 +601,7 @@
     display: none;
   }
   .paper-workbench {
-    grid-template-columns: minmax(310px, var(--bank-width, 42%)) 5px minmax(0, 1fr);
+    grid-template-columns: minmax(310px, var(--bank-width, 42%)) 20px minmax(0, 1fr);
   }
   .paper-topbar {
     padding: 17px 20px;
@@ -815,5 +695,153 @@
   }
   #paper-print-root .paper-fragment-clip {
     overflow: hidden;
+  }
+}
+
+/* Separate the compact question library from the primary paper workspace. */
+.paper-bank {
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  box-shadow: 0 2px 6px #18395108;
+}
+.paper-bank-head {
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-blue-050);
+  border-radius: 9px 9px 0 0;
+}
+.paper-shared-filters {
+  flex-shrink: 0;
+  max-height: 48%;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.paper-shared-filters .bank-filter-panel {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 16px;
+}
+.paper-shared-filters .bank-filter-group {
+  grid-template-columns: 66px minmax(0, 1fr);
+  gap: 8px;
+}
+.paper-shared-filters .bank-filter-options {
+  gap: 5px 8px;
+}
+.paper-shared-filters .bank-filter-options button {
+  font-size: 12px;
+}
+.paper-shared-filters .bank-filter-group-label {
+  font-size: 12px;
+}
+.paper-shared-filters .bank-filter-popover {
+  position: fixed;
+  top: 14vh;
+  bottom: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(620px, calc(100vw - 32px));
+  max-height: 70dvh;
+  z-index: 150;
+  overflow: auto;
+  box-shadow: 0 12px 50px #12304a40;
+}
+.paper-shared-filters .curriculum-detail {
+  margin-block: 12px;
+}
+.paper-editor {
+  border: 1px solid #9eb3c6;
+  border-radius: 9px;
+  box-shadow: 0 3px 12px #18395112;
+  overflow: hidden;
+}
+.paper-editor-head {
+  background: var(--color-blue-900);
+  color: #fff;
+  border-bottom: 0;
+  padding-block: 17px;
+}
+.paper-editor-head .paper-step {
+  color: #e5eff7;
+  border-color: #7796b0;
+}
+.paper-editor-head .paper-count {
+  color: #d6e4ee;
+}
+.paper-divider {
+  position: relative;
+  background: transparent;
+}
+.paper-divider::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: calc(50% - 22px);
+  width: 3px;
+  height: 44px;
+  border-radius: 3px;
+  background: #9eb3c6;
+}
+.paper-divider:hover,
+.paper-divider:focus-visible {
+  background: #dde6ee;
+  border-radius: 6px;
+}
+.paper-status {
+  background: #e7edf3;
+  border-bottom: 1px solid #c3d0db;
+  color: #435f76;
+}
+.paper-canvas {
+  background: #dce3eb;
+  background-image: none;
+}
+.paper-source-card,
+.paper-source-card * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.paper-source-card {
+  cursor: grab;
+}
+.paper-source-card:active {
+  cursor: grabbing;
+}
+.paper-source-card img,
+.paper-source-card .math-text,
+.paper-source-card .katex {
+  -webkit-user-drag: none;
+}
+.paper-builder:not(.is-preview) .paper-fragment,
+.paper-builder:not(.is-preview) .paper-fragment * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.paper-builder:not(.is-preview) .paper-fragment:hover,
+.paper-builder:not(.is-preview) .paper-fragment.is-active {
+  cursor: grab;
+}
+.paper-builder:not(.is-preview) .paper-fragment img {
+  -webkit-user-drag: none;
+}
+@media (max-width: 760px) {
+  .paper-workbench {
+    padding: 12px;
+    gap: 18px;
+  }
+  .paper-bank {
+    height: 75dvh;
+  }
+  .paper-shared-filters {
+    max-height: 52%;
+  }
+  .paper-shared-filters .bank-filter-group {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  .paper-editor {
+    height: 85dvh;
   }
 }

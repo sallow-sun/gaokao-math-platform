@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getCurriculumCatalog } from '../../services/curriculumService.js'
+const props = defineProps({ routeName: { type: String, default: 'problems' } })
 
 const route = useRoute(),
   router = useRouter()
@@ -57,7 +58,7 @@ function apply(changes) {
       /* Optional browser preference. */
     }
   }
-  router.push({ name: 'problems', query })
+  router.push({ name: props.routeName, query })
   close()
 }
 function choosePreset(p) {

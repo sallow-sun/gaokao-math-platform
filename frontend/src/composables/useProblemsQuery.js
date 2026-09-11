@@ -37,11 +37,13 @@ export function createProblemsFilterQueryValue(value, normalizeValue) {
   return Array.isArray(value) ? normalizedValues : normalizedValues[0]
 }
 
-export function useProblemsQuery() {
+export function useProblemsQuery(routeName = 'problems') {
   const route = useRoute()
   const router = useRouter()
 
-  const tags = computed(() => normalizeProblemsQueryValues(route.query.tag, value => value.trim()))
+  const tags = computed(() =>
+    normalizeProblemsQueryValues(route.query.tag, (value) => value.trim()),
+  )
   const learning = computed(() => route.query.learning === 'true')
   const learned = computed(() =>
     normalizeProblemsQueryValues(route.query.learned, (value) => value.trim().toUpperCase()),
@@ -76,7 +78,7 @@ export function useProblemsQuery() {
     }
 
     delete query.page
-    router.push({ name: 'problems', query })
+    router.push({ name: routeName, query })
   }
 
   function updateSort(nextSort) {
@@ -90,7 +92,7 @@ export function useProblemsQuery() {
     }
 
     delete query.page
-    router.push({ name: 'problems', query })
+    router.push({ name: routeName, query })
   }
 
   function updateFilter(queryKey, nextValue, normalizeValue) {
@@ -104,7 +106,7 @@ export function useProblemsQuery() {
     }
 
     delete query.page
-    router.push({ name: 'problems', query })
+    router.push({ name: routeName, query })
   }
 
   function updateLevel(nextLevel) {
@@ -141,7 +143,7 @@ export function useProblemsQuery() {
     })
 
     delete query.page
-    router.push({ name: 'problems', query })
+    router.push({ name: routeName, query })
   }
 
   function clearFilters() {
@@ -158,7 +160,7 @@ export function useProblemsQuery() {
     delete query.type
     delete query.year
     delete query.page
-    router.push({ name: 'problems', query })
+    router.push({ name: routeName, query })
   }
 
   return {

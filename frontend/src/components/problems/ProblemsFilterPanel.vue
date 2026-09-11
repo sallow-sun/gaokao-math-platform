@@ -5,6 +5,7 @@ import { ref, watch } from 'vue'
 import ProblemsFilterGroup from './ProblemsFilterGroup.vue'
 
 const props = defineProps({
+  routeName: { type: String, default: 'problems' },
   filterMode: {
     type: String,
     required: true,
@@ -187,8 +188,8 @@ function updateFilterMode(event) {
         @select="emit('type-change', $event)"
       />
 
-      <TagFilter />
-      <LearningProgressFilter />
+      <TagFilter :route-name="routeName" />
+      <LearningProgressFilter :route-name="routeName" />
 
       <ProblemsFilterGroup
         filter-key="level"

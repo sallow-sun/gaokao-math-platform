@@ -1,12 +1,13 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MathText from '../components/content/MathText.vue'
 import { listProblems } from '../services/problemService.js'
-import { apiRequest } from '../services/apiClient.js'
-import { getCurriculumCatalog } from '../services/curriculumService.js'
-import { tagCatalog, refreshTagCatalog } from '../services/tagCatalog.js'
+import ProblemsFilterPanel from '../components/problems/ProblemsFilterPanel.vue'
+import { useProblemsQuery } from '../composables/useProblemsQuery.js'
+import { useProblemsFilterPreferences } from '../composables/useProblemsFilterPreferences.js'
 import {
   PROBLEMS_TYPE_OPTIONS,
+  PROBLEMS_TYPE_CATALOG_OPTIONS,
   PROBLEMS_LEVEL_OPTIONS,
   PROBLEMS_YEAR_CATALOG_OPTIONS,
   PROBLEMS_SOURCE_CATALOG_OPTIONS,
@@ -45,21 +46,41 @@ const available = ref([]),
   currentPage = ref(1),
   loading = ref(false),
   loadError = ref('')
-const filters = reactive({
-  keyword: '',
-  types: [],
-  tags: [],
-  levels: [],
-  years: [],
-  sources: [],
-  chapters: [],
-  learned: [],
-  learning: false,
-})
+const query = useProblemsQuery('paper')
+const { clearFilters, updateKeyword, updateYear, updateSource, updateType, updateLevel } = query
+const filters = computed(() => ({
+  keyword: query.keyword.value,
+  types: query.questionTypes.value,
+  tags: query.tags.value,
+  levels: query.levels.value,
+  years: query.years.value,
+  sources: query.sources.value,
+  chapters: query.chapters.value,
+  learned: query.learned.value,
+  learning: query.learning.value,
+}))
+const { filterMode, pinnedFilters, setFilterMode, setFilterPinned } = useProblemsFilterPreferences()
+const visibleYearOptions = computed(() =>
+  PROBLEMS_YEAR_CATALOG_OPTIONS.filter(
+    (o) => !o.value || pinnedFilters.value.year.includes(o.value),
+  ),
+)
+const visibleSourceOptions = computed(() =>
+  PROBLEMS_SOURCE_CATALOG_OPTIONS.filter(
+    (o) => !o.value || pinnedFilters.value.source.includes(o.value),
+  ),
+)
+const visibleTypeOptions = computed(() =>
+  PROBLEMS_TYPE_CATALOG_OPTIONS.filter(
+    (o) => !o.value || pinnedFilters.value.type.includes(o.value),
+  ),
+)
+function updateFilterMode(mode) {
+  setFilterMode(mode)
+  if (mode === 'single') query.collapseFiltersToSingle()
+}
 const sort = ref('newest'),
-  seed = ref(crypto.randomUUID()),
-  catalog = ref(null)
-const sourceOptions = ref(PROBLEMS_SOURCE_CATALOG_OPTIONS.filter((o) => o.value))
+  seed = ref(crypto.randomUUID())
 const expandedSources = ref(new Set()),
   bankWidth = ref(40)
 function toggleSource(id) {
@@ -76,8 +97,7 @@ function moveDivider(event) {
   const box = event.currentTarget.parentElement.getBoundingClientRect()
   bankWidth.value = Math.max(30, Math.min(55, ((event.clientX - box.left) / box.width) * 100))
 }
-const moreFilters = ref(false),
-  filterOpen = ref(false),
+const filterOpen = ref(true),
   zoom = ref(0.8),
   autoFit = ref(true)
 const selectedIds = computed(() => new Set(items.value.map((i) => i.problem.id)))
@@ -86,49 +106,6 @@ const sheetStyle = computed(() => ({
   '--paper-width': `${sheet.value.width}mm`,
   '--paper-height': `${sheet.value.height}mm`,
 }))
-const groups = computed(() => [
-  { key: 'types', label: '题型', options: PROBLEMS_TYPE_OPTIONS.filter((o) => o.value) },
-  {
-    key: 'tags',
-    label: '知识点',
-    options: tagCatalog.value.map((t) => ({ value: t.name, label: t.name })),
-  },
-  ...(moreFilters.value
-    ? [
-        {
-          key: 'levels',
-          label: '训练价值',
-          options: PROBLEMS_LEVEL_OPTIONS.filter((o) => o.value),
-        },
-        {
-          key: 'years',
-          label: '年份',
-          options: PROBLEMS_YEAR_CATALOG_OPTIONS.filter((o) => o.value),
-        },
-        { key: 'sources', label: '来源', options: sourceOptions.value },
-      ]
-    : []),
-])
-const activeFilters = computed(() =>
-  Object.entries(filters)
-    .filter(
-      ([key, value]) =>
-        key !== 'keyword' && key !== 'learned' && key !== 'learning' && Array.isArray(value),
-    )
-    .flatMap(([key, values]) =>
-      values.map((value) => ({
-        key,
-        value,
-        label:
-          key === 'chapters'
-            ? catalog.value?.chapters.find((c) => c.code === value)?.label || value
-            : groups.value.find((g) => g.key === key)?.options.find((o) => o.value === value)
-                ?.label ||
-              sourceOptions.value.find((o) => o.value === value)?.label ||
-              value,
-      })),
-    ),
-)
 const counts = computed(() =>
   PROBLEMS_TYPE_OPTIONS.filter((o) => o.value).map((o) => ({
     ...o,
@@ -160,28 +137,6 @@ function undo() {
   items.value = restored.items
   message.value = '已撤销上一步'
 }
-function toggleFilter(key, value) {
-  filters[key] = filters[key].includes(value)
-    ? filters[key].filter((v) => v !== value)
-    : [...filters[key], value]
-}
-function clearFilters() {
-  Object.assign(filters, {
-    keyword: '',
-    types: [],
-    tags: [],
-    levels: [],
-    years: [],
-    sources: [],
-    chapters: [],
-    learned: [],
-    learning: false,
-  })
-}
-function chooseProgress(preset) {
-  filters.learning = Boolean(preset)
-  filters.learned = preset ? [...preset.chapters] : []
-}
 function fitWidth() {
   autoFit.value = true
   fit()
@@ -200,7 +155,7 @@ async function load(page = 1) {
   available.value = []
   try {
     const result = await listProblems(
-      { ...filters, sort: sort.value, seed: seed.value, page, pageSize: 12 },
+      { ...filters.value, sort: sort.value, seed: seed.value, page, pageSize: 12 },
       { signal: request.signal },
     )
     if (id !== requestId || disposed) return
@@ -277,7 +232,17 @@ function locate(id) {
     ?.querySelector(`[data-paper-id="${CSS.escape(id)}"]`)
     ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
 }
+let dragFromControl = false
+function rememberDragOrigin(event) {
+  dragFromControl = Boolean(event.target.closest('button:not(.paper-grip), input, select, a'))
+}
 function startDrag(event, problem, from = -1) {
+  if (dragFromControl || preview.value || !problem) {
+    event.preventDefault()
+    return
+  }
+  window.getSelection()?.removeAllRanges()
+  event.dataTransfer.setDragImage(event.currentTarget, 30, 25)
   drag.value = { problem, from }
   event.dataTransfer.effectAllowed = from < 0 ? 'copy' : 'move'
   event.dataTransfer.setData('text/plain', problem.id)
@@ -532,15 +497,6 @@ onMounted(async () => {
   window.addEventListener('keydown', keydown)
   load()
   queueLayout()
-  const results = await Promise.allSettled([
-    apiRequest('/api/v1/problem-catalogs'),
-    getCurriculumCatalog(),
-    refreshTagCatalog(),
-  ])
-  if (disposed) return
-  if (Array.isArray(results[0].value?.sources) && results[0].value.sources.length)
-    sourceOptions.value = results[0].value.sources.map((o) => ({ value: o.code, label: o.label }))
-  if (results[1].status === 'fulfilled') catalog.value = results[1].value
 })
 onBeforeUnmount(() => {
   disposed = true
@@ -565,7 +521,7 @@ onBeforeUnmount(() => {
     <header class="paper-topbar">
       <div>
         <p class="paper-eyebrow">MATHSEA · PAPER STUDIO</p>
-        <h1>自主组卷 <span>从一道好题，到一份好卷</span></h1>
+        <h1>自主组卷 <span>筛选选题 · 拖入试卷 · 预览打印</span></h1>
       </div>
       <div class="paper-top-actions">
         <span class="paper-save-state">{{ storageMessage }}</span>
@@ -587,105 +543,42 @@ onBeforeUnmount(() => {
         <div class="paper-bank-head">
           <div>
             <span class="paper-step">01</span>
-            <h2>挑选题目</h2>
+            <h2>选题区</h2>
           </div>
           <button class="paper-link" @click="filterOpen = !filterOpen">
             {{ filterOpen ? '收起筛选' : '展开筛选' }}
           </button>
         </div>
-        <form class="paper-search" @submit.prevent="load()">
-          <input
-            v-model="filters.keyword"
-            aria-label="搜索题目"
-            placeholder="搜索题号、题干或知识点…"
-          /><button type="submit" aria-label="搜索">搜索</button>
-        </form>
-        <div class="paper-quick-types">
-          <button :class="{ selected: !filters.types.length }" @click="filters.types = []">
-            全部题型</button
-          ><button
-            v-for="o in PROBLEMS_TYPE_OPTIONS.filter((o) => o.value)"
-            :key="o.value"
-            :aria-pressed="filters.types.includes(o.value)"
-            @click="toggleFilter('types', o.value)"
-          >
-            {{ o.label }}
-          </button>
-        </div>
-        <section v-show="filterOpen" class="paper-filters" aria-label="题目筛选条件">
-          <fieldset v-for="group in groups.filter((g) => g.key !== 'types')" :key="group.key">
-            <legend>{{ group.label }} <small>可多选</small></legend>
-            <div class="paper-filter-options" :class="{ 'is-years': group.key === 'years' }">
-              <button
-                v-for="o in group.options"
-                :key="o.value"
-                :aria-pressed="filters[group.key].includes(o.value)"
-                @click="toggleFilter(group.key, o.value)"
-              >
-                {{ o.label }}
-              </button>
-            </div>
-          </fieldset>
-          <template v-if="moreFilters && catalog">
-            <fieldset>
-              <legend>学习进度</legend>
-              <div class="paper-filter-options">
-                <button :aria-pressed="!filters.learning" @click="chooseProgress(null)">全部</button
-                ><button
-                  v-for="preset in catalog.presets"
-                  :key="preset.id"
-                  :aria-pressed="
-                    filters.learning &&
-                    JSON.stringify(filters.learned) === JSON.stringify(preset.chapters)
-                  "
-                  @click="chooseProgress(preset)"
-                >
-                  {{ preset.label }}
-                </button>
-              </div>
-            </fieldset>
-            <details>
-              <summary>教材章节 / 自定义学习进度</summary>
-              <label class="paper-learning-switch"
-                ><input v-model="filters.learning" type="checkbox" />只选已学知识范围内的题目</label
-              >
-              <div class="paper-chapters">
-                <div v-for="chapter in catalog.chapters" :key="chapter.code">
-                  <label
-                    ><input
-                      type="checkbox"
-                      :checked="filters.chapters.includes(chapter.code)"
-                      @change="toggleFilter('chapters', chapter.code)"
-                    />{{ chapter.title || chapter.label }} <small>{{ chapter.book }}</small></label
-                  ><label v-if="filters.learning"
-                    ><input
-                      type="checkbox"
-                      :checked="filters.learned.includes(chapter.code)"
-                      @change="toggleFilter('learned', chapter.code)"
-                    />已学</label
-                  >
-                </div>
-              </div>
-            </details>
-          </template>
-          <div class="paper-filter-footer">
-            <button class="paper-link" @click="moreFilters = !moreFilters">
-              {{
-                moreFilters ? '收起更多条件' : '更多条件：年份、来源、训练价值、学习进度'
-              }}</button
-            ><button class="paper-link" @click="clearFilters">清除条件</button>
-          </div>
-        </section>
-        <div v-if="activeFilters.length || filters.learning" class="paper-active-filters">
-          <button
-            v-for="f in activeFilters"
-            :key="`${f.key}:${f.value}`"
-            @click="toggleFilter(f.key, f.value)"
-          >
-            {{ f.label }} ×</button
-          ><button v-if="filters.learning" @click="filters.learning = false">
-            已学 {{ filters.learned.length }} 章 ×
-          </button>
+        <div v-show="filterOpen" class="paper-shared-filters">
+          <ProblemsFilterPanel
+            route-name="paper"
+            :filter-mode="filterMode"
+            :keyword="filters.keyword"
+            :level="filters.levels"
+            :level-options="PROBLEMS_LEVEL_OPTIONS"
+            :question-type="filters.types"
+            :source="filters.sources"
+            :source-catalog-options="PROBLEMS_SOURCE_CATALOG_OPTIONS"
+            :source-options="visibleSourceOptions"
+            :source-pinned-values="pinnedFilters.source"
+            :type-catalog-options="PROBLEMS_TYPE_CATALOG_OPTIONS"
+            :type-options="visibleTypeOptions"
+            :type-pinned-values="pinnedFilters.type"
+            :year="filters.years"
+            :year-catalog-options="PROBLEMS_YEAR_CATALOG_OPTIONS"
+            :year-options="visibleYearOptions"
+            :year-pinned-values="pinnedFilters.year"
+            @search="updateKeyword"
+            @clear="clearFilters"
+            @filter-mode-change="updateFilterMode"
+            @year-change="updateYear"
+            @source-change="updateSource"
+            @type-change="updateType"
+            @level-change="updateLevel"
+            @year-pin-change="setFilterPinned('year', $event.value, $event.pinned)"
+            @source-pin-change="setFilterPinned('source', $event.value, $event.pinned)"
+            @type-pin-change="setFilterPinned('type', $event.value, $event.pinned)"
+          />
         </div>
         <div class="paper-sortbar">
           <span>{{ loading ? '正在筛选…' : `找到 ${total} 题` }}</span
@@ -719,9 +612,13 @@ onBeforeUnmount(() => {
             class="paper-source-card"
             :class="{ 'is-added': selectedIds.has(problem.id) }"
             :data-source-id="problem.id"
+            draggable="true"
+            @pointerdown="rememberDragOrigin"
+            @dragstart="startDrag($event, problem)"
+            @dragend="endDrag"
           >
-            <header draggable="true" @dragstart="startDrag($event, problem)" @dragend="endDrag">
-              <span class="paper-grip" title="拖到右侧试卷">⠿</span
+            <header>
+              <span class="paper-grip" title="整张题卡均可拖动">⠿</span
               ><span
                 >{{ problem.typeLabel }} <small>{{ problem.id }}</small></span
               ><button
@@ -755,6 +652,7 @@ onBeforeUnmount(() => {
                 :src="asset.url"
                 :alt="asset.altText"
                 loading="lazy"
+                draggable="false"
               />
             </div>
             <button
@@ -798,7 +696,7 @@ onBeforeUnmount(() => {
         <div class="paper-editor-head">
           <div>
             <span class="paper-step">02</span>
-            <h2>{{ preview ? '打印预览' : '编排试卷' }}</h2>
+            <h2>{{ preview ? '打印预览' : '试卷工作区' }}</h2>
             <span class="paper-count">{{ items.length }} 题 · {{ pages.length }} 页</span>
           </div>
           <div class="paper-editor-options">
@@ -821,7 +719,7 @@ onBeforeUnmount(() => {
             message ||
             (preview
               ? '检查分页、公式与配图；打印对话框中可保存为 PDF。'
-              : '拖动题卡顶部到纸张，或点击「＋ 加入」。点击卷面题目可调整。')
+              : '拖动整张题卡加入试卷；卷面题目也可直接拖动排序。')
           }}</span
           ><span v-if="layingOut">正在排版…</span>
         </div>
@@ -876,6 +774,10 @@ onBeforeUnmount(() => {
                   'is-drop-target': dropIndex === fragment.index,
                 }"
                 :data-paper-id="items[fragment.index]?.problem.id"
+                :draggable="!preview && !layingOut"
+                @pointerdown="rememberDragOrigin"
+                @dragstart="startDrag($event, items[fragment.index].problem, fragment.index)"
+                @dragend="endDrag"
                 :style="{ height: `${fragment.height}px` }"
                 @click="activeId = items[fragment.index]?.problem.id"
                 @dragover.stop="dragOverFragment($event, fragment)"
@@ -901,11 +803,8 @@ onBeforeUnmount(() => {
                 >
                   <button
                     class="paper-grip"
-                    draggable="true"
                     title="拖动排序"
                     :aria-label="`拖动第 ${fragment.index + 1} 题`"
-                    @dragstart="startDrag($event, items[fragment.index].problem, fragment.index)"
-                    @dragend="endDrag"
                   >
                     ⠿
                   </button>

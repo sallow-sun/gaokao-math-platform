@@ -104,7 +104,8 @@ let browser, server
     page.waitForFunction(
       () => !document.querySelector('.paper-status')?.textContent.includes('正在排版'),
     )
-  await page.locator('[data-source-id="GC000001"] > header').dragTo(page.locator('.paper-empty'))
+  await page.locator('[data-source-id="GC000001"] .math-text').dragTo(page.locator('.paper-empty'))
+  assert.equal(await page.evaluate(() => window.getSelection().toString()), '')
   await ready()
   assert.equal(await added().count(), 1)
   await page.getByRole('button', { name: '添加题目 GS000010', exact: true }).click()
@@ -117,7 +118,9 @@ let browser, server
   )
   await page.locator('.paper-fragment').nth(1).click()
   await page
-    .getByLabel('拖动第 2 题', { exact: true })
+    .locator('.paper-fragment')
+    .nth(1)
+    .locator('.paper-question-content')
     .dragTo(page.locator('.paper-fragment').first(), { targetPosition: { x: 10, y: 2 } })
   await ready()
   assert.equal(
@@ -134,13 +137,19 @@ let browser, server
   await ready()
   await page.locator('.paper-added').first().click()
   assert.equal(await added().count(), 2)
-  await page.getByRole('button', { name: '展开筛选', exact: true }).click()
   await page.getByRole('button', { name: '函数与导数', exact: true }).click()
   await page.waitForTimeout(350)
   assert.ok(queries.at(-1).getAll('tag').includes('函数与导数'))
   assert.equal(await added().count(), 2)
-  await page.getByRole('button', { name: /更多条件：/ }).click()
-  await page.getByRole('button', { name: '新高考Ⅱ卷', exact: true }).click()
+  assert.equal(new URL(page.url()).pathname, '/paper')
+  await page
+    .getByRole('group', { name: '来源', exact: true })
+    .getByRole('button', { name: '更多', exact: true })
+    .click()
+  await page
+    .getByRole('dialog', { name: '所有来源' })
+    .getByRole('button', { name: '新高考Ⅱ卷', exact: true })
+    .click()
   await page.waitForTimeout(350)
   assert.equal(queries.at(-1).get('source'), 'national-new-2')
   await page.getByRole('button', { name: '收起筛选', exact: true }).click()
@@ -239,9 +248,11 @@ let browser, server
   await page.getByRole('button', { name: '重试', exact: true }).click()
   await page.waitForTimeout(200)
   slow = true
-  await page.getByLabel('搜索题目', { exact: true }).fill('集合')
+  await page.getByLabel('关键词', { exact: true }).fill('集合')
+  await page.getByRole('button', { name: '查找题目', exact: true }).click()
   await page.waitForTimeout(300)
-  await page.getByLabel('搜索题目', { exact: true }).fill('函数')
+  await page.getByLabel('关键词', { exact: true }).fill('函数')
+  await page.getByRole('button', { name: '查找题目', exact: true }).click()
   await page.waitForTimeout(850)
   assert.equal(queries.at(-1).get('keyword'), '函数')
   await page.setViewportSize({ width: 390, height: 844 })

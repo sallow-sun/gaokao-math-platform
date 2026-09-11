@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { tagCatalog, refreshTagCatalog } from '../../services/tagCatalog.js'
+const props = defineProps({ routeName: { type: String, default: 'problems' } })
 const route = useRoute(),
   router = useRouter()
 const tree = tagCatalog,
@@ -99,7 +100,7 @@ function select(name) {
     : []
   const query = { ...route.query, tag: tags.length ? tags : undefined }
   delete query.page
-  router.push({ name: 'problems', query })
+  router.push({ name: props.routeName, query })
 }
 </script>
 <template>
