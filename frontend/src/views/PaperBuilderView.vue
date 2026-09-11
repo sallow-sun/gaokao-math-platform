@@ -518,31 +518,10 @@ onBeforeUnmount(() => {
     class="paper-builder"
     :class="{ 'is-preview': preview, 'is-dragging': drag, 'is-laying-out': layingOut }"
   >
-    <header class="paper-topbar">
-      <div>
-        <p class="paper-eyebrow">MATHSEA · PAPER STUDIO</p>
-        <h1>自主组卷 <span>筛选选题 · 拖入试卷 · 预览打印</span></h1>
-      </div>
-      <div class="paper-top-actions">
-        <span class="paper-save-state">{{ storageMessage }}</span>
-        <button :disabled="!history.length" @click="undo">↶ 撤销</button>
-        <button :aria-pressed="preview" @click="preview = !preview">
-          {{ preview ? '← 返回编辑' : '预览打印' }}
-        </button>
-        <button
-          class="paper-primary"
-          :disabled="!items.length || layingOut || !!layoutError || printing"
-          @click="printPaper"
-        >
-          打印 / 存为 PDF
-        </button>
-      </div>
-    </header>
     <div class="paper-workbench" :style="{ '--bank-width': `${bankWidth}%` }">
       <aside v-show="!preview" class="paper-bank" aria-label="选题题库">
         <div class="paper-bank-head">
           <div>
-            <span class="paper-step">01</span>
             <h2>选题区</h2>
           </div>
           <button class="paper-link" @click="filterOpen = !filterOpen">
@@ -695,10 +674,24 @@ onBeforeUnmount(() => {
       <section class="paper-editor" aria-label="试卷工作区">
         <div class="paper-editor-head">
           <div>
-            <span class="paper-step">02</span>
             <h2>{{ preview ? '打印预览' : '试卷工作区' }}</h2>
             <span class="paper-count">{{ items.length }} 题 · {{ pages.length }} 页</span>
           </div>
+          <div class="paper-top-actions">
+            <button :disabled="!history.length" @click="undo">↶ 撤销</button>
+            <button :aria-pressed="preview" @click="preview = !preview">
+              {{ preview ? '← 返回编辑' : '预览打印' }}
+            </button>
+            <button
+              class="paper-primary"
+              :disabled="!items.length || layingOut || !!layoutError || printing"
+              @click="printPaper"
+            >
+              打印 / 存为 PDF
+            </button>
+          </div>
+        </div>
+        <div class="paper-view-toolbar">
           <div class="paper-editor-options">
             <select v-model="size" aria-label="纸张尺寸" @focus="checkpoint">
               <option value="a4">A4 纵向</option>
@@ -709,6 +702,7 @@ onBeforeUnmount(() => {
               <option v-for="z in [50, 75, 100, 125]" :key="z" :value="z">{{ z }}%</option>
             </select>
           </div>
+          <span class="paper-save-state">{{ storageMessage }}</span>
         </div>
         <div v-show="!preview" class="paper-document-options">
           <label>试卷名称<input v-model="title" maxlength="100" @focus="checkpoint" /></label
