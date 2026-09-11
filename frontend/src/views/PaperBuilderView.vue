@@ -24,10 +24,70 @@ import {
 } from '../utils/paperLayout.js'
 import '../assets/styles/paper-builder.css'
 
-const compose = ref(null)
 const searchText = ref('')
 function searchProblems() {
   updateKeyword(searchText.value)
+}
+const workbench = ref(null)
+const columnRatios = ref([0.17, 0.35, 0.48])
+const resizing = ref(false)
+const columnStyle = computed(() => ({
+  '--filter-fr': `${columnRatios.value[0]}fr`,
+  '--bank-fr': `${columnRatios.value[1]}fr`,
+  '--editor-fr': `${columnRatios.value[2]}fr`,
+}))
+let resizeSession = null
+function saveColumns() {
+  try {
+    localStorage.setItem('mathsea:paper-columns:v1', JSON.stringify(columnRatios.value))
+  } catch {
+    /* Optional preference. */
+  }
+}
+function resetColumns() {
+  columnRatios.value = [0.17, 0.35, 0.48]
+  saveColumns()
+}
+function resizeSnapshot(pair) {
+  const elements = ['.paper-filter-sidebar', '.paper-bank', '.paper-editor'].map((selector) =>
+    workbench.value.querySelector(selector),
+  )
+  const widths = elements.map((el) => el.getBoundingClientRect().width)
+  return { pair, widths, ratios: [...columnRatios.value] }
+}
+function applyResize(snapshot, delta) {
+  const { pair, widths, ratios } = snapshot
+  const min = [160, 240, 320]
+  const lower = min[pair] - widths[pair],
+    upper = widths[pair + 1] - min[pair + 1]
+  if (lower > upper) return
+  const shift = Math.max(lower, Math.min(upper, delta))
+  const total = ratios[pair] + ratios[pair + 1]
+  const left = ((widths[pair] + shift) / (widths[pair] + widths[pair + 1])) * total
+  const next = [...ratios]
+  next[pair] = left
+  next[pair + 1] = total - left
+  columnRatios.value = next
+}
+function beginResize(event, pair) {
+  if (event.button !== 0) return
+  resizeSession = { ...resizeSnapshot(pair), x: event.clientX }
+  resizing.value = true
+  event.currentTarget.setPointerCapture(event.pointerId)
+  event.preventDefault()
+}
+function resizeColumns(event) {
+  if (resizeSession) applyResize(resizeSession, event.clientX - resizeSession.x)
+}
+function endResize() {
+  if (!resizeSession) return
+  resizeSession = null
+  resizing.value = false
+  saveColumns()
+}
+function nudgeColumn(pair, delta) {
+  applyResize(resizeSnapshot(pair), delta)
+  saveColumns()
 }
 const title = ref('数学练习卷'),
   size = ref('a4'),
@@ -103,6 +163,9 @@ const narrowScreen = window.matchMedia('(max-width: 980px)')
 const filterOpen = ref(!narrowScreen.matches),
   zoom = ref(0.8),
   autoFit = ref(true)
+const activeIndex = computed(() =>
+  items.value.findIndex((item) => item.problem.id === activeId.value),
+)
 const selectedIds = computed(() => new Set(items.value.map((i) => i.problem.id)))
 function adaptFilters(event) {
   filterOpen.value = !event.matches
@@ -228,7 +291,7 @@ function clearPaper() {
 }
 function locate(id) {
   activeId.value = id
-  compose.value
+  workspace.value
     ?.querySelector(`[data-paper-id="${CSS.escape(id)}"]`)
     ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
 }
@@ -253,10 +316,10 @@ function endDrag() {
   cancelAnimationFrame(scrollFrame)
 }
 function scrollDrag() {
-  if (!drag.value || !compose.value) return
-  const box = compose.value.getBoundingClientRect()
+  if (!drag.value || !workspace.value) return
+  const box = workspace.value.getBoundingClientRect()
   const delta = lastDragY < box.top + 65 ? -14 : lastDragY > box.bottom - 65 ? 14 : 0
-  if (delta) compose.value.scrollTop += delta
+  if (delta) workspace.value.scrollTop += delta
   scrollFrame = requestAnimationFrame(scrollDrag)
 }
 function dragOver(event, index) {
@@ -281,7 +344,7 @@ function drop(event, index) {
   endDrag()
 }
 function fit() {
-  if (preview.value && autoFit.value && workspace.value)
+  if (autoFit.value && workspace.value)
     zoom.value = Math.min(
       1,
       Math.max(0.28, (workspace.value.clientWidth - 58) / (sheet.value.width * MM)),
@@ -480,6 +543,18 @@ function keydown(event) {
   }
 }
 onMounted(async () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('mathsea:paper-columns:v1') || 'null')
+    if (
+      Array.isArray(saved) &&
+      saved.length === 3 &&
+      saved.every((value) => Number.isFinite(value) && value > 0 && value < 1) &&
+      Math.abs(saved.reduce((a, b) => a + b, 0) - 1) < 0.001
+    )
+      columnRatios.value = saved
+  } catch {
+    /* Ignore invalid optional layout preference. */
+  }
   narrowScreen.addEventListener('change', adaptFilters)
   try {
     const saved = restorePaperDraft(localStorage.getItem(DRAFT_KEY))
@@ -520,7 +595,12 @@ onBeforeUnmount(() => {
     class="paper-builder"
     :class="{ 'is-preview': preview, 'is-dragging': drag, 'is-laying-out': layingOut }"
   >
-    <div class="paper-workbench" :class="{ 'filters-hidden': !filterOpen }">
+    <div
+      ref="workbench"
+      class="paper-workbench"
+      :class="{ 'filters-hidden': !filterOpen, 'is-resizing': resizing }"
+      :style="columnStyle"
+    >
       <aside v-show="!preview && filterOpen" class="paper-filter-sidebar" aria-label="筛选条件">
         <div class="paper-filter-title">
           <h2>筛选条件</h2>
@@ -560,6 +640,24 @@ onBeforeUnmount(() => {
           />
         </div>
       </aside>
+      <div
+        v-show="!preview && filterOpen"
+        class="paper-splitter splitter-0"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        aria-label="调整筛选区和题库宽度"
+        :aria-valuenow="Math.round(columnRatios[0] * 100)"
+        title="拖动调整宽度，双击恢复默认"
+        @pointerdown="beginResize($event, 0)"
+        @pointermove="resizeColumns"
+        @pointerup="endResize"
+        @pointercancel="endResize"
+        @lostpointercapture="endResize"
+        @dblclick="resetColumns"
+        @keydown.left.prevent="nudgeColumn(0, -24)"
+        @keydown.right.prevent="nudgeColumn(0, 24)"
+      />
       <section v-show="!preview" class="paper-bank" aria-label="选题题库">
         <div class="paper-bank-head">
           <h2>
@@ -675,6 +773,24 @@ onBeforeUnmount(() => {
           </button>
         </nav>
       </section>
+      <div
+        v-show="!preview"
+        class="paper-splitter splitter-1"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        aria-label="调整题库和试卷宽度"
+        :aria-valuenow="Math.round(columnRatios[1] * 100)"
+        title="拖动调整宽度，双击恢复默认"
+        @pointerdown="beginResize($event, 1)"
+        @pointermove="resizeColumns"
+        @pointerup="endResize"
+        @pointercancel="endResize"
+        @lostpointercapture="endResize"
+        @dblclick="resetColumns"
+        @keydown.left.prevent="nudgeColumn(1, -24)"
+        @keydown.right.prevent="nudgeColumn(1, 24)"
+      />
       <section class="paper-editor" aria-label="试卷工作区">
         <div class="paper-editor-head">
           <span class="paper-count"
@@ -694,7 +810,7 @@ onBeforeUnmount(() => {
         </div>
         <div class="paper-document-options">
           <h2>{{ preview ? '打印预览' : '我的试卷' }}</h2>
-          <span v-if="!preview">可直接拖拽调整顺序</span>
+          <span v-if="!preview">所见即所得 · 可拖动排序</span>
         </div>
         <div v-show="!preview" class="paper-title-field">
           <label for="paper-title">试卷名称</label
@@ -704,12 +820,10 @@ onBeforeUnmount(() => {
           <select v-model="size" aria-label="纸张尺寸" @focus="checkpoint">
             <option value="a4">A4 纵向</option>
             <option value="16k">16 开 · 原卷尺寸</option></select
-          ><template v-if="preview"
-            ><button :aria-pressed="autoFit" @click="fitWidth">适合宽度</button
-            ><select :value="Math.round(zoom * 100)" aria-label="预览缩放" @change="setZoom">
-              <option :value="Math.round(zoom * 100)">{{ Math.round(zoom * 100) }}%</option>
-              <option v-for="z in [50, 75, 100, 125]" :key="z" :value="z">{{ z }}%</option>
-            </select></template
+          ><button :aria-pressed="autoFit" @click="fitWidth">适合宽度</button
+          ><select :value="Math.round(zoom * 100)" aria-label="预览缩放" @change="setZoom">
+            <option :value="Math.round(zoom * 100)">{{ Math.round(zoom * 100) }}%</option>
+            <option v-for="z in [50, 75, 100, 125]" :key="z" :value="z">{{ z }}%</option></select
           ><span class="paper-save-state">{{ storageMessage }}</span>
         </div>
         <div class="paper-status" aria-live="polite">
@@ -717,92 +831,61 @@ onBeforeUnmount(() => {
             message ||
             (preview
               ? '检查分页、公式与配图；打印时可保存为 PDF。'
-              : '整张题卡均可拖动，题目顺序与打印保持一致。')
+              : '卷面即打印效果；点击题目调整留白，拖动题目调整顺序。')
           }}</span
           ><span v-if="layingOut">正在排版…</span>
         </div>
         <div v-if="layoutError" class="paper-error" role="alert">
           {{ layoutError }} <button @click="queueLayout">重试排版</button>
         </div>
-        <div
-          v-show="!preview"
-          ref="compose"
-          class="paper-compose"
-          @dragover="dragOver($event, items.length)"
-          @drop="drop($event, items.length)"
-        >
-          <article
-            v-for="(item, index) in items"
-            :key="item.problem.id"
-            class="paper-compose-card"
-            :class="{
-              'is-active': activeId === item.problem.id,
-              'is-drop-target': dropIndex === index,
-            }"
-            :data-paper-id="item.problem.id"
+        <div v-if="!preview && activeIndex >= 0" class="paper-item-tools" @click.stop>
+          <span class="paper-count">第 {{ activeIndex + 1 }} 题</span>
+          <button
+            class="paper-grip"
             draggable="true"
             @pointerdown="rememberDragOrigin"
-            @dragstart="startDrag($event, item.problem, index)"
+            @dragstart="startDrag($event, items[activeIndex].problem, activeIndex)"
             @dragend="endDrag"
-            @click="activeId = item.problem.id"
-            @dragover.stop="dragOverFragment($event, { index })"
-            @drop.stop="drop($event, dropIndex < 0 ? index : dropIndex)"
+            title="拖动排序"
+            :aria-label="`拖动第 ${activeIndex + 1} 题`"
           >
-            <header>
-              <span class="paper-type-chip" :data-type="item.problem.type">{{
-                item.problem.typeLabel || '题目'
-              }}</span
-              ><span>第 {{ index + 1 }} 题</span><small v-if="item.breakBefore">另起一页</small>
-            </header>
-            <div
-              class="paper-compose-question"
-              v-html="paperQuestionHtml({ ...item, space: 0 }, index)"
-            />
-            <div class="paper-item-tools" @click.stop>
-              <button class="paper-grip" title="拖动排序" :aria-label="`拖动第 ${index + 1} 题`">
-                ⠿
-              </button>
-              <button :disabled="index === 0" title="上移" @click="move(index, index - 1)">↑</button
-              ><button
-                :disabled="index === items.length - 1"
-                title="下移"
-                @click="move(index, index + 1)"
-              >
-                ↓
-              </button>
-              <select
-                :value="items[index].space"
-                :aria-label="`第 ${index + 1} 题答题留白`"
-                @change="changeItem(index, 'space', Number($event.target.value))"
-              >
-                <option :value="0">无留白</option>
-                <option :value="20">留白 · 少</option>
-                <option :value="40">留白 · 中</option>
-                <option :value="60">留白 · 多</option>
-              </select>
-              <button
-                :aria-pressed="items[index].breakBefore"
-                title="从新页开始"
-                @click="changeItem(index, 'breakBefore', !items[index].breakBefore)"
-              >
-                另起一页</button
-              ><button :aria-label="`移除第 ${index + 1} 题`" @click="remove(index)">×</button>
-            </div>
-          </article>
-          <div
-            class="paper-empty"
-            :class="{ 'is-drop-target': dropIndex === items.length }"
-            @dragover.stop="dragOver($event, items.length)"
-            @drop.stop="drop($event, items.length)"
+            ⠿
+          </button>
+          <button
+            :disabled="activeIndex === 0"
+            title="上移"
+            @click="move(activeIndex, activeIndex - 1)"
           >
-            <span class="paper-empty-icon">＋</span>
-            <h3>{{ items.length ? '继续添加题目' : '拖拽题目到这里' }}</h3>
-            <p>或点击题库中的「＋ 加入」</p>
-          </div>
+            ↑</button
+          ><button
+            :disabled="activeIndex === items.length - 1"
+            title="下移"
+            @click="move(activeIndex, activeIndex + 1)"
+          >
+            ↓
+          </button>
+          <select
+            :value="items[activeIndex].space"
+            :aria-label="`第 ${activeIndex + 1} 题答题留白`"
+            @change="changeItem(activeIndex, 'space', Number($event.target.value))"
+          >
+            <option :value="0">无留白</option>
+            <option :value="20">留白 · 少</option>
+            <option :value="40">留白 · 中</option>
+            <option :value="60">留白 · 多</option>
+          </select>
+          <button
+            :aria-pressed="items[activeIndex].breakBefore"
+            title="从新页开始"
+            @click="changeItem(activeIndex, 'breakBefore', !items[activeIndex].breakBefore)"
+          >
+            另起一页</button
+          ><button :aria-label="`移除第 ${activeIndex + 1} 题`" @click="remove(activeIndex)">
+            ×
+          </button>
         </div>
         <div
           ref="workspace"
-          v-show="preview"
           class="paper-canvas"
           @dragover="dragOver($event, items.length)"
           @drop="drop($event, items.length)"
@@ -829,6 +912,16 @@ onBeforeUnmount(() => {
                   本试卷共 {{ pages.length }} 页，{{ items.length }} 小题。请认真审题，规范作答。
                 </div>
               </header>
+              <div
+                v-if="!items.length && !preview"
+                class="paper-empty"
+                @dragover.stop="dragOver($event, 0)"
+                @drop.stop="drop($event, 0)"
+              >
+                <span class="paper-empty-icon">＋</span>
+                <h3>拖拽题目到这里</h3>
+                <p>或点击题库中的「＋ 加入」</p>
+              </div>
               <article
                 v-for="(fragment, fi) in page.fragments"
                 :key="`${fragment.index}:${fi}`"
@@ -838,6 +931,11 @@ onBeforeUnmount(() => {
                   'is-drop-target': dropIndex === fragment.index,
                 }"
                 :data-paper-id="items[fragment.index]?.problem.id"
+                :draggable="!preview && !layingOut"
+                @pointerdown="rememberDragOrigin"
+                @dragstart="startDrag($event, items[fragment.index].problem, fragment.index)"
+                @dragend="endDrag"
+                @click="activeId = items[fragment.index]?.problem.id"
                 :style="{ height: `${fragment.height}px` }"
                 @dragover.stop="dragOverFragment($event, fragment)"
                 @drop.stop="drop($event, dropIndex < 0 ? fragment.index : dropIndex)"

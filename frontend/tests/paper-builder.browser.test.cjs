@@ -109,6 +109,30 @@ let browser, server
   assert.equal(await page.locator('.paper-studio-nav').count(), 0)
   assert.equal(await page.locator('.study-navigation-link.is-active').innerText(), '组卷')
   assert.deepEqual(errors, [])
+  assert.equal(await page.locator('.paper-canvas:visible .paper-sheet').count(), 1)
+  assert.ok(await page.getByLabel('预览缩放').isVisible())
+  const firstSplitter = page.getByRole('separator', { name: '调整筛选区和题库宽度' })
+  const beforeFilter = await page.locator('.paper-filter-sidebar').boundingBox()
+  const handle = await firstSplitter.boundingBox()
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + 80)
+  await page.mouse.down()
+  await page.mouse.move(handle.x + handle.width / 2 + 45, handle.y + 80, { steps: 8 })
+  await page.mouse.up()
+  assert.ok(
+    (await page.locator('.paper-filter-sidebar').boundingBox()).width > beforeFilter.width + 30,
+  )
+  const secondSplitter = page.getByRole('separator', { name: '调整题库和试卷宽度' })
+  const beforeEditor = await page.locator('.paper-editor').boundingBox()
+  await secondSplitter.focus()
+  await page.keyboard.press('ArrowLeft')
+  assert.ok((await page.locator('.paper-editor').boundingBox()).width > beforeEditor.width + 15)
+  const savedColumns = await page.evaluate(() => localStorage.getItem('mathsea:paper-columns:v1'))
+  await page.reload({ waitUntil: 'networkidle' })
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem('mathsea:paper-columns:v1')),
+    savedColumns,
+  )
+  await firstSplitter.dblclick()
   const added = () => page.locator('.paper-source-card.is-added')
   const ready = () =>
     page.waitForFunction(
@@ -126,21 +150,21 @@ let browser, server
     4,
     'all four option formulas must be preserved',
   )
-  await page.locator('.paper-compose-card').nth(1).click()
+  await page.locator('.paper-fragment').nth(1).click()
   await page
-    .locator('.paper-compose-card')
+    .locator('.paper-fragment')
     .nth(1)
-    .locator('.paper-compose-question')
-    .dragTo(page.locator('.paper-compose-card').first(), { targetPosition: { x: 10, y: 2 } })
+    .locator('.paper-question-content')
+    .dragTo(page.locator('.paper-fragment').first(), { targetPosition: { x: 10, y: 2 } })
   await ready()
   assert.equal(
-    await page.locator('.paper-compose-card').first().getAttribute('data-paper-id'),
+    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
     'GS000010',
   )
   await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
   await ready()
-  await page.locator('.paper-compose-card').nth(1).click()
-  await page.locator('.paper-compose-card').nth(1).getByTitle('从新页开始').click()
+  await page.locator('.paper-fragment').nth(1).click()
+  await page.getByTitle('从新页开始').click()
   await ready()
   assert.equal(await page.locator('.paper-canvas .paper-sheet').count(), 2)
   await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
@@ -194,7 +218,7 @@ let browser, server
   await page.waitForTimeout(350)
   assert.notEqual(queries.at(-1).get('seed'), seed)
   assert.equal(queries.at(-1).get('page'), '1')
-  await page.locator('.paper-compose-card').first().click()
+  await page.locator('.paper-fragment').first().click()
   await page.getByLabel('第 1 题答题留白').selectOption('40')
   await ready()
   assert.ok(
@@ -203,17 +227,17 @@ let browser, server
       .first()
       .evaluate((el) => parseFloat(el.style.height) === 40),
   )
-  await page.locator('.paper-compose-card').nth(1).click()
-  await page.locator('.paper-compose-card').nth(1).getByTitle('上移', { exact: true }).click()
+  await page.locator('.paper-fragment').nth(1).click()
+  await page.getByTitle('上移', { exact: true }).click()
   await ready()
   assert.equal(
-    await page.locator('.paper-compose-card').first().getAttribute('data-paper-id'),
+    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
     'GS000010',
   )
   await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
   await ready()
   assert.equal(
-    await page.locator('.paper-compose-card').first().getAttribute('data-paper-id'),
+    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
     'GC000001',
   )
   await page.getByRole('button', { name: '添加题目 GS000098', exact: true }).click()
@@ -247,9 +271,9 @@ let browser, server
   assert.equal(
     await page.locator('#paper-print-root .paper-sheet').count(),
     await page.locator('.paper-canvas .paper-sheet').count(),
-    'printing directly from card editing includes every page',
+    'printing directly from the editable canvas includes every page',
   )
-  assert.equal(await page.locator('#paper-print-root .paper-compose-card').count(), 0)
+  assert.equal(await page.locator('#paper-print-root .paper-item-tools').count(), 0)
   await page.evaluate(() => {
     window.dispatchEvent(new Event('afterprint'))
     window.paperPrinted = false
@@ -282,7 +306,7 @@ let browser, server
   await page.reload({ waitUntil: 'networkidle' })
   await ready()
   assert.equal(await added().count(), 4)
-  await page.locator('.paper-compose-card').first().click()
+  await page.locator('.paper-fragment').first().click()
   await page.getByLabel('移除第 1 题', { exact: true }).click()
   await ready()
   assert.equal(await added().count(), 3)
