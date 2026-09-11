@@ -1,7 +1,5 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
-import { usePracticeListsStore } from '../stores/practiceLists.js'
 import MathText from '../components/content/MathText.vue'
 import { listProblems } from '../services/problemService.js'
 import ProblemsFilterPanel from '../components/problems/ProblemsFilterPanel.vue'
@@ -26,12 +24,6 @@ import {
 } from '../utils/paperLayout.js'
 import '../assets/styles/paper-builder.css'
 
-const account = usePracticeListsStore()
-const accountRoute = computed(() =>
-  account.authenticated
-    ? { name: 'user-profile', params: { userId: account.authUser?.id } }
-    : { name: 'login', query: { redirect: '/paper' } },
-)
 const compose = ref(null)
 const searchText = ref('')
 function searchProblems() {
@@ -528,20 +520,6 @@ onBeforeUnmount(() => {
     class="paper-builder"
     :class="{ 'is-preview': preview, 'is-dragging': drag, 'is-laying-out': layingOut }"
   >
-    <header class="paper-studio-nav">
-      <RouterLink :to="{ name: 'home' }" class="paper-studio-brand"
-        ><span class="paper-brand-mark">M</span><strong>MathVerse</strong
-        ><span>数学题库</span></RouterLink
-      >
-      <nav aria-label="主要页面">
-        <RouterLink :to="{ name: 'problems' }">题库</RouterLink>
-        <RouterLink :to="{ name: 'paper' }" aria-current="page" class="is-active">组卷</RouterLink>
-        <RouterLink :to="{ name: 'training' }">我的题单</RouterLink>
-      </nav>
-      <RouterLink :to="accountRoute" class="paper-account">{{
-        account.authUser?.username || '登录 / 注册'
-      }}</RouterLink>
-    </header>
     <div class="paper-workbench" :class="{ 'filters-hidden': !filterOpen }">
       <aside v-show="!preview && filterOpen" class="paper-filter-sidebar" aria-label="筛选条件">
         <div class="paper-filter-title">

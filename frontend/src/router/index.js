@@ -38,7 +38,7 @@ const router = createRouter({
       path: '/paper',
       name: 'paper',
       component: () => import('../views/PaperBuilderView.vue'),
-      meta: { studyNavigation: false, title: '自主组卷' },
+      meta: { studyNavigation: true, title: '自主组卷' },
     },
     {
       path: '/feedback',

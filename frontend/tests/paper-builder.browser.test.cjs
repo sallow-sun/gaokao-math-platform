@@ -105,7 +105,9 @@ let browser, server
     columns[0] < columns[1] && columns[1] < columns[2],
     'filters, bank and workspace must have separate columns',
   )
-  assert.equal(await page.locator('.study-navigation').count(), 0)
+  assert.equal(await page.locator('.study-navigation').count(), 1)
+  assert.equal(await page.locator('.paper-studio-nav').count(), 0)
+  assert.equal(await page.locator('.study-navigation-link.is-active').innerText(), '组卷')
   assert.deepEqual(errors, [])
   const added = () => page.locator('.paper-source-card.is-added')
   const ready = () =>
