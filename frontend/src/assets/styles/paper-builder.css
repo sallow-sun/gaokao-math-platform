@@ -59,6 +59,11 @@
   border-color: var(--paper-accent);
   color: #fff;
 }
+.paper-builder .paper-primary:hover:not(:disabled) {
+  background: var(--color-blue-900);
+  border-color: var(--color-blue-900);
+  color: #fff;
+}
 .paper-builder .paper-link {
   border: 0;
   background: transparent;
