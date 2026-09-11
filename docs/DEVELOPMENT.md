@@ -73,6 +73,8 @@ mvn verify
 
 ## 当前实现与入口
 
+自主组卷第一版见 [组卷说明](PAPER_BUILDER.md)：`/paper`、`PaperBuilderView.vue`、`paperLayout.js`；新增题库稳定随机排序，数据库迁移仍为 V12。
+
 | 功能 | 主要位置 |
 |---|---|
 | 题目上传、内容初审、待修改、修订 | `frontend/src/components/admin/EditorialWorkbench.vue`、后端 `admin/editorial/` |

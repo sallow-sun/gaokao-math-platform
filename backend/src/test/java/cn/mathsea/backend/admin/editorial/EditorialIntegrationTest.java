@@ -693,6 +693,35 @@ class EditorialIntegrationTest {
     mvc.perform(get("/api/v1/feedback/mine")).andExpect(status().isUnauthorized());
   }
 
+  @Test
+  void paperRandomOrderingIsStableAcrossPagesAndRespectsFilters() throws Exception {
+    String marker = "paper-seed-" + UUID.randomUUID();
+    for (int i = 0; i < 30; i++) {
+      db.update("INSERT INTO problems(problem_number,title,question_type,difficulty,content,created_at,deleted) VALUES(?,?,?,?,?,NOW() + (? * INTERVAL '1 second'),?)",
+          "TC" + String.format("%06d", 800000 + i), marker, i < 25 ? "single-choice" : "solution", "red", "测试题干", i, i == 24);
+    }
+    var first = paperQuery(marker, "random", "seed-one", 1, 12);
+    var second = paperQuery(marker, "random", "seed-one", 2, 12);
+    var all = paperQuery(marker, "random", "seed-one", 1, 100);
+    assertEquals(24, all.size());
+    assertEquals(first, paperQuery(marker, "random", "seed-one", 1, 12));
+    var combined = new ArrayList<>(first); combined.addAll(second);
+    assertEquals(all, combined);
+    assertEquals(24, new HashSet<>(combined).size());
+    assertNotEquals(all, paperQuery(marker, "random", "seed-two", 1, 100));
+    var newest = paperQuery(marker, "newest", "seed-one", 1, 12);
+    assertEquals("TC800023", newest.getFirst());
+    mvc.perform(get("/api/v1/problems").param("keyword", marker).param("type", "single-choice")
+        .param("sort", "random").param("seed", "seed-one").param("pageSize", "12"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(first.getFirst()));
+  }
+
+  private List<String> paperQuery(String keyword, String sort, String seed, int page, int pageSize) {
+    return publicProblems.query(new cn.mathsea.backend.problem.dto.ProblemQuery(keyword, List.of(), List.of(),
+        List.of("single-choice"), List.of(), List.of(), sort, page, pageSize, false, List.of(), List.of(), seed), null)
+        .items().stream().map(cn.mathsea.backend.problem.vo.ProblemListVO::id).toList();
+  }
+
   private long queryCurriculum(
       String number, boolean learning, List<String> learned, List<String> chapters) {
     return publicProblems

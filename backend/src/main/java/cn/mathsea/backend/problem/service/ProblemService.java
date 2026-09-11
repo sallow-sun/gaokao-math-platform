@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProblemService {
   private static final Set<String> SORTS =
-      Set.of("newest", "oldest", "easy-first", "hard-first", "view-most", "star-most");
+      Set.of("newest", "oldest", "easy-first", "hard-first", "view-most", "star-most", "random");
 
   private final ProblemMapper problemMapper;
   private final ProblemSourceMapper sourceMapper;
@@ -70,6 +70,7 @@ public class ProblemService {
             tags,
             tags.size(),
             sort,
+            q.seed() == null ? "0" : q.seed().substring(0, Math.min(80, q.seed().length())),
             pageSize,
             (page - 1) * pageSize,
             q.learning(),

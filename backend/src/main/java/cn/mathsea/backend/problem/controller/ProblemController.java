@@ -25,6 +25,7 @@ public class ProblemController {
       @RequestParam(required = false, name = "level") List<String> levels,
       @RequestParam(required = false, name = "tag") List<String> tags,
       @RequestParam(defaultValue = "newest") String sort,
+      @RequestParam(defaultValue = "0") String seed,
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "20") int pageSize,
       @RequestParam(defaultValue = "false") boolean learning,
@@ -34,7 +35,7 @@ public class ProblemController {
     return problemService.query(
         new ProblemQuery(
             keyword, years, sources, types, levels, tags, sort, page, pageSize, learning, learned,
-            chapters),
+            chapters, seed),
         SecurityUtils.userIdOrNull(authentication));
   }
 

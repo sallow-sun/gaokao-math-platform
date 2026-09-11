@@ -70,12 +70,14 @@
 - `level`
 - `tag`
 - `sort`
+- `seed`：随机排序种子（默认 `0`，最多使用前 80 字符）；翻页保留相同值，换一批使用新值。
 - `page`
 - `pageSize`
 
 排序：
 
 - `newest`
+- `random`：在全部筛选结果中按种子稳定随机排序。
 - `oldest`
 - `easy-first`
 - `hard-first`

@@ -91,6 +91,7 @@
         LEFT JOIN problem_sources ps ON ps.code=p.source_code
         <include refid="filters"/>
         <choose>
+            <when test="sort == 'random'">ORDER BY md5(p.id::text || ':' || #{seed}), p.id</when>
             <when test="sort == 'newest'">ORDER BY p.created_at DESC, p.id DESC</when>
             <when test="sort == 'oldest'">ORDER BY p.created_at ASC, p.id ASC</when>
             <when test="sort == 'view-most'">ORDER BY p.view_count DESC, p.id DESC</when>

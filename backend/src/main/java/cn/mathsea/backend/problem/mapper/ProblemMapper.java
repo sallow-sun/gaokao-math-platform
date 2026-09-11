@@ -17,6 +17,7 @@ public interface ProblemMapper extends BaseMapper<Problem> {
       @Param("tags") List<String> tags,
       @Param("tagCount") int tagCount,
       @Param("sort") String sort,
+      @Param("seed") String seed,
       @Param("limit") int limit,
       @Param("offset") int offset,
       @Param("learning") boolean learning,

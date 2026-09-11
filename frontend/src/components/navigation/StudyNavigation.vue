@@ -40,6 +40,13 @@ const baseNavigationItems = [
       'M8 15h8',
     ],
   },
+  {
+    key: 'paper',
+    label: '组卷',
+    route: { name: 'paper' },
+    routeNames: ['paper'],
+    iconPaths: ['M6 3h9l4 4v14H6z', 'M14 3v5h5', 'M9 12h7', 'M9 16h7'],
+  },
 ]
 const navigationItems = computed(() => {
   const items = baseNavigationItems.map((item) =>

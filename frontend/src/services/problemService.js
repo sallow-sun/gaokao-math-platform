@@ -88,6 +88,7 @@ export async function listProblems(query = {}, { signal } = {}) {
   appendQueryValue(params, 'level', query.levels)
   appendQueryValue(params, 'tag', query.tags)
   appendQueryValue(params, 'sort', query.sort)
+  appendQueryValue(params, 'seed', query.seed)
   appendQueryValue(params, 'page', query.page ?? 1)
   appendQueryValue(params, 'pageSize', query.pageSize ?? 20)
 
