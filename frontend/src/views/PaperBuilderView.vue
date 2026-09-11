@@ -1,12 +1,13 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
+import { usePracticeListsStore } from '../stores/practiceLists.js'
 import MathText from '../components/content/MathText.vue'
 import { listProblems } from '../services/problemService.js'
 import ProblemsFilterPanel from '../components/problems/ProblemsFilterPanel.vue'
 import { useProblemsQuery } from '../composables/useProblemsQuery.js'
 import { useProblemsFilterPreferences } from '../composables/useProblemsFilterPreferences.js'
 import {
-  PROBLEMS_TYPE_OPTIONS,
   PROBLEMS_TYPE_CATALOG_OPTIONS,
   PROBLEMS_LEVEL_OPTIONS,
   PROBLEMS_YEAR_CATALOG_OPTIONS,
@@ -25,6 +26,17 @@ import {
 } from '../utils/paperLayout.js'
 import '../assets/styles/paper-builder.css'
 
+const account = usePracticeListsStore()
+const accountRoute = computed(() =>
+  account.authenticated
+    ? { name: 'user-profile', params: { userId: account.authUser?.id } }
+    : { name: 'login', query: { redirect: '/paper' } },
+)
+const compose = ref(null)
+const searchText = ref('')
+function searchProblems() {
+  updateKeyword(searchText.value)
+}
 const title = ref('数学练习卷'),
   size = ref('a4'),
   items = ref([]),
@@ -81,37 +93,33 @@ function updateFilterMode(mode) {
 }
 const sort = ref('newest'),
   seed = ref(crypto.randomUUID())
-const expandedSources = ref(new Set()),
-  bankWidth = ref(40)
+const expandedSources = ref(new Set())
 function toggleSource(id) {
   const expanded = new Set(expandedSources.value)
   if (expanded.has(id)) expanded.delete(id)
   else expanded.add(id)
   expandedSources.value = expanded
 }
-function resizeBank(event) {
-  event.currentTarget.setPointerCapture(event.pointerId)
-}
-function moveDivider(event) {
-  if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
-  const box = event.currentTarget.parentElement.getBoundingClientRect()
-  bankWidth.value = Math.max(30, Math.min(55, ((event.clientX - box.left) / box.width) * 100))
-}
-const filterOpen = ref(true),
+watch(
+  () => filters.value.keyword,
+  (value) => {
+    searchText.value = value
+  },
+  { immediate: true },
+)
+const narrowScreen = window.matchMedia('(max-width: 980px)')
+const filterOpen = ref(!narrowScreen.matches),
   zoom = ref(0.8),
   autoFit = ref(true)
 const selectedIds = computed(() => new Set(items.value.map((i) => i.problem.id)))
+function adaptFilters(event) {
+  filterOpen.value = !event.matches
+}
 const sheet = computed(() => PAPER_SIZES[size.value])
 const sheetStyle = computed(() => ({
   '--paper-width': `${sheet.value.width}mm`,
   '--paper-height': `${sheet.value.height}mm`,
 }))
-const counts = computed(() =>
-  PROBLEMS_TYPE_OPTIONS.filter((o) => o.value).map((o) => ({
-    ...o,
-    count: items.value.filter((i) => i.problem.type === o.value).length,
-  })),
-)
 const state = () => ({ version: 1, title: title.value, size: size.value, items: items.value })
 let request,
   requestId = 0,
@@ -228,7 +236,7 @@ function clearPaper() {
 }
 function locate(id) {
   activeId.value = id
-  workspace.value
+  compose.value
     ?.querySelector(`[data-paper-id="${CSS.escape(id)}"]`)
     ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
 }
@@ -253,10 +261,10 @@ function endDrag() {
   cancelAnimationFrame(scrollFrame)
 }
 function scrollDrag() {
-  if (!drag.value || !workspace.value) return
-  const box = workspace.value.getBoundingClientRect()
+  if (!drag.value || !compose.value) return
+  const box = compose.value.getBoundingClientRect()
   const delta = lastDragY < box.top + 65 ? -14 : lastDragY > box.bottom - 65 ? 14 : 0
-  if (delta) workspace.value.scrollTop += delta
+  if (delta) compose.value.scrollTop += delta
   scrollFrame = requestAnimationFrame(scrollDrag)
 }
 function dragOver(event, index) {
@@ -281,7 +289,7 @@ function drop(event, index) {
   endDrag()
 }
 function fit() {
-  if (autoFit.value && workspace.value)
+  if (preview.value && autoFit.value && workspace.value)
     zoom.value = Math.min(
       1,
       Math.max(0.28, (workspace.value.clientWidth - 58) / (sheet.value.width * MM)),
@@ -480,6 +488,7 @@ function keydown(event) {
   }
 }
 onMounted(async () => {
+  narrowScreen.addEventListener('change', adaptFilters)
   try {
     const saved = restorePaperDraft(localStorage.getItem(DRAFT_KEY))
     if (saved) {
@@ -499,6 +508,7 @@ onMounted(async () => {
   queueLayout()
 })
 onBeforeUnmount(() => {
+  narrowScreen.removeEventListener('change', adaptFilters)
   disposed = true
   request?.abort()
   resizeObserver?.disconnect()
@@ -518,17 +528,29 @@ onBeforeUnmount(() => {
     class="paper-builder"
     :class="{ 'is-preview': preview, 'is-dragging': drag, 'is-laying-out': layingOut }"
   >
-    <div class="paper-workbench" :style="{ '--bank-width': `${bankWidth}%` }">
-      <aside v-show="!preview" class="paper-bank" aria-label="选题题库">
-        <div class="paper-bank-head">
-          <div>
-            <h2>选题区</h2>
-          </div>
-          <button class="paper-link" @click="filterOpen = !filterOpen">
-            {{ filterOpen ? '收起筛选' : '展开筛选' }}
+    <header class="paper-studio-nav">
+      <RouterLink :to="{ name: 'home' }" class="paper-studio-brand"
+        ><span class="paper-brand-mark">M</span><strong>MathVerse</strong
+        ><span>数学题库</span></RouterLink
+      >
+      <nav aria-label="主要页面">
+        <RouterLink :to="{ name: 'problems' }">题库</RouterLink>
+        <RouterLink :to="{ name: 'paper' }" aria-current="page" class="is-active">组卷</RouterLink>
+        <RouterLink :to="{ name: 'training' }">我的题单</RouterLink>
+      </nav>
+      <RouterLink :to="accountRoute" class="paper-account">{{
+        account.authUser?.username || '登录 / 注册'
+      }}</RouterLink>
+    </header>
+    <div class="paper-workbench" :class="{ 'filters-hidden': !filterOpen }">
+      <aside v-show="!preview && filterOpen" class="paper-filter-sidebar" aria-label="筛选条件">
+        <div class="paper-filter-title">
+          <h2>筛选条件</h2>
+          <button class="paper-link" aria-label="收起筛选" @click="filterOpen = false">
+            收起筛选 ‹
           </button>
         </div>
-        <div v-show="filterOpen" class="paper-shared-filters">
+        <div class="paper-shared-filters">
           <ProblemsFilterPanel
             route-name="paper"
             :filter-mode="filterMode"
@@ -559,8 +581,24 @@ onBeforeUnmount(() => {
             @type-pin-change="setFilterPinned('type', $event.value, $event.pinned)"
           />
         </div>
+      </aside>
+      <section v-show="!preview" class="paper-bank" aria-label="选题题库">
+        <div class="paper-bank-head">
+          <h2>
+            题库 <small>共 {{ total }} 道题</small>
+          </h2>
+          <button v-if="!filterOpen" class="paper-link" @click="filterOpen = true">展开筛选</button>
+        </div>
+        <form class="paper-search" role="search" @submit.prevent="searchProblems">
+          <input
+            v-model="searchText"
+            type="search"
+            aria-label="搜索题目"
+            placeholder="搜索题号、来源或知识点…"
+          /><button type="submit">搜索</button>
+        </form>
         <div class="paper-sortbar">
-          <span>{{ loading ? '正在筛选…' : `找到 ${total} 题` }}</span
+          <span>{{ loading ? '正在筛选…' : '拖动题卡，或点击加入' }}</span
           ><select v-model="sort" aria-label="题目排序">
             <option value="newest">新题优先</option>
             <option value="random">随机排序</option>
@@ -597,9 +635,11 @@ onBeforeUnmount(() => {
             @dragend="endDrag"
           >
             <header>
+              <span class="paper-type-chip" :data-type="problem.type">{{ problem.typeLabel }}</span>
+              <span v-for="tag in problem.tags?.slice(0, 2)" :key="tag" class="paper-tag-chip">{{
+                tag
+              }}</span>
               <span class="paper-grip" title="整张题卡均可拖动">⠿</span
-              ><span
-                >{{ problem.typeLabel }} <small>{{ problem.id }}</small></span
               ><button
                 v-if="selectedIds.has(problem.id)"
                 class="paper-added"
@@ -643,7 +683,8 @@ onBeforeUnmount(() => {
               {{ expandedSources.has(problem.id) ? '收起长题 ↑' : '展开完整题目 ↓' }}
             </button>
             <footer>
-              {{ problem.sourceText }}<span>{{ problem.tags?.join(' · ') }}</span>
+              <span>{{ problem.sourceText }}</span
+              ><small>{{ problem.id }}</small>
             </footer>
           </article>
         </div>
@@ -655,34 +696,16 @@ onBeforeUnmount(() => {
             下一页
           </button>
         </nav>
-      </aside>
-      <div
-        v-show="!preview"
-        class="paper-divider"
-        role="separator"
-        tabindex="0"
-        aria-label="调整题库和试卷宽度"
-        aria-orientation="vertical"
-        :aria-valuenow="Math.round(bankWidth)"
-        :aria-valuemin="30"
-        :aria-valuemax="55"
-        @pointerdown="resizeBank"
-        @pointermove="moveDivider"
-        @keydown.left.prevent="bankWidth = Math.max(30, bankWidth - 2)"
-        @keydown.right.prevent="bankWidth = Math.min(55, bankWidth + 2)"
-      />
+      </section>
       <section class="paper-editor" aria-label="试卷工作区">
         <div class="paper-editor-head">
-          <div>
-            <h2>{{ preview ? '打印预览' : '试卷工作区' }}</h2>
-            <span class="paper-count">{{ items.length }} 题 · {{ pages.length }} 页</span>
-          </div>
+          <span class="paper-count"
+            >已添加 <b>{{ items.length }}</b> 题 · {{ pages.length }} 页</span
+          >
           <div class="paper-top-actions">
-            <button :disabled="!history.length" @click="undo">↶ 撤销</button>
             <button :aria-pressed="preview" @click="preview = !preview">
-              {{ preview ? '← 返回编辑' : '预览打印' }}
-            </button>
-            <button
+              {{ preview ? '← 返回编辑' : '预览打印' }}</button
+            ><button
               class="paper-primary"
               :disabled="!items.length || layingOut || !!layoutError || printing"
               @click="printPaper"
@@ -691,29 +714,32 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
+        <div class="paper-document-options">
+          <h2>{{ preview ? '打印预览' : '我的试卷' }}</h2>
+          <span v-if="!preview">可直接拖拽调整顺序</span>
+        </div>
+        <div v-show="!preview" class="paper-title-field">
+          <label for="paper-title">试卷名称</label
+          ><input id="paper-title" v-model="title" maxlength="100" @focus="checkpoint" />
+        </div>
         <div class="paper-view-toolbar">
-          <div class="paper-editor-options">
-            <select v-model="size" aria-label="纸张尺寸" @focus="checkpoint">
-              <option value="a4">A4 纵向</option>
-              <option value="16k">16 开 · 原卷尺寸</option></select
+          <select v-model="size" aria-label="纸张尺寸" @focus="checkpoint">
+            <option value="a4">A4 纵向</option>
+            <option value="16k">16 开 · 原卷尺寸</option></select
+          ><template v-if="preview"
             ><button :aria-pressed="autoFit" @click="fitWidth">适合宽度</button
             ><select :value="Math.round(zoom * 100)" aria-label="预览缩放" @change="setZoom">
               <option :value="Math.round(zoom * 100)">{{ Math.round(zoom * 100) }}%</option>
               <option v-for="z in [50, 75, 100, 125]" :key="z" :value="z">{{ z }}%</option>
-            </select>
-          </div>
-          <span class="paper-save-state">{{ storageMessage }}</span>
-        </div>
-        <div v-show="!preview" class="paper-document-options">
-          <label>试卷名称<input v-model="title" maxlength="100" @focus="checkpoint" /></label
-          ><button :disabled="!items.length" @click="clearPaper">清空试卷</button>
+            </select></template
+          ><span class="paper-save-state">{{ storageMessage }}</span>
         </div>
         <div class="paper-status" aria-live="polite">
           <span>{{
             message ||
             (preview
-              ? '检查分页、公式与配图；打印对话框中可保存为 PDF。'
-              : '拖动整张题卡加入试卷；卷面题目也可直接拖动排序。')
+              ? '检查分页、公式与配图；打印时可保存为 PDF。'
+              : '整张题卡均可拖动，题目顺序与打印保持一致。')
           }}</span
           ><span v-if="layingOut">正在排版…</span>
         </div>
@@ -721,7 +747,84 @@ onBeforeUnmount(() => {
           {{ layoutError }} <button @click="queueLayout">重试排版</button>
         </div>
         <div
+          v-show="!preview"
+          ref="compose"
+          class="paper-compose"
+          @dragover="dragOver($event, items.length)"
+          @drop="drop($event, items.length)"
+        >
+          <article
+            v-for="(item, index) in items"
+            :key="item.problem.id"
+            class="paper-compose-card"
+            :class="{
+              'is-active': activeId === item.problem.id,
+              'is-drop-target': dropIndex === index,
+            }"
+            :data-paper-id="item.problem.id"
+            draggable="true"
+            @pointerdown="rememberDragOrigin"
+            @dragstart="startDrag($event, item.problem, index)"
+            @dragend="endDrag"
+            @click="activeId = item.problem.id"
+            @dragover.stop="dragOverFragment($event, { index })"
+            @drop.stop="drop($event, dropIndex < 0 ? index : dropIndex)"
+          >
+            <header>
+              <span class="paper-type-chip" :data-type="item.problem.type">{{
+                item.problem.typeLabel || '题目'
+              }}</span
+              ><span>第 {{ index + 1 }} 题</span><small v-if="item.breakBefore">另起一页</small>
+            </header>
+            <div
+              class="paper-compose-question"
+              v-html="paperQuestionHtml({ ...item, space: 0 }, index)"
+            />
+            <div class="paper-item-tools" @click.stop>
+              <button class="paper-grip" title="拖动排序" :aria-label="`拖动第 ${index + 1} 题`">
+                ⠿
+              </button>
+              <button :disabled="index === 0" title="上移" @click="move(index, index - 1)">↑</button
+              ><button
+                :disabled="index === items.length - 1"
+                title="下移"
+                @click="move(index, index + 1)"
+              >
+                ↓
+              </button>
+              <select
+                :value="items[index].space"
+                :aria-label="`第 ${index + 1} 题答题留白`"
+                @change="changeItem(index, 'space', Number($event.target.value))"
+              >
+                <option :value="0">无留白</option>
+                <option :value="20">留白 · 少</option>
+                <option :value="40">留白 · 中</option>
+                <option :value="60">留白 · 多</option>
+              </select>
+              <button
+                :aria-pressed="items[index].breakBefore"
+                title="从新页开始"
+                @click="changeItem(index, 'breakBefore', !items[index].breakBefore)"
+              >
+                另起一页</button
+              ><button :aria-label="`移除第 ${index + 1} 题`" @click="remove(index)">×</button>
+            </div>
+          </article>
+          <div
+            class="paper-empty"
+            :class="{ 'is-drop-target': dropIndex === items.length }"
+            @dragover.stop="dragOver($event, items.length)"
+            @drop.stop="drop($event, items.length)"
+          >
+            <span class="paper-empty-icon">＋</span>
+            <h3>{{ items.length ? '继续添加题目' : '拖拽题目到这里' }}</h3>
+            <p>或点击题库中的「＋ 加入」</p>
+          </div>
+        </div>
+        <div
           ref="workspace"
+          v-show="preview"
           class="paper-canvas"
           @dragover="dragOver($event, items.length)"
           @drop="drop($event, items.length)"
@@ -748,17 +851,6 @@ onBeforeUnmount(() => {
                   本试卷共 {{ pages.length }} 页，{{ items.length }} 小题。请认真审题，规范作答。
                 </div>
               </header>
-              <div
-                v-if="!items.length && !preview"
-                class="paper-empty"
-                @dragover.stop="dragOver($event, 0)"
-                @drop.stop="drop($event, 0)"
-              >
-                <div class="paper-empty-icon">＋</div>
-                <h3>把第一道题拖到这里</h3>
-                <p>也可以点击左侧题目的「＋ 加入」</p>
-                <span>选好题，试卷就开始成形。</span>
-              </div>
               <article
                 v-for="(fragment, fi) in page.fragments"
                 :key="`${fragment.index}:${fi}`"
@@ -768,12 +860,7 @@ onBeforeUnmount(() => {
                   'is-drop-target': dropIndex === fragment.index,
                 }"
                 :data-paper-id="items[fragment.index]?.problem.id"
-                :draggable="!preview && !layingOut"
-                @pointerdown="rememberDragOrigin"
-                @dragstart="startDrag($event, items[fragment.index].problem, fragment.index)"
-                @dragend="endDrag"
                 :style="{ height: `${fragment.height}px` }"
-                @click="activeId = items[fragment.index]?.problem.id"
                 @dragover.stop="dragOverFragment($event, fragment)"
                 @drop.stop="drop($event, dropIndex < 0 ? fragment.index : dropIndex)"
               >
@@ -790,56 +877,6 @@ onBeforeUnmount(() => {
                     v-html="fragment.html"
                   />
                 </div>
-                <div
-                  v-if="!preview && fragment.first && items[fragment.index]"
-                  class="paper-item-tools"
-                  @click.stop
-                >
-                  <button
-                    class="paper-grip"
-                    title="拖动排序"
-                    :aria-label="`拖动第 ${fragment.index + 1} 题`"
-                  >
-                    ⠿
-                  </button>
-                  <button
-                    :disabled="fragment.index === 0"
-                    title="上移"
-                    @click="move(fragment.index, fragment.index - 1)"
-                  >
-                    ↑</button
-                  ><button
-                    :disabled="fragment.index === items.length - 1"
-                    title="下移"
-                    @click="move(fragment.index, fragment.index + 1)"
-                  >
-                    ↓
-                  </button>
-                  <select
-                    :value="items[fragment.index].space"
-                    :aria-label="`第 ${fragment.index + 1} 题答题留白`"
-                    @change="changeItem(fragment.index, 'space', Number($event.target.value))"
-                  >
-                    <option :value="0">无留白</option>
-                    <option :value="20">留白 · 少</option>
-                    <option :value="40">留白 · 中</option>
-                    <option :value="60">留白 · 多</option>
-                  </select>
-                  <button
-                    :aria-pressed="items[fragment.index].breakBefore"
-                    title="从新页开始"
-                    @click="
-                      changeItem(fragment.index, 'breakBefore', !items[fragment.index].breakBefore)
-                    "
-                  >
-                    另起一页</button
-                  ><button
-                    :aria-label="`移除第 ${fragment.index + 1} 题`"
-                    @click="remove(fragment.index)"
-                  >
-                    ×
-                  </button>
-                </div>
               </article>
               <div
                 v-if="drag && pageIndex === pages.length - 1 && dropIndex === items.length"
@@ -853,13 +890,17 @@ onBeforeUnmount(() => {
             </section>
           </div>
         </div>
+
         <footer class="paper-workspace-footer">
           <div>
-            <span v-for="c in counts" :key="c.value"
-              >{{ c.label }} <b>{{ c.count }}</b></span
-            >
+            <strong>共 {{ items.length }} 题</strong
+            ><span>{{ PAPER_SIZES[size].label }} · {{ pages.length }} 页</span>
           </div>
-          <span>宋体 · 五号字 · {{ PAPER_SIZES[size].label }}</span>
+          <div>
+            <button :disabled="!history.length" @click="undo">↶ 撤销</button
+            ><button :disabled="!items.length" @click="clearPaper">清空试卷</button
+            ><button class="paper-primary" @click="persist">保存草稿</button>
+          </div>
         </footer>
       </section>
     </div>

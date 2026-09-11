@@ -98,6 +98,14 @@ let browser, server
   })
   await page.goto(origin + '/paper', { waitUntil: 'networkidle' })
   await page.screenshot({ path: path.join(root, '.tmp/paper-initial.png') })
+  const columns = await page
+    .locator('.paper-filter-sidebar, .paper-bank, .paper-editor')
+    .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().x))
+  assert.ok(
+    columns[0] < columns[1] && columns[1] < columns[2],
+    'filters, bank and workspace must have separate columns',
+  )
+  assert.equal(await page.locator('.study-navigation').count(), 0)
   assert.deepEqual(errors, [])
   const added = () => page.locator('.paper-source-card.is-added')
   const ready = () =>
@@ -116,21 +124,21 @@ let browser, server
     4,
     'all four option formulas must be preserved',
   )
-  await page.locator('.paper-fragment').nth(1).click()
+  await page.locator('.paper-compose-card').nth(1).click()
   await page
-    .locator('.paper-fragment')
+    .locator('.paper-compose-card')
     .nth(1)
-    .locator('.paper-question-content')
-    .dragTo(page.locator('.paper-fragment').first(), { targetPosition: { x: 10, y: 2 } })
+    .locator('.paper-compose-question')
+    .dragTo(page.locator('.paper-compose-card').first(), { targetPosition: { x: 10, y: 2 } })
   await ready()
   assert.equal(
-    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
+    await page.locator('.paper-compose-card').first().getAttribute('data-paper-id'),
     'GS000010',
   )
   await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
   await ready()
-  await page.locator('.paper-fragment').nth(1).click()
-  await page.locator('.paper-fragment').nth(1).getByTitle('从新页开始').click()
+  await page.locator('.paper-compose-card').nth(1).click()
+  await page.locator('.paper-compose-card').nth(1).getByTitle('从新页开始').click()
   await ready()
   assert.equal(await page.locator('.paper-canvas .paper-sheet').count(), 2)
   await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
@@ -152,6 +160,26 @@ let browser, server
     .click()
   await page.waitForTimeout(350)
   assert.equal(queries.at(-1).get('source'), 'national-new-2')
+  await page
+    .getByRole('group', { name: '学习进度', exact: true })
+    .getByRole('button', { name: '自定义', exact: true })
+    .click()
+  const chapters = page.getByRole('region', { name: '自定义学习进度' })
+  const chapterBox = await chapters.boundingBox()
+  assert.ok(
+    chapterBox.width >= 500 && chapterBox.x >= 0,
+    'chapter selector must escape the narrow sidebar',
+  )
+  await chapters.getByRole('checkbox').first().check()
+  await chapters.getByRole('button', { name: '应用筛选', exact: true }).click()
+  await page.waitForTimeout(350)
+  assert.equal(new URL(page.url()).pathname, '/paper')
+  assert.equal(queries.at(-1).get('learning'), 'true')
+  await page
+    .getByRole('group', { name: '学习进度', exact: true })
+    .getByRole('button', { name: '全部', exact: true })
+    .click()
+  await page.waitForTimeout(350)
   await page.getByRole('button', { name: '收起筛选', exact: true }).click()
   await page.getByLabel('题目排序').selectOption('random')
   await page.waitForTimeout(350)
@@ -164,30 +192,32 @@ let browser, server
   await page.waitForTimeout(350)
   assert.notEqual(queries.at(-1).get('seed'), seed)
   assert.equal(queries.at(-1).get('page'), '1')
-  await page.locator('.paper-fragment').first().click()
+  await page.locator('.paper-compose-card').first().click()
   await page.getByLabel('第 1 题答题留白').selectOption('40')
   await ready()
   assert.ok(
     await page
-      .locator('.paper-fragment .paper-answer-space')
+      .locator('.paper-canvas .paper-fragment .paper-answer-space')
       .first()
-      .evaluate((el) => el.getBoundingClientRect().height > 80),
+      .evaluate((el) => parseFloat(el.style.height) === 40),
   )
-  await page.locator('.paper-fragment').nth(1).click()
-  await page.locator('.paper-fragment').nth(1).getByTitle('上移', { exact: true }).click()
+  await page.locator('.paper-compose-card').nth(1).click()
+  await page.locator('.paper-compose-card').nth(1).getByTitle('上移', { exact: true }).click()
   await ready()
   assert.equal(
-    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
+    await page.locator('.paper-compose-card').first().getAttribute('data-paper-id'),
     'GS000010',
   )
   await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
   await ready()
   assert.equal(
-    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
+    await page.locator('.paper-compose-card').first().getAttribute('data-paper-id'),
     'GC000001',
   )
   await page.getByRole('button', { name: '添加题目 GS000098', exact: true }).click()
   await ready()
+  await page.getByRole('button', { name: '展开筛选', exact: true }).click()
+  await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await page.screenshot({ path: path.join(root, '.tmp/paper-desktop.png'), fullPage: true })
   await page.getByRole('button', { name: '添加题目 GS000099', exact: true }).click()
   await ready()
@@ -195,17 +225,37 @@ let browser, server
     (await page.locator('.paper-canvas .paper-sheet').count()) >= 3,
     'long question must paginate',
   )
-  assert.ok((await page.locator('[data-paper-id="GS000099"]').count()) >= 2)
-  const heights = await page.locator('[data-paper-id="GS000099"]').evaluateAll((els) =>
-    els.map((el) => ({
-      h: parseFloat(el.style.height),
-      offset: el.querySelector('.paper-question-content').style.transform,
-    })),
-  )
+  assert.ok((await page.locator('.paper-canvas [data-paper-id="GS000099"]').count()) >= 2)
+  const heights = await page
+    .locator('.paper-canvas [data-paper-id="GS000099"]')
+    .evaluateAll((els) =>
+      els.map((el) => ({
+        h: parseFloat(el.style.height),
+        offset: el.querySelector('.paper-question-content').style.transform,
+      })),
+    )
   assert.ok(heights.every((v) => v.h > 1))
+  await page.evaluate(() => {
+    window.print = () => {
+      window.paperPrinted = true
+    }
+  })
+  await page.getByRole('button', { name: '打印 / 存为 PDF', exact: true }).click()
+  await page.waitForFunction(() => window.paperPrinted)
+  assert.equal(
+    await page.locator('#paper-print-root .paper-sheet').count(),
+    await page.locator('.paper-canvas .paper-sheet').count(),
+    'printing directly from card editing includes every page',
+  )
+  assert.equal(await page.locator('#paper-print-root .paper-compose-card').count(), 0)
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('afterprint'))
+    window.paperPrinted = false
+  })
   await page.getByRole('button', { name: '预览打印', exact: true }).click()
   await ready()
   assert.equal(await page.locator('.paper-item-tools:visible').count(), 0)
+  assert.equal(await page.locator('.paper-filter-sidebar:visible').count(), 0)
   await page.evaluate(() => {
     window.print = () => {
       window.paperPrinted = true
@@ -230,7 +280,7 @@ let browser, server
   await page.reload({ waitUntil: 'networkidle' })
   await ready()
   assert.equal(await added().count(), 4)
-  await page.locator('.paper-fragment').first().click()
+  await page.locator('.paper-compose-card').first().click()
   await page.getByLabel('移除第 1 题', { exact: true }).click()
   await ready()
   assert.equal(await added().count(), 3)
@@ -248,15 +298,18 @@ let browser, server
   await page.getByRole('button', { name: '重试', exact: true }).click()
   await page.waitForTimeout(200)
   slow = true
-  await page.getByLabel('关键词', { exact: true }).fill('集合')
-  await page.getByRole('button', { name: '查找题目', exact: true }).click()
+  await page.getByLabel('搜索题目', { exact: true }).fill('集合')
+  await page.getByRole('button', { name: '搜索', exact: true }).click()
   await page.waitForTimeout(300)
-  await page.getByLabel('关键词', { exact: true }).fill('函数')
-  await page.getByRole('button', { name: '查找题目', exact: true }).click()
+  await page.getByLabel('搜索题目', { exact: true }).fill('函数')
+  await page.getByRole('button', { name: '搜索', exact: true }).click()
   await page.waitForTimeout(850)
   assert.equal(queries.at(-1).get('keyword'), '函数')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.waitForTimeout(250)
+  assert.equal(await page.locator('.paper-filter-sidebar:visible').count(), 0)
+  await page.getByRole('button', { name: '展开筛选', exact: true }).click()
+  await page.getByRole('button', { name: '收起筛选', exact: true }).click()
   assert.ok(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
     'mobile must not overflow horizontally',
