@@ -447,8 +447,17 @@
   background: rgb(9 31 49 / 48%);
 }
 
+.training-dialog,
+.training-dialog *,
+.training-dialog *::before,
+.training-dialog *::after {
+  box-sizing: border-box;
+}
+
 .training-dialog {
   --training-primary: #1d5687;
+  --training-primary-dark: #174f77;
+  --training-danger: #984b4d;
   width: min(100%, 520px);
   max-height: calc(100vh - 40px);
   padding: 24px;
@@ -494,7 +503,7 @@
   font-weight: 700;
 }
 
-.training-dialog input,
+.training-dialog input:not([type="checkbox"]),
 .training-dialog textarea {
   width: 100%;
   padding: 9px 11px;
@@ -503,6 +512,23 @@
   color: #0c2134;
   background: #ffffff;
   resize: vertical;
+}
+
+.training-dialog .training-list-visibility-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.training-dialog .training-list-visibility-option input[type='checkbox'] {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  padding: 0;
+  accent-color: var(--training-primary);
 }
 
 .training-dialog input[aria-invalid='true'] {
