@@ -8,6 +8,47 @@ export const PAPER_SIZES = {
 }
 export const MM = 96 / 25.4
 export const DRAFT_KEY = 'mathsea:paper-draft:v1'
+export const PAPER_TYPES = [
+  { type: 'single-choice', label: '单项选择题', score: 5 },
+  { type: 'multiple-choice', label: '多项选择题', score: 6 },
+  { type: 'fill-blank', label: '填空题', score: 5 },
+  { type: 'solution', label: '解答题', score: 12 },
+  { type: 'other', label: '其他题型', score: 5 },
+]
+export function paperType(type) {
+  return PAPER_TYPES.find((group) => group.type === type) || PAPER_TYPES.at(-1)
+}
+export function cleanScore(value, fallback = 5) {
+  const number = Number(value)
+  return value !== null && value !== '' && Number.isFinite(number) && number >= 0 && number <= 100
+    ? Math.round(number * 2) / 2
+    : fallback
+}
+export function groupPaperItems(items) {
+  return [...items].sort(
+    (a, b) =>
+      PAPER_TYPES.indexOf(paperType(a.problem.type)) -
+      PAPER_TYPES.indexOf(paperType(b.problem.type)),
+  )
+}
+export function paperSections(items) {
+  return PAPER_TYPES.map((group) => ({
+    ...group,
+    entries: items
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => paperType(item.problem.type).type === group.type),
+  }))
+    .filter((group) => group.entries.length)
+    .map((group, index) => {
+      const scores = group.entries.map(({ item }) => cleanScore(item.score, group.score))
+      const total = scores.reduce((sum, score) => sum + score, 0)
+      return {
+        ...group,
+        total,
+        heading: `${['一', '二', '三', '四', '五'][index]}、${group.label}（共 ${scores.length} 小题，${scores.every((score) => score === scores[0]) ? `每小题 ${scores[0]} 分，` : ''}共 ${total} 分）`,
+      }
+    })
+}
 
 export function cleanPaperProblem(problem) {
   return {
@@ -23,12 +64,13 @@ export function cleanPaperProblem(problem) {
   }
 }
 
-export function paperQuestionHtml(item, index) {
+export function paperQuestionHtml(item, index, heading = '') {
   const content = normalizeQuestionSpacing(stripPracticeListSourceNumber(item.problem.content))
   const assets = item.problem.assets.filter((a) => !content.includes(`](${a.url})`))
   const choices = splitPaperChoices(content)
   return (
-    `<div class="paper-question-text math-text"><span class="paper-question-number">${index + 1}．</span>${renderQuestionText(choices?.stem ?? content)}</div>` +
+    (heading ? `<h3 class="paper-section-heading">${escapeHtml(heading)}</h3>` : '') +
+    `<div class="paper-question-text math-text"><span class="paper-question-number">${index + 1}．</span>（${cleanScore(item.score, paperType(item.problem.type).score)} 分）${renderQuestionText(choices?.stem ?? content)}</div>` +
     (choices
       ? `<div class="paper-choices math-text">${choices.options.map((option, i) => `<div class="paper-choice"><span class="paper-choice-content">${'ABCD'[i]}．${renderQuestionText(option)}</span></div>`).join('')}</div>`
       : '') +
@@ -78,12 +120,17 @@ export function restorePaperDraft(raw) {
       problem: cleanPaperProblem(i.problem),
       space: [0, 20, 40, 60].includes(i.space) ? i.space : 0,
       breakBefore: Boolean(i.breakBefore),
+      score: cleanScore(i.score, paperType(i.problem.type).score),
     }))
   return {
     version: 1,
     title: String(value.title || '数学练习卷').slice(0, 100),
     size: PAPER_SIZES[value.size] ? value.size : 'a4',
-    items,
+    items: groupPaperItems(items),
+    targetScore:
+      Number.isFinite(value.targetScore) && value.targetScore >= 0 && value.targetScore <= 1000
+        ? value.targetScore
+        : 150,
   }
 }
 

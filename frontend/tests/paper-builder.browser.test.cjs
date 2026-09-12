@@ -151,19 +151,6 @@ let browser, server
     'all four option formulas must be preserved',
   )
   await page.locator('.paper-fragment').nth(1).click()
-  await page
-    .locator('.paper-fragment')
-    .nth(1)
-    .locator('.paper-question-content')
-    .dragTo(page.locator('.paper-fragment').first(), { targetPosition: { x: 10, y: 2 } })
-  await ready()
-  assert.equal(
-    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
-    'GS000010',
-  )
-  await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
-  await ready()
-  await page.locator('.paper-fragment').nth(1).click()
   await page.getByTitle('从新页开始').click()
   await ready()
   assert.equal(await page.locator('.paper-canvas .paper-sheet').count(), 2)
@@ -227,22 +214,57 @@ let browser, server
       .first()
       .evaluate((el) => parseFloat(el.style.height) === 40),
   )
-  await page.locator('.paper-fragment').nth(1).click()
-  await page.getByTitle('上移', { exact: true }).click()
-  await ready()
-  assert.equal(
-    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
-    'GS000010',
-  )
-  await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
-  await ready()
-  assert.equal(
-    await page.locator('.paper-fragment').first().getAttribute('data-paper-id'),
-    'GC000001',
-  )
   await page.getByRole('button', { name: '添加题目 GS000098', exact: true }).click()
   await ready()
   await page.getByRole('button', { name: '展开筛选', exact: true }).click()
+  await page.locator('.paper-canvas [data-paper-id="GS000098"]').first().click()
+  await page.getByLabel('移至题号', { exact: true }).selectOption('1')
+  await ready()
+  assert.equal(
+    await page.locator('.paper-fragment').nth(1).getAttribute('data-paper-id'),
+    'GS000098',
+  )
+  await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
+  await ready()
+  // A small pointer move must not start a drag or change order.
+  const sourceBox = await page
+    .locator('.paper-canvas [data-paper-id="GS000098"]')
+    .first()
+    .boundingBox()
+  await page.mouse.move(sourceBox.x + 25, sourceBox.y + 20)
+  await page.mouse.down()
+  await page.mouse.move(sourceBox.x + 29, sourceBox.y + 20)
+  assert.equal(await page.locator('.paper-drag-ghost').count(), 0)
+  await page.mouse.up()
+  await page
+    .locator('.paper-canvas [data-paper-id="GS000098"] .paper-question-content')
+    .first()
+    .dragTo(page.locator('.paper-canvas [data-paper-id="GS000010"]').first(), {
+      targetPosition: { x: 20, y: 2 },
+    })
+  await ready()
+  assert.equal(
+    await page.locator('.paper-fragment').nth(1).getAttribute('data-paper-id'),
+    'GS000098',
+  )
+  await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
+  await ready()
+  await page.locator('.paper-fragment').first().click()
+  await page.getByLabel('第 1 题分值', { exact: true }).fill('7.5')
+  await page.getByLabel('第 1 题分值', { exact: true }).press('Tab')
+  await ready()
+  assert.ok(
+    (await page.locator('.paper-canvas .paper-section-heading').first().textContent()).includes(
+      '7.5 分',
+    ),
+  )
+  await page.getByRole('button', { name: '试卷目录', exact: true }).first().click()
+  await page.getByLabel('解答题批量分值').fill('9')
+  await page.getByLabel('解答题批量分值').press('Tab')
+  await ready()
+  assert.ok((await page.locator('.paper-score-summary').textContent()).includes('25.5 分'))
+  assert.equal(await page.locator('.paper-outline-item').count(), 3)
+  await page.getByRole('button', { name: '筛选条件', exact: true }).click()
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()
   await page.screenshot({ path: path.join(root, '.tmp/paper-desktop.png'), fullPage: true })
   await page.getByRole('button', { name: '添加题目 GS000099', exact: true }).click()
@@ -261,6 +283,41 @@ let browser, server
       })),
     )
   assert.ok(heights.every((v) => v.h > 1))
+  const pageGeometry = await page
+    .locator('.paper-fragment')
+    .evaluateAll((els) => els.map((el) => el.style.height))
+  await page.locator('.paper-canvas').evaluate((el) => {
+    el.scrollTop = 0
+  })
+  const gripBox = await page.getByLabel('拖动第 4 题', { exact: true }).boundingBox()
+  const canvasBox = await page.locator('.paper-canvas').boundingBox()
+  await page.mouse.move(gripBox.x + 8, gripBox.y + 8)
+  await page.mouse.down()
+  await page.mouse.move(canvasBox.x + canvasBox.width / 2, canvasBox.y + canvasBox.height - 12, {
+    steps: 6,
+  })
+  const initialScroll = await page.locator('.paper-canvas').evaluate((el) => el.scrollTop)
+  await page.waitForTimeout(200)
+  assert.equal(
+    await page.locator('.paper-canvas').evaluate((el) => el.scrollTop),
+    initialScroll,
+    'edge scroll waits before starting',
+  )
+  await page.waitForTimeout(550)
+  const laterScroll = await page.locator('.paper-canvas').evaluate((el) => el.scrollTop)
+  assert.ok(
+    laterScroll > initialScroll && laterScroll < initialScroll + 140,
+    'edge scroll remains slow',
+  )
+  assert.deepEqual(
+    await page.locator('.paper-fragment').evaluateAll((els) => els.map((el) => el.style.height)),
+    pageGeometry,
+    'drag keeps pagination fixed',
+  )
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  assert.equal(await page.locator('.paper-drag-ghost').count(), 0)
+
   await page.evaluate(() => {
     window.print = () => {
       window.paperPrinted = true
@@ -274,6 +331,10 @@ let browser, server
     'printing directly from the editable canvas includes every page',
   )
   assert.equal(await page.locator('#paper-print-root .paper-item-tools').count(), 0)
+  assert.ok((await page.locator('#paper-print-root .paper-section-heading').count()) >= 2)
+  assert.ok(
+    (await page.locator('#paper-print-root .paper-instructions').textContent()).includes('满分'),
+  )
   await page.evaluate(() => {
     window.dispatchEvent(new Event('afterprint'))
     window.paperPrinted = false
@@ -290,6 +351,10 @@ let browser, server
   await page.getByRole('button', { name: '打印 / 存为 PDF', exact: true }).click()
   await page.waitForFunction(() => window.paperPrinted)
   assert.equal(await page.locator('#paper-print-root .paper-item-tools').count(), 0)
+  assert.ok((await page.locator('#paper-print-root .paper-section-heading').count()) >= 2)
+  assert.ok(
+    (await page.locator('#paper-print-root .paper-instructions').textContent()).includes('满分'),
+  )
   assert.equal(
     await page.locator('#paper-print-root .paper-sheet').count(),
     await page.locator('.paper-canvas .paper-sheet').count(),

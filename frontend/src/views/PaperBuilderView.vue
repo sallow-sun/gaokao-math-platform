@@ -14,6 +14,10 @@ import {
 } from '../config/problems.js'
 import {
   cleanPaperProblem,
+  paperType,
+  cleanScore,
+  groupPaperItems,
+  paperSections,
   DRAFT_KEY,
   MM,
   PAPER_SIZES,
@@ -24,6 +28,17 @@ import {
 } from '../utils/paperLayout.js'
 import '../assets/styles/paper-builder.css'
 
+const windowWidth = ref(window.innerWidth)
+function updateWindowWidth() {
+  windowWidth.value = window.innerWidth
+}
+const leftTab = ref('filters')
+function openOutline() {
+  leftTab.value = 'outline'
+  filterOpen.value = true
+}
+const targetScore = ref(150)
+const dragPosition = ref({ x: 0, y: 0 })
 const searchText = ref('')
 function searchProblems() {
   updateKeyword(searchText.value)
@@ -166,6 +181,38 @@ const filterOpen = ref(!narrowScreen.matches),
 const activeIndex = computed(() =>
   items.value.findIndex((item) => item.problem.id === activeId.value),
 )
+const sections = computed(() => paperSections(items.value))
+const totalScore = computed(() => sections.value.reduce((sum, group) => sum + group.total, 0))
+const scoreStatus = computed(() =>
+  !targetScore.value
+    ? ''
+    : totalScore.value === targetScore.value
+      ? '已达到目标分数'
+      : totalScore.value < targetScore.value
+        ? `还差 ${targetScore.value - totalScore.value} 分`
+        : `超出 ${totalScore.value - targetScore.value} 分`,
+)
+const activeSection = computed(() =>
+  sections.value.find((group) => group.entries.some((entry) => entry.index === activeIndex.value)),
+)
+const headingFor = (index) =>
+  sections.value.find((group) => group.entries[0].index === index)?.heading || ''
+function batchScore(group, event) {
+  checkpoint()
+  const score = cleanScore(event.target.value, group.score)
+  group.entries.forEach(({ item }) => {
+    item.score = score
+  })
+  event.target.value = score
+}
+function setTarget(event) {
+  checkpoint()
+  const value = Number(event.target.value)
+  targetScore.value = Number.isFinite(value)
+    ? Math.max(0, Math.min(1000, Math.round(value * 2) / 2))
+    : 150
+  event.target.value = targetScore.value
+}
 const selectedIds = computed(() => new Set(items.value.map((i) => i.problem.id)))
 function adaptFilters(event) {
   filterOpen.value = !event.matches
@@ -175,7 +222,13 @@ const sheetStyle = computed(() => ({
   '--paper-width': `${sheet.value.width}mm`,
   '--paper-height': `${sheet.value.height}mm`,
 }))
-const state = () => ({ version: 1, title: title.value, size: size.value, items: items.value })
+const state = () => ({
+  version: 1,
+  title: title.value,
+  size: size.value,
+  items: items.value,
+  targetScore: targetScore.value,
+})
 let request,
   requestId = 0,
   searchTimer,
@@ -198,6 +251,7 @@ function undo() {
   title.value = restored.title
   size.value = restored.size
   items.value = restored.items
+  targetScore.value = restored.targetScore
   message.value = '已撤销上一步'
 }
 function fitWidth() {
@@ -263,9 +317,11 @@ function add(problem, index = items.value.length) {
     problem: cleanPaperProblem(problem),
     space: 0,
     breakBefore: false,
+    score: paperType(problem.type).score,
   })
+  items.value = groupPaperItems(items.value)
   activeId.value = problem.id
-  message.value = `已加入第 ${index + 1} 题`
+  message.value = `已加入${paperType(problem.type).label}，默认 ${paperType(problem.type).score} 分，可修改`
 }
 function remove(index) {
   checkpoint()
@@ -274,13 +330,25 @@ function remove(index) {
 }
 function move(from, to) {
   if (to < 0 || to >= items.value.length || from === to) return
+  if (
+    paperType(items.value[from].problem.type).type !== paperType(items.value[to].problem.type).type
+  ) {
+    message.value = '请在同一题型内调整顺序'
+    return
+  }
   checkpoint()
   const [item] = items.value.splice(from, 1)
   items.value.splice(to, 0, item)
 }
 function changeItem(index, field, value) {
   checkpoint()
-  items.value[index][field] = value
+  items.value[index][field] =
+    field === 'score' ? cleanScore(value, items.value[index].score) : value
+}
+function setQuestionScore(event) {
+  const score = cleanScore(event.target.value, items.value[activeIndex.value].score)
+  changeItem(activeIndex.value, 'score', score)
+  event.target.value = score
 }
 function clearPaper() {
   if (items.value.length) {
@@ -295,53 +363,159 @@ function locate(id) {
     ?.querySelector(`[data-paper-id="${CSS.escape(id)}"]`)
     ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
 }
-let dragFromControl = false
+let pendingDrag = null
+let dragBoundaries = []
+let edgeSince = 0,
+  edgeDirection = 0,
+  edgeFrame = 0
 function rememberDragOrigin(event) {
-  dragFromControl = Boolean(event.target.closest('button:not(.paper-grip), input, select, a'))
+  if (
+    event.button !== 0 ||
+    event.pointerType === 'touch' ||
+    preview.value ||
+    layingOut.value ||
+    event.target.closest('button:not(.paper-grip), input, select, a')
+  )
+    return
+  const source = event.currentTarget.closest('[data-source-id]')
+  const id = event.currentTarget.closest('[data-paper-id]')?.dataset.paperId
+  const from = source
+    ? -1
+    : id
+      ? items.value.findIndex((item) => item.problem.id === id)
+      : activeIndex.value
+  const problem = source
+    ? available.value.find((item) => item.id === source.dataset.sourceId)
+    : items.value[from]?.problem
+  if (!problem) return
+  pendingDrag = { problem, from, x: event.clientX, y: event.clientY, pointerId: event.pointerId }
 }
-function startDrag(event, problem, from = -1) {
-  if (dragFromControl || preview.value || !problem) {
-    event.preventDefault()
+function collectBoundaries() {
+  const box = workspace.value.getBoundingClientRect()
+  const nodes = [...workspace.value.querySelectorAll('.paper-fragment')]
+  const result = []
+  items.value.forEach((item, index) => {
+    const parts = nodes.filter((node) => node.dataset.paperId === item.problem.id)
+    if (!parts.length) return
+    result.push({
+      index,
+      y: parts[0].getBoundingClientRect().top - box.top + workspace.value.scrollTop,
+    })
+    result.push({
+      index: index + 1,
+      y: parts.at(-1).getBoundingClientRect().bottom - box.top + workspace.value.scrollTop,
+    })
+  })
+  return result
+}
+const allowedDropRange = computed(() => {
+  if (!drag.value) return [0, items.value.length]
+  const type = paperType(drag.value.problem.type).type
+  const group = sections.value.find((section) => section.type === type)
+  if (group) return [group.entries[0].index, group.entries.at(-1).index + 1]
+  const marker = { problem: drag.value.problem }
+  const index = groupPaperItems([...items.value, marker]).indexOf(marker)
+  return [index, index]
+})
+function allowedBoundary(index) {
+  return index >= allowedDropRange.value[0] && index <= allowedDropRange.value[1]
+}
+function pointerMove(event) {
+  if (!pendingDrag || event.pointerId !== pendingDrag.pointerId) return
+  if (!drag.value) {
+    if (Math.hypot(event.clientX - pendingDrag.x, event.clientY - pendingDrag.y) < 10) return
+    drag.value = { problem: pendingDrag.problem, from: pendingDrag.from }
+    dragBoundaries = collectBoundaries()
+    window.getSelection()?.removeAllRanges()
+    scrollFrame = requestAnimationFrame(scrollDrag)
+  }
+  event.preventDefault()
+  dragPosition.value = { x: event.clientX, y: event.clientY }
+  lastDragY = event.clientY
+  updatePointerTarget()
+}
+function updatePointerTarget() {
+  const { x, y } = dragPosition.value
+  const hit = document.elementFromPoint(x, y)
+  const row = hit?.closest('.paper-outline-item')
+  if (row) {
+    const index =
+      Number(row.dataset.index) +
+      (y > row.getBoundingClientRect().top + row.offsetHeight / 2 ? 1 : 0)
+    dropIndex.value = allowedBoundary(index) ? index : -1
     return
   }
-  window.getSelection()?.removeAllRanges()
-  event.dataTransfer.setDragImage(event.currentTarget, 30, 25)
-  drag.value = { problem, from }
-  event.dataTransfer.effectAllowed = from < 0 ? 'copy' : 'move'
-  event.dataTransfer.setData('text/plain', problem.id)
+  if (!hit?.closest('.paper-canvas')) {
+    dropIndex.value = -1
+    return
+  }
+  if (!items.value.length) {
+    dropIndex.value = 0
+    return
+  }
+  const box = workspace.value.getBoundingClientRect()
+  const position = y - box.top + workspace.value.scrollTop
+  const candidates = dragBoundaries.filter((boundary) => allowedBoundary(boundary.index))
+  const closest = candidates.reduce(
+    (best, boundary) =>
+      !best || Math.abs(boundary.y - position) < Math.abs(best.y - position) ? boundary : best,
+    null,
+  )
+  if (!closest) {
+    dropIndex.value = -1
+    return
+  }
+  const oldDistance = Math.min(
+    ...candidates
+      .filter((boundary) => boundary.index === dropIndex.value)
+      .map((boundary) => Math.abs(boundary.y - position)),
+  )
+  if (dropIndex.value < 0 || Math.abs(closest.y - position) + 18 < oldDistance)
+    dropIndex.value = closest.index
+}
+function pointerUp(event) {
+  if (!pendingDrag || event.pointerId !== pendingDrag.pointerId) return
+  if (drag.value && dropIndex.value >= 0) {
+    const { problem, from } = drag.value,
+      index = dropIndex.value
+    endDrag()
+    if (from < 0) add(problem, index)
+    else move(from, from < index ? index - 1 : index)
+  } else endDrag()
 }
 function endDrag() {
+  pendingDrag = null
   drag.value = null
   dropIndex.value = -1
+  edgeSince = 0
+  edgeDirection = 0
+  edgeFrame = 0
   cancelAnimationFrame(scrollFrame)
 }
-function scrollDrag() {
+function scrollDrag(time) {
   if (!drag.value || !workspace.value) return
-  const box = workspace.value.getBoundingClientRect()
-  const delta = lastDragY < box.top + 65 ? -14 : lastDragY > box.bottom - 65 ? 14 : 0
-  if (delta) workspace.value.scrollTop += delta
+  const box = workspace.value.getBoundingClientRect(),
+    { x } = dragPosition.value
+  const direction =
+    x >= box.left && x <= box.right && lastDragY >= box.top && lastDragY <= box.bottom
+      ? lastDragY < box.top + 36
+        ? -1
+        : lastDragY > box.bottom - 36
+          ? 1
+          : 0
+      : 0
+  if (direction !== edgeDirection) {
+    edgeSince = time
+    edgeDirection = direction
+  }
+  if (direction && time - edgeSince > 450) {
+    const speed = Math.min(180, 40 + (time - edgeSince - 450) / 8)
+    workspace.value.scrollTop +=
+      (direction * speed * Math.min(32, time - (edgeFrame || time))) / 1000
+    updatePointerTarget()
+  }
+  edgeFrame = time
   scrollFrame = requestAnimationFrame(scrollDrag)
-}
-function dragOver(event, index) {
-  if (!drag.value) return
-  event.preventDefault()
-  lastDragY = event.clientY
-  event.dataTransfer.dropEffect = drag.value.from < 0 ? 'copy' : 'move'
-  dropIndex.value = index
-  cancelAnimationFrame(scrollFrame)
-  scrollFrame = requestAnimationFrame(scrollDrag)
-}
-function dragOverFragment(event, fragment) {
-  const box = event.currentTarget.getBoundingClientRect()
-  dragOver(event, fragment.index + (event.clientY > box.top + box.height / 2 ? 1 : 0))
-}
-function drop(event, index) {
-  event.preventDefault()
-  if (!drag.value) return
-  const { problem, from } = drag.value
-  if (from < 0) add(problem, index)
-  else move(from, from < index ? index - 1 : index)
-  endDrag()
 }
 function fit() {
   if (autoFit.value && workspace.value)
@@ -357,6 +531,10 @@ function queueLayout() {
   layoutTimer = setTimeout(layout, 80)
 }
 async function layout() {
+  if (drag.value) {
+    layoutTimer = setTimeout(layout, 120)
+    return
+  }
   const id = ++layoutId
   layingOut.value = true
   layoutError.value = ''
@@ -422,6 +600,12 @@ async function layout() {
     const height = Math.ceil(el.getBoundingClientRect().height) + 1
     const html = el.innerHTML,
       bands = questionBands(el)
+    const sectionHeading = el.querySelector('.paper-section-heading')
+    if (sectionHeading)
+      bands.push([
+        0,
+        sectionHeading.getBoundingClientRect().bottom - el.getBoundingClientRect().top + 35,
+      ])
     let page = result.at(-1)
     if (
       (item.breakBefore || (height > capacity - page.used && height <= capacity)) &&
@@ -481,7 +665,7 @@ function persist() {
   }
 }
 watch(
-  [items, title, size],
+  [items, title, size, targetScore],
   () => {
     queueLayout()
     clearTimeout(saveTimer)
@@ -525,6 +709,11 @@ async function printPaper() {
   }
 }
 function keydown(event) {
+  if (drag.value) {
+    if (event.key === 'Escape') endDrag()
+    event.preventDefault()
+    return
+  }
   if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
     event.preventDefault()
     if (items.value.length && !layingOut.value && !printing.value) printPaper()
@@ -562,6 +751,7 @@ onMounted(async () => {
       title.value = saved.title
       size.value = saved.size
       items.value = saved.items
+      targetScore.value = saved.targetScore
       storageMessage.value = '已恢复此浏览器的草稿'
     }
   } catch {
@@ -569,6 +759,11 @@ onMounted(async () => {
   }
   resizeObserver = new ResizeObserver(fit)
   resizeObserver.observe(workspace.value)
+  document.addEventListener('pointermove', pointerMove, { passive: false })
+  document.addEventListener('pointerup', pointerUp)
+  document.addEventListener('pointercancel', endDrag)
+  window.addEventListener('blur', endDrag)
+  window.addEventListener('resize', updateWindowWidth)
   window.addEventListener('afterprint', finishPrint)
   window.addEventListener('keydown', keydown)
   load()
@@ -576,6 +771,12 @@ onMounted(async () => {
 })
 onBeforeUnmount(() => {
   narrowScreen.removeEventListener('change', adaptFilters)
+  document.removeEventListener('pointermove', pointerMove)
+  document.removeEventListener('pointerup', pointerUp)
+  document.removeEventListener('pointercancel', endDrag)
+  window.removeEventListener('blur', endDrag)
+  window.removeEventListener('resize', updateWindowWidth)
+  endDrag()
   disposed = true
   request?.abort()
   resizeObserver?.disconnect()
@@ -603,12 +804,56 @@ onBeforeUnmount(() => {
     >
       <aside v-show="!preview && filterOpen" class="paper-filter-sidebar" aria-label="筛选条件">
         <div class="paper-filter-title">
-          <h2>筛选条件</h2>
+          <h2>{{ leftTab === 'filters' ? '筛选条件' : '试卷目录' }}</h2>
           <button class="paper-link" aria-label="收起筛选" @click="filterOpen = false">
             收起筛选 ‹
           </button>
         </div>
-        <div class="paper-shared-filters">
+        <div class="paper-left-tabs">
+          <button :aria-pressed="leftTab === 'filters'" @click="leftTab = 'filters'">
+            筛选条件</button
+          ><button :aria-pressed="leftTab === 'outline'" @click="leftTab = 'outline'">
+            试卷目录
+          </button>
+        </div>
+        <div v-show="leftTab === 'outline'" class="paper-outline">
+          <p v-if="!items.length">加入题目后，这里显示题型与题号。</p>
+          <section v-for="group in sections" :key="group.type">
+            <h3>
+              {{ group.label }} <small>{{ group.total }} 分</small>
+            </h3>
+            <label class="paper-batch-score"
+              >每题分值<input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                :aria-label="`${group.label}批量分值`"
+                :value="
+                  group.entries.every((entry) => entry.item.score === group.entries[0].item.score)
+                    ? group.entries[0].item.score
+                    : ''
+                "
+                placeholder="混合"
+                @change="batchScore(group, $event)"
+            /></label>
+            <div
+              v-for="entry in group.entries"
+              :key="entry.item.problem.id"
+              class="paper-outline-item"
+              :class="{ 'is-drop-target': dropIndex === entry.index }"
+              :data-paper-id="entry.item.problem.id"
+              :data-index="entry.index"
+              @pointerdown="rememberDragOrigin"
+            >
+              <button @click="locate(entry.item.problem.id)">
+                第 {{ entry.index + 1 }} 题 <small>{{ entry.item.problem.id }}</small></button
+              ><span>{{ entry.item.score }} 分</span
+              ><span class="paper-outline-grip" aria-hidden="true">⠿</span>
+            </div>
+          </section>
+        </div>
+        <div v-show="leftTab === 'filters'" class="paper-shared-filters">
           <ProblemsFilterPanel
             route-name="paper"
             :filter-mode="filterMode"
@@ -705,10 +950,8 @@ onBeforeUnmount(() => {
             class="paper-source-card"
             :class="{ 'is-added': selectedIds.has(problem.id) }"
             :data-source-id="problem.id"
-            draggable="true"
+            :draggable="false"
             @pointerdown="rememberDragOrigin"
-            @dragstart="startDrag($event, problem)"
-            @dragend="endDrag"
           >
             <header>
               <span class="paper-type-chip" :data-type="problem.type">{{ problem.typeLabel }}</span>
@@ -826,6 +1069,19 @@ onBeforeUnmount(() => {
             <option v-for="z in [50, 75, 100, 125]" :key="z" :value="z">{{ z }}%</option></select
           ><span class="paper-save-state">{{ storageMessage }}</span>
         </div>
+        <div v-if="!preview" class="paper-score-summary">
+          <strong>总分 {{ totalScore }} 分</strong
+          ><label
+            >目标分数<input
+              type="number"
+              min="0"
+              max="1000"
+              step="0.5"
+              :value="targetScore"
+              @change="setTarget" /></label
+          ><span>{{ scoreStatus }}</span
+          ><button @click="openOutline">试卷目录</button>
+        </div>
         <div class="paper-status" aria-live="polite">
           <span>{{
             message ||
@@ -839,26 +1095,46 @@ onBeforeUnmount(() => {
           {{ layoutError }} <button @click="queueLayout">重试排版</button>
         </div>
         <div v-if="!preview && activeIndex >= 0" class="paper-item-tools" @click.stop>
-          <span class="paper-count">第 {{ activeIndex + 1 }} 题</span>
+          <span class="paper-count">第 {{ activeIndex + 1 }} 题</span
+          ><label class="paper-question-score"
+            >分值<input
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              :aria-label="`第 ${activeIndex + 1} 题分值`"
+              :value="items[activeIndex].score"
+              @change="setQuestionScore" /></label
+          ><select
+            aria-label="移至题号"
+            :value="activeIndex"
+            @change="move(activeIndex, Number($event.target.value))"
+          >
+            <option
+              v-for="entry in activeSection?.entries"
+              :key="entry.item.problem.id"
+              :value="entry.index"
+            >
+              移至第 {{ entry.index + 1 }} 题
+            </option>
+          </select>
           <button
             class="paper-grip"
-            draggable="true"
+            :draggable="false"
             @pointerdown="rememberDragOrigin"
-            @dragstart="startDrag($event, items[activeIndex].problem, activeIndex)"
-            @dragend="endDrag"
             title="拖动排序"
             :aria-label="`拖动第 ${activeIndex + 1} 题`"
           >
             ⠿
           </button>
           <button
-            :disabled="activeIndex === 0"
+            :disabled="activeIndex === activeSection?.entries[0].index"
             title="上移"
             @click="move(activeIndex, activeIndex - 1)"
           >
             ↑</button
           ><button
-            :disabled="activeIndex === items.length - 1"
+            :disabled="activeIndex === activeSection?.entries.at(-1).index"
             title="下移"
             @click="move(activeIndex, activeIndex + 1)"
           >
@@ -884,12 +1160,7 @@ onBeforeUnmount(() => {
             ×
           </button>
         </div>
-        <div
-          ref="workspace"
-          class="paper-canvas"
-          @dragover="dragOver($event, items.length)"
-          @drop="drop($event, items.length)"
-        >
+        <div ref="workspace" class="paper-canvas">
           <div
             v-for="(page, pageIndex) in pages"
             :key="pageIndex"
@@ -909,15 +1180,11 @@ onBeforeUnmount(() => {
                 <h2>数　学</h2>
                 <div class="paper-candidate">姓名：____________　班级：____________</div>
                 <div class="paper-instructions">
-                  本试卷共 {{ pages.length }} 页，{{ items.length }} 小题。请认真审题，规范作答。
+                  本试卷共 {{ pages.length }} 页，{{ items.length }} 小题，满分
+                  {{ totalScore }} 分。请认真审题，规范作答。
                 </div>
               </header>
-              <div
-                v-if="!items.length && !preview"
-                class="paper-empty"
-                @dragover.stop="dragOver($event, 0)"
-                @drop.stop="drop($event, 0)"
-              >
+              <div v-if="!items.length && !preview" class="paper-empty">
                 <span class="paper-empty-icon">＋</span>
                 <h3>拖拽题目到这里</h3>
                 <p>或点击题库中的「＋ 加入」</p>
@@ -928,19 +1195,18 @@ onBeforeUnmount(() => {
                 class="paper-fragment"
                 :class="{
                   'is-active': activeId === items[fragment.index]?.problem.id,
-                  'is-drop-target': dropIndex === fragment.index,
+                  'is-drop-target': fragment.first && dropIndex === fragment.index,
                 }"
                 :data-paper-id="items[fragment.index]?.problem.id"
-                :draggable="!preview && !layingOut"
+                :draggable="false"
                 @pointerdown="rememberDragOrigin"
-                @dragstart="startDrag($event, items[fragment.index].problem, fragment.index)"
-                @dragend="endDrag"
                 @click="activeId = items[fragment.index]?.problem.id"
                 :style="{ height: `${fragment.height}px` }"
-                @dragover.stop="dragOverFragment($event, fragment)"
-                @drop.stop="drop($event, dropIndex < 0 ? fragment.index : dropIndex)"
               >
-                <div v-if="drag && dropIndex === fragment.index" class="paper-drop-line">
+                <div
+                  v-if="drag && fragment.first && dropIndex === fragment.index"
+                  class="paper-drop-line"
+                >
                   插入为第 {{ fragment.index + 1 }} 题
                 </div>
                 <div class="paper-fragment-clip" :style="{ height: `${fragment.height}px` }">
@@ -969,7 +1235,7 @@ onBeforeUnmount(() => {
 
         <footer class="paper-workspace-footer">
           <div>
-            <strong>共 {{ items.length }} 题</strong
+            <strong>共 {{ items.length }} 题 · {{ totalScore }} 分</strong
             ><span>{{ PAPER_SIZES[size].label }} · {{ pages.length }} 页</span>
           </div>
           <div>
@@ -980,20 +1246,36 @@ onBeforeUnmount(() => {
         </footer>
       </section>
     </div>
+    <div
+      v-if="drag"
+      class="paper-drag-ghost"
+      :style="{
+        left: `${Math.min(dragPosition.x + 16, windowWidth - 270)}px`,
+        top: `${dragPosition.y + 14}px`,
+      }"
+    >
+      {{ paperType(drag.problem.type).label }} · {{ drag.problem.id
+      }}<small>{{
+        dropIndex < 0
+          ? '移动到卷面或目录，松手取消'
+          : `松手放入第 ${dropIndex + 1} 题位置（按题型归组）`
+      }}</small>
+    </div>
     <div ref="measure" class="paper-measure paper-sheet" :style="sheetStyle" aria-hidden="true">
       <header class="paper-heading">
         <p>{{ title || '数学练习卷' }}</p>
         <h2>数　学</h2>
         <div class="paper-candidate">姓名：____________　班级：____________</div>
         <div class="paper-instructions">
-          本试卷共 {{ pages.length }} 页，{{ items.length }} 小题。请认真审题，规范作答。
+          本试卷共 {{ pages.length }} 页，{{ items.length }} 小题，满分
+          {{ totalScore }} 分。请认真审题，规范作答。
         </div>
       </header>
       <div
         v-for="(item, index) in items"
         :key="item.problem.id"
         class="paper-measure-question paper-question-content"
-        v-html="paperQuestionHtml(item, index)"
+        v-html="paperQuestionHtml(item, index, headingFor(index))"
       />
     </div>
   </main>

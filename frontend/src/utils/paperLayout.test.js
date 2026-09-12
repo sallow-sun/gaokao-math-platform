@@ -5,7 +5,39 @@ import {
   restorePaperDraft,
   safePageCut,
   splitPaperChoices,
+  cleanScore,
+  paperSections,
 } from './paperLayout.js'
+
+test('legacy drafts acquire scores and stable type sections, with accurate mixed totals', () => {
+  const draft = restorePaperDraft(
+    JSON.stringify({
+      version: 1,
+      items: [
+        { problem: { id: 's1', type: 'solution', content: '解答' }, score: 13 },
+        { problem: { id: 'c1', type: 'single-choice', content: '单选' } },
+        { problem: { id: 's2', type: 'solution', content: '解答' }, score: 12.5 },
+      ],
+    }),
+  )
+  assert.deepEqual(
+    draft.items.map((item) => item.problem.id),
+    ['c1', 's1', 's2'],
+  )
+  assert.equal(draft.items[0].score, 5)
+  assert.equal(draft.targetScore, 150)
+  const groups = paperSections(draft.items)
+  assert.equal(groups.length, 2)
+  assert.equal(groups[1].total, 25.5)
+  assert.ok(groups[1].heading.startsWith('二、解答题'))
+  assert.ok(!groups[1].heading.includes('每小题'))
+  assert.ok(paperQuestionHtml(draft.items[1], 1, groups[1].heading).includes('（13 分）'))
+  assert.equal(cleanScore(-2, 12), 12)
+  assert.equal(cleanScore(101, 12), 12)
+  assert.equal(cleanScore(0, 12), 0)
+  assert.equal(cleanScore('7.5'), 7.5)
+  assert.equal(cleanScore('<script>', 5), 5)
+})
 
 test('paper preserves math and options, strips only the original leading number', () => {
   const source = '12. 已知 $A.B=1$，求值。\nA. $1$    B. $2$    C. $3$    D. $4$'
