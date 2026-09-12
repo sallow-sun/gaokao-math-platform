@@ -14,6 +14,145 @@ import { renderMathText } from '../../utils/renderMathText.js'
 import '../../assets/styles/editorial.css'
 import '../../assets/styles/editorial-review.css'
 
+// Keep just one next question leased: instant handoff without a stale editable snapshot.
+const prepared = ref(null)
+const publishing = ref(null)
+const publishFailure = ref(null)
+const publishStatus = ref('')
+let preparation = 0
+let preparationWork = Promise.resolve()
+let disposed = false
+function clearPrepared() {
+  preparation++
+  const old = prepared.value
+  prepared.value = null
+  if (old && old.value.id !== item.value?.id)
+    preparationWork = preparationWork.then(() =>
+      api.remove(`/items/${old.value.id}/lease`).catch(() => {}),
+    )
+}
+async function prepareNext() {
+  clearPrepared()
+  if (
+    disposed ||
+    tab.value !== 'queue' ||
+    !item.value ||
+    feedbackTask.value ||
+    publishing.value ||
+    publishFailure.value
+  )
+    return
+  const generation = preparation
+  const index = queue.value.items.findIndex((q) => q.id === item.value.id)
+  const candidate = queue.value.items[index + 1]
+  if (index < 0 || !candidate || candidate.id === item.value.id) return
+  preparationWork = preparationWork.then(async () => {
+    if (disposed || generation !== preparation) return
+    try {
+      const value = await api.post(`/items/${candidate.id}/lease`)
+      if (disposed || generation !== preparation) {
+        if (value.id !== item.value?.id)
+          await api.remove(`/items/${value.id}/lease`).catch(() => {})
+        return
+      }
+      prepared.value = { value, at: Date.now() }
+      for (const section of ['content', 'answer', 'solution'])
+        renderMathText(value.document[section] || '')
+      for (const asset of value.document.assets || []) {
+        if (asset.url?.startsWith('/uploads/')) {
+          const image = new Image()
+          image.src = asset.url
+          void image.decode().catch(() => {})
+        }
+      }
+    } catch {
+      /* Prefetch is optional; normal navigation handles claimed or unavailable items. */
+    }
+  })
+}
+async function publishInBackground() {
+  const previous = clone(item.value)
+  const snapshot = clone(draft.value)
+  const operationNote = note.value
+  const changed = dirty.value
+  const key = recoveryKey()
+  const next = prepared.value.value
+  prepared.value = null
+  preparation++
+  clearTimeout(recoveryTimer)
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        version: previous.version,
+        document: snapshot,
+        savedAt: new Date().toISOString(),
+      }),
+    )
+  } catch {
+    /* Keep the snapshot in memory too. */
+  }
+  publishing.value = previous.id
+  publishStatus.value = '上一题正在后台保存…'
+  adopt(next)
+  editing.value = false
+  editorTab.value = 'content'
+  note.value = ''
+  returnOpen.value = false
+  await nextTick()
+  document.querySelector('.editorial-edit-scroll')?.scrollTo(0, 0)
+  try {
+    let version = previous.version
+    if (changed) {
+      const saved = await api.put(`/items/${previous.id}`, {
+        version,
+        document: snapshot,
+        note: operationNote,
+      })
+      version = saved.version
+    }
+    await api.post(`/items/${previous.id}/actions`, {
+      version,
+      action: 'PUBLISH',
+      note: operationNote,
+    })
+    try {
+      localStorage.removeItem(key)
+    } catch {
+      /* Server save succeeded. */
+    }
+    publishStatus.value = '上一题已保存'
+    // Do not refresh the active editor or overwrite edits made while publishing.
+    if (queue.value.items.some((q) => q.id === previous.id)) {
+      queue.value.items = queue.value.items.filter((q) => q.id !== previous.id)
+      queue.value.total = Math.max(0, queue.value.total - 1)
+    }
+  } catch (error) {
+    publishFailure.value = { id: previous.id, document: snapshot, note: operationNote }
+    publishStatus.value = `上一题未确认保存：${error.message || '网络异常'}。请返回该题核对后重试。`
+  } finally {
+    publishing.value = null
+    if (item.value?.id !== previous.id)
+      void api.remove(`/items/${previous.id}/lease`).catch(() => {})
+  }
+}
+async function reopenFailed() {
+  const failed = publishFailure.value
+  if (!failed || !discardAllowed()) return
+  await run(async () => {
+    await openInternal(failed.id)
+    note.value = failed.note
+    if (item.value.status === 'PUBLISHED') {
+      publishFailure.value = null
+      publishStatus.value = '已核实：该题已发布，无需重复提交'
+    } else {
+      draft.value = clone(failed.document)
+      editing.value = true
+      publishStatus.value = '已保留上次修改，请核对后重新点击通过'
+    }
+  })
+}
+
 const props = defineProps({
   tags: { type: Array, default: () => [] },
   sources: { type: Array, default: () => [] },
@@ -195,10 +334,20 @@ async function open(id) {
   })
 }
 async function releaseCurrent() {
-  if (item.value) await api.remove(`/items/${item.value.id}/lease`).catch(() => {})
+  if (item.value && item.value.id !== publishing.value)
+    await api.remove(`/items/${item.value.id}/lease`).catch(() => {})
 }
 async function openInternal(id) {
-  const value = await api.post(`/items/${id}/lease`)
+  if (id === publishing.value) throw new Error('该题正在后台保存，请稍候')
+  const cached = prepared.value
+  if (cached?.value.id === id) {
+    prepared.value = null
+    preparation++
+  }
+  const value =
+    cached?.value.id === id && Date.now() - cached.at < 60000
+      ? cached.value
+      : await api.post(`/items/${id}/lease`)
   if (item.value?.id !== id) await releaseCurrent()
   adopt(value)
   editing.value = false
@@ -354,6 +503,21 @@ async function nextItem() {
     : '本页处理完毕，可切换分区或下一页'
 }
 async function action(action, historyId) {
+  if (
+    busy.value ||
+    publishing.value ||
+    (publishFailure.value && publishFailure.value.id !== item.value?.id)
+  )
+    return
+  if (
+    action === 'PUBLISH' &&
+    !feedbackTask.value &&
+    prepared.value &&
+    Date.now() - prepared.value.at < 60000
+  ) {
+    await publishInBackground()
+    return
+  }
   await run(async () => {
     const operationNote = note.value
     if (dirty.value) await saveInternal()
@@ -377,6 +541,10 @@ async function action(action, historyId) {
     adopt(value)
     note.value = ''
     message.value = '操作已完成'
+    if (publishFailure.value?.id === value.id) {
+      publishFailure.value = null
+      publishStatus.value = '审核结果已保存'
+    }
     if (action === 'PUBLISH' && feedbackTask.value) {
       feedbackTask.value = null
       await releaseCurrent()
@@ -544,7 +712,7 @@ function exportResults() {
   URL.revokeObjectURL(url)
 }
 function beforeUnload(event) {
-  if (dirty.value || importing.value) {
+  if (dirty.value || importing.value || publishing.value || publishFailure.value) {
     event.preventDefault()
     event.returnValue = ''
   }
@@ -578,6 +746,8 @@ watch(
 )
 onBeforeRouteLeave(
   () =>
+    !publishing.value &&
+    (!publishFailure.value || window.confirm('有一道题的审核结果尚未确认，仍要离开吗？')) &&
     discardAllowed() &&
     (!importing.value ||
       window.confirm('离开会停止尚未上传的文件，已导入草稿仍会保留。继续离开？')),
@@ -601,6 +771,8 @@ onMounted(async () => {
   )
 })
 onBeforeUnmount(() => {
+  disposed = true
+  clearPrepared()
   stopImport.value = true
   clearInterval(leaseTimer)
   void releaseCurrent()
@@ -608,6 +780,20 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload)
   window.removeEventListener('keydown', shortcut)
 })
+watch(
+  [
+    () => item.value?.id,
+    () => queue.value.items,
+    publishing,
+    tab,
+    status,
+    paperId,
+    keyword,
+    issue,
+    feedbackTask,
+  ],
+  prepareNext,
+)
 </script>
 
 <template>
@@ -687,6 +873,10 @@ onBeforeUnmount(() => {
     </nav>
     <ProblemRecycleBin v-if="tab === 'trash' && me?.permission === 'MANAGER'" />
     <CurriculumSettings v-if="tab === 'curriculum' && me?.permission === 'MANAGER'" />
+    <aside v-if="publishStatus" class="editorial-message" role="status">
+      {{ publishStatus }}
+      <button v-if="publishFailure" :disabled="busy" @click="reopenFailed">返回失败题目重试</button>
+    </aside>
     <p v-if="message" class="editorial-message" role="status">{{ message }}</p>
     <div
       v-if="deleteMode && me?.permission === 'MANAGER'"
@@ -1280,7 +1470,12 @@ onBeforeUnmount(() => {
             <template v-else-if="item.status !== 'PUBLISHED' || dirty || feedbackTask">
               <button
                 class="editorial-primary"
-                :disabled="busy || (item.status === 'PUBLISHED' && !dirty)"
+                :disabled="
+                  busy ||
+                  publishing ||
+                  (publishFailure && publishFailure.id !== item.id) ||
+                  (item.status === 'PUBLISHED' && !dirty)
+                "
                 @click="action('PUBLISH')"
               >
                 {{ feedbackTask ? '发布修改并解决反馈' : '通过并下一题' }}
