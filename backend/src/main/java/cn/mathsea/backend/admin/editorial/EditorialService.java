@@ -35,6 +35,35 @@ public class EditorialService {
         d.content(), d.answer(), d.solution(), d.assets(), d.imageReferences(), metadata, d.warnings(), d.curriculum());
   }
 
+  public record Contribution(String title, Integer year, String source, String type,
+      String content, String answer, String solution) {}
+
+  @Transactional
+  public Object contribute(Long actor, Contribution input) {
+    db.queryForList("SELECT id FROM users WHERE id=? FOR UPDATE", actor);
+    if (input == null || input.content() == null || input.content().isBlank()
+        || input.content().length() > 30000 || Objects.toString(input.answer(), "").length() > 30000
+        || Objects.toString(input.solution(), "").length() > 50000)
+      throw BusinessException.badRequest("CONTRIBUTION_INPUT", "请填写题干，题干和答案不超过3万字，解析不超过5万字");
+    if (db.queryForObject("SELECT count(*) FROM editorial_history WHERE actor_id=? AND action='CONTRIBUTE' AND created_at>now()-interval '1 day'", Long.class, actor) >= 20)
+      throw BusinessException.badRequest("CONTRIBUTION_LIMIT", "每天最多提交20道题目，请明天再试");
+    var doc = new EditorialDocument(clean(input.title(), 255, "题目名称"), input.year(),
+        clean(Objects.toString(input.source(), ""), 255, "来源"), input.type(), "yellow", List.of(),
+        input.content().trim(), Objects.toString(input.answer(), ""), Objects.toString(input.solution(), ""),
+        List.of(), List.of(), Map.of("community_submission", "true"), List.of());
+    validate(null, doc, false);
+    if (doc.title().isBlank() || !List.of("single-choice", "multiple-choice", "fill-blank", "solution").contains(Objects.toString(doc.type(), ""))
+        || (doc.year() != null && (doc.year() < 1900 || doc.year() > 2100)))
+      throw BusinessException.badRequest("CONTRIBUTION_INPUT", "请填写名称并选择有效的题型和年份");
+    String payload = encode(doc);
+    var duplicate = db.queryForList("SELECT id FROM editorial_items WHERE created_by=? AND purged_at IS NULL AND status<>'TRASH' AND payload=?::jsonb", actor, payload);
+    if (!duplicate.isEmpty()) return duplicate.getFirst();
+    UUID id = UUID.randomUUID();
+    db.update("INSERT INTO editorial_items(id,original_number,original_id,payload,created_by,updated_by) VALUES (?,'0',?,?::jsonb,?,?)", id, doc.title(), payload, actor, actor);
+    event(actor, id, 1, "CONTRIBUTE", "社区投稿，等待审核", doc);
+    return Map.of("id", id);
+  }
+
   public record Save(long version, EditorialDocument document, String note) {}
 
   public record Action(long version, String action, String note, Long historyId) {}

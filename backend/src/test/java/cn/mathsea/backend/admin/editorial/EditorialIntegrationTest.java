@@ -113,6 +113,35 @@ class EditorialIntegrationTest {
     return ((Number) item.get("version")).longValue();
   }
 
+  @Autowired cn.mathsea.backend.user.service.ContributionService contributions;
+
+  @Test
+  void communitySubmissionsArePrivateUntilPublishedAndAttributedToAuthor() throws Exception {
+    long author = actor("author" + UUID.randomUUID().toString().substring(0, 8), "EDITOR");
+    long reviewer = actor("review" + UUID.randomUUID().toString().substring(0, 8), "MANAGER");
+    db.update("UPDATE users SET role='USER' WHERE id=?", author);
+    var request = new EditorialService.Contribution("社区测试题", 2025, "原创", "single-choice", "求 $1+1$", "2", "加法");
+    var principal = new CustomUserPrincipal(users.selectById(author));
+    String body = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request);
+    mvc.perform(post("/api/v1/users/me/contributions").with(user(principal)).contentType("application/json").content(body)).andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/users/me/contributions").with(user(principal)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isOk());
+    UUID id = db.queryForObject("SELECT id FROM editorial_items WHERE created_by=?", UUID.class, author);
+    assertEquals("DRAFT", service.detail(id).get("status"));
+    mvc.perform(get("/api/v1/users/" + author + "/contributions")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get("/api/v1/users/" + author + "/contributions").with(user(principal))).andExpect(status().isOk()).andExpect(jsonPath("$.summary.pending").value(1));
+    mvc.perform(get("/api/v1/users/me/contributions/upload/" + id).with(user(new CustomUserPrincipal(users.selectById(reviewer))))).andExpect(status().isNotFound());
+    mvc.perform(get("/api/v1/users/me/contributions/upload/" + id).with(user(principal))).andExpect(status().isOk()).andExpect(jsonPath("$.document.answer").value("2"));
+    service.contribute(author, request);
+    assertEquals(1, db.queryForObject("SELECT count(*) FROM editorial_items WHERE created_by=?", Integer.class, author));
+    service.action(reviewer, id, new EditorialService.Action(1, "PUBLISH", "", null));
+    mvc.perform(get("/api/v1/users/" + author + "/contributions")).andExpect(status().isOk()).andExpect(jsonPath("$.summary.accepted").value(1)).andExpect(jsonPath("$.items[0].status").value("ACCEPTED")).andExpect(jsonPath("$.items[0].document").doesNotExist());
+    String number = service.detail(id).get("problem_number").toString();
+    feedback.submit(author, number, "答案", "私人反馈描述", "私人建议", null);
+    mvc.perform(get("/api/v1/users/" + author + "/contributions?kind=feedback")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+    db.update("UPDATE problem_feedback SET status='RESOLVED',response='内部处理说明' WHERE user_id=?", author);
+    mvc.perform(get("/api/v1/users/" + author + "/contributions?kind=feedback")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.items[0].description").doesNotExist()).andExpect(jsonPath("$.items[0].response").doesNotExist());
+  }
+
   @Test
   void reimportAfterPermanentDeletionCreatesFreshDraftInSameOrNewBatch() {
     for (boolean published : List.of(false, true)) {

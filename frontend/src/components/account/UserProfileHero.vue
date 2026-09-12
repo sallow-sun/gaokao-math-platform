@@ -9,6 +9,7 @@ import {
 import AccountAvatar from './AccountAvatar.vue'
 
 const props = defineProps({
+  activeTab: { type: String, default: 'learning' },
   editable: {
     type: Boolean,
     default: false,
@@ -23,6 +24,7 @@ const props = defineProps({
   },
 })
 
+const emit = defineEmits(['change-tab'])
 const PROFILE_MESSAGE_DURATION = 4000
 
 const avatarInput = ref(null)
@@ -369,16 +371,24 @@ onBeforeUnmount(() => {
       <button
         id="account-profile-learning-tab"
         type="button"
-        class="is-active"
+        :class="{ 'is-active': activeTab === 'learning' }"
         role="tab"
-        aria-selected="true"
+        :aria-selected="activeTab === 'learning'"
+        @click="emit('change-tab', 'learning')"
         aria-controls="account-profile-learning-panel"
       >
         学习统计
       </button>
-      <button type="button" role="tab" aria-selected="false" aria-disabled="true" disabled>
+      <button
+        id="account-profile-contribution-tab"
+        type="button"
+        role="tab"
+        :class="{ 'is-active': activeTab === 'contributions' }"
+        :aria-selected="activeTab === 'contributions'"
+        aria-controls="account-profile-contribution-panel"
+        @click="emit('change-tab', 'contributions')"
+      >
         社区贡献
-        <small>待接入</small>
       </button>
     </div>
   </section>

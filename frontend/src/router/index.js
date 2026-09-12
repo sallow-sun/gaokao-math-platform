@@ -34,6 +34,7 @@ const router = createRouter({
     return { top: 0 }
   },
   routes: [
+    { path: '/contribute', name: 'contribute', component: () => import('../views/ContributionUploadView.vue'), meta: { studyNavigation: true, title: '上传题目' } },
     {
       path: '/paper',
       name: 'paper-library',

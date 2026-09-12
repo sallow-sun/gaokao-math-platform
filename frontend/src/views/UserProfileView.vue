@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import ContributionPanel from '../components/account/ContributionPanel.vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import UserActivityHeatmap from '../components/account/UserActivityHeatmap.vue'
 import UserProfileHero from '../components/account/UserProfileHero.vue'
 import UserProfileStats from '../components/account/UserProfileStats.vue'
@@ -15,6 +16,14 @@ const props = defineProps({
   },
 })
 
+const route = useRoute()
+const router = useRouter()
+const activeTab = computed(() =>
+  route.query.tab === 'contributions' ? 'contributions' : 'learning',
+)
+function changeTab(tab) {
+  router.replace({ query: { ...route.query, tab: tab === 'contributions' ? tab : undefined } })
+}
 const profile = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
@@ -22,10 +31,19 @@ const hasValidUserId = computed(() => /^[1-9]\d*$/.test(props.userId))
 const overviewStats = computed(() => {
   const stats = profile.value?.stats ?? {}
   return [
-    { key: 'completed', label: '已完成题目', value: stats.completed ?? 0, description: '累计标记为已做' },
+    {
+      key: 'completed',
+      label: '已完成题目',
+      value: stats.completed ?? 0,
+      description: '累计标记为已做',
+    },
     { key: 'favorite', label: '收藏题目', value: stats.favorite ?? 0, description: '当前收藏数量' },
-    { key: 'contributed', label: '贡献题目', value: stats.contributed ?? 0, description: '上传到题库的题目' },
-    { key: 'streak', label: '连续学习', value: `${stats.streak ?? 0} 天`, description: '按已做日期连续计算' },
+    {
+      key: 'streak',
+      label: '连续学习',
+      value: `${stats.streak ?? 0} 天`,
+      description: '按已做日期连续计算',
+    },
   ]
 })
 
@@ -67,12 +85,23 @@ watch(() => props.userId, loadProfile, { immediate: true })
       </section>
 
       <template v-else-if="profile">
-        <UserProfileHero :editable="false" :profile="profile" :show-settings="profile.canEdit" />
-        <RouterLink v-if="profile.canEdit" class="profile-feedback-link" :to="{ name: 'feedback' }">我的反馈 →</RouterLink>
-
-        <UserProfileStats :stats="overviewStats" />
+        <UserProfileHero
+          :editable="false"
+          :profile="profile"
+          :show-settings="profile.canEdit"
+          :active-tab="activeTab"
+          @change-tab="changeTab"
+        />
+        <ContributionPanel
+          v-if="activeTab === 'contributions'"
+          :key="userId"
+          :user-id="userId"
+          :owner="profile.canEdit"
+        />
+        <UserProfileStats v-if="activeTab === 'learning'" :stats="overviewStats" />
 
         <section
+          v-if="activeTab === 'learning'"
           id="account-profile-learning-panel"
           class="account-profile-learning-panel"
           role="tabpanel"

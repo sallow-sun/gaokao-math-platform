@@ -18,6 +18,26 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
     private final UserService userService;
 
+    private final cn.mathsea.backend.user.service.ContributionService contributions;
+    private final cn.mathsea.backend.admin.editorial.EditorialService editorial;
+
+    @GetMapping("/{userId}/contributions")
+    public Object contributions(@PathVariable Long userId, Authentication auth,
+            @RequestParam(defaultValue="all") String kind, @RequestParam(defaultValue="all") String status,
+            @RequestParam(defaultValue="1") int page) {
+        return contributions.list(userId, SecurityUtils.userIdOrNull(auth), kind, status, page);
+    }
+
+    @GetMapping("/me/contributions/{kind}/{id}")
+    public Object contributionDetail(@PathVariable String kind, @PathVariable String id, Authentication auth) {
+        return contributions.detail(SecurityUtils.requireUserId(auth), kind, id);
+    }
+
+    @PostMapping("/me/contributions")
+    public Object contribute(@RequestBody cn.mathsea.backend.admin.editorial.EditorialService.Contribution input, Authentication auth) {
+        return editorial.contribute(SecurityUtils.requireUserId(auth), input);
+    }
+
     @GetMapping("/{userId}")
     public PublicUserVO publicProfile(@PathVariable Long userId, Authentication authentication) {
         return userService.publicProfile(userId, SecurityUtils.userIdOrNull(authentication));
