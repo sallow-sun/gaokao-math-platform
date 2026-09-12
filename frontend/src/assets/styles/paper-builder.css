@@ -1278,3 +1278,5 @@
     right: 6px;
   }
 }
+
+.paper-back-library { color: var(--color-blue-800); font-size: 12px; text-decoration: none; white-space: nowrap; }

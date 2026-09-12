@@ -96,7 +96,7 @@ let browser, server
     }
     await r.fulfill({ json: body })
   })
-  await page.goto(origin + '/paper', { waitUntil: 'networkidle' })
+  await page.goto(origin + '/paper/edit', { waitUntil: 'networkidle' })
   await page.screenshot({ path: path.join(root, '.tmp/paper-initial.png') })
   const columns = await page
     .locator('.paper-filter-sidebar, .paper-bank, .paper-editor')
@@ -202,7 +202,7 @@ let browser, server
   await page.waitForTimeout(350)
   assert.ok(queries.at(-1).getAll('tag').includes('函数与导数'))
   assert.equal(await added().count(), 2)
-  assert.equal(new URL(page.url()).pathname, '/paper')
+  assert.equal(new URL(page.url()).pathname, '/paper/edit')
   await page.getByRole('button', { name: '更多筛选条件', exact: true }).click()
   await page
     .getByRole('group', { name: '来源', exact: true })
@@ -227,7 +227,7 @@ let browser, server
   await chapters.getByRole('checkbox').first().check()
   await chapters.getByRole('button', { name: '应用筛选', exact: true }).click()
   await page.waitForTimeout(350)
-  assert.equal(new URL(page.url()).pathname, '/paper')
+  assert.equal(new URL(page.url()).pathname, '/paper/edit')
   assert.equal(queries.at(-1).get('learning'), 'true')
   await page
     .getByRole('group', { name: '学习进度', exact: true })

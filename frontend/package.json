@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test src/utils/*.test.js",
-    "test:browser": "node tests/editorial.browser.test.cjs && node tests/curriculum.browser.test.cjs && node tests/bug-visual.browser.test.cjs && node tests/feedback.browser.test.cjs && node tests/question-layout.browser.test.cjs && node tests/problems-performance.browser.test.cjs && node tests/batch-delete.browser.test.cjs && node tests/paper-builder.browser.test.cjs",
+    "test:browser": "node tests/editorial.browser.test.cjs && node tests/curriculum.browser.test.cjs && node tests/bug-visual.browser.test.cjs && node tests/feedback.browser.test.cjs && node tests/question-layout.browser.test.cjs && node tests/problems-performance.browser.test.cjs && node tests/batch-delete.browser.test.cjs && node tests/paper-builder.browser.test.cjs && node tests/paper-library.browser.test.cjs",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",

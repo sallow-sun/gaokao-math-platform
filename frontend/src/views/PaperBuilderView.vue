@@ -1,5 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { readPapers, savePaper } from '../services/paperLibrary.js'
 import MathText from '../components/content/MathText.vue'
 import { listProblems } from '../services/problemService.js'
 import ProblemsFilterPanel from '../components/problems/ProblemsFilterPanel.vue'
@@ -28,6 +30,7 @@ import {
 } from '../utils/paperLayout.js'
 import '../assets/styles/paper-builder.css'
 
+const paperId = useRoute().params.id
 const windowWidth = ref(window.innerWidth)
 function updateWindowWidth() {
   windowWidth.value = window.innerWidth
@@ -685,7 +688,8 @@ async function layout() {
 }
 function persist() {
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(state()))
+    if (paperId) savePaper(paperId, state())
+    else localStorage.setItem(DRAFT_KEY, JSON.stringify(state()))
     storageMessage.value = '草稿已保存在此浏览器'
   } catch {
     storageMessage.value = '浏览器存储不可用，离开页面可能丢失草稿'
@@ -775,7 +779,9 @@ onMounted(async () => {
   }
   narrowScreen.addEventListener('change', adaptFilters)
   try {
-    const saved = restorePaperDraft(localStorage.getItem(DRAFT_KEY))
+    const saved = paperId
+      ? readPapers().find((paper) => paper.id === paperId && !paper.deletedAt)?.draft
+      : restorePaperDraft(localStorage.getItem(DRAFT_KEY))
     if (saved) {
       title.value = saved.title
       size.value = saved.size
@@ -1071,6 +1077,7 @@ onBeforeUnmount(() => {
         :style="{ '--editor-head-height': `${editorHeadHeight}px` }"
       >
         <div ref="editorHead" class="paper-editor-head">
+          <RouterLink :to="{ name: 'paper-library' }" class="paper-back-library">← 我的试卷</RouterLink>
           <h2 class="paper-sr-only">我的试卷</h2>
           <input
             class="paper-name-input"

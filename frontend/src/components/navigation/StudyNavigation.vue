@@ -43,8 +43,8 @@ const baseNavigationItems = [
   {
     key: 'paper',
     label: '组卷',
-    route: { name: 'paper' },
-    routeNames: ['paper'],
+    route: { name: 'paper-library' },
+    routeNames: ['paper', 'paper-library'],
     iconPaths: ['M6 3h9l4 4v14H6z', 'M14 3v5h5', 'M9 12h7', 'M9 16h7'],
   },
 ]

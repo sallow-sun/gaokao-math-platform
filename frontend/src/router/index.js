@@ -36,6 +36,12 @@ const router = createRouter({
   routes: [
     {
       path: '/paper',
+      name: 'paper-library',
+      component: () => import('../views/PaperLibraryView.vue'),
+      meta: { studyNavigation: true, title: '我的试卷' },
+    },
+    {
+      path: '/paper/edit/:id?',
       name: 'paper',
       component: () => import('../views/PaperBuilderView.vue'),
       meta: { studyNavigation: true, title: '自主组卷' },
