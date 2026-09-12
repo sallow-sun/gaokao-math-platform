@@ -133,7 +133,7 @@ public class ProblemTrashService {
         audit.log(actor,"PROBLEM_PURGE","PROBLEM",target.id(),"认证管理员="+approver+"；清除题目内容，保留题号占位及审计记录");
       }
     }
-    var unused=urls.stream().filter(url -> db.queryForObject("SELECT (SELECT count(*) FROM problem_assets WHERE url=?)+(SELECT count(*) FROM editorial_assets WHERE url=?)",Long.class,url,url)==0).toList();
+    var unused=urls.stream().filter(url -> db.queryForObject("SELECT (SELECT count(*) FROM problem_assets WHERE url=?)+(SELECT count(*) FROM editorial_assets WHERE url=?)+(SELECT count(*) FROM shared_papers WHERE NOT deleted AND position(? in snapshot::text)>0)",Long.class,url,url,url)==0).toList();
     org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization(){
       @Override public void afterCommit() { for(String url:unused) { try { storage.deleteUrl(url); } catch(RuntimeException ignored) { /* retained orphan can be cleaned later */ } } }
     });

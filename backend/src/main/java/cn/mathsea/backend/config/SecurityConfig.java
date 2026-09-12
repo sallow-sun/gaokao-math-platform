@@ -75,6 +75,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/csrf", "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/me").permitAll()
                 .requestMatchers("/api/v1/health", "/actuator/health", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/uploads/**").permitAll()
                 .requestMatchers("/api/v1/problems/**", "/api/v1/problem-catalogs", "/api/v1/problem-stats", "/api/v1/curriculum").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/papers", "/api/v1/papers/**").permitAll()
                 .requestMatchers("/api/v1/practice-lists/**").permitAll()
                 .requestMatchers("/api/v1/users/me", "/api/v1/users/me/**").authenticated()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/users/*/contributions").permitAll()

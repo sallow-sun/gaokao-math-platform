@@ -41,6 +41,13 @@ const baseNavigationItems = [
     ],
   },
   {
+    key: 'papers',
+    label: '试卷',
+    route: { name: 'papers' },
+    routeNames: ['papers', 'paper-publish', 'shared-paper', 'paper-shared-preview'],
+    iconPaths: ['M5 4h14v17H5z', 'M8 8h8', 'M8 12h8', 'M8 16h5'],
+  },
+  {
     key: 'paper',
     label: '组卷',
     route: { name: 'paper-library' },

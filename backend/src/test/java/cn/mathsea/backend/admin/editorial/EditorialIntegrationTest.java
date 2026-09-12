@@ -60,6 +60,69 @@ class EditorialIntegrationTest {
   @Autowired org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
   @org.springframework.test.context.bean.override.mockito.MockitoBean cn.mathsea.backend.common.rate.RateLimitService purgeRateLimit;
 
+  @Autowired cn.mathsea.backend.paper.SharedPaperService sharedPapers;
+  @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
+  @org.springframework.test.context.bean.override.mockito.MockitoBean cn.mathsea.backend.paper.PaperObjectStorage paperStorage;
+
+  cn.mathsea.backend.paper.SharedPaperService.Publication publication() throws Exception {
+    return new cn.mathsea.backend.paper.SharedPaperService.Publication("Shared test", "Notes", "Original", 2026, "Other", false,
+      json.readTree("""
+        {"version":1,"title":"Private","size":"a4","items":[{"problem":{"id":"GC123456","content":"Compute $1+1$","type":"single-choice","typeLabel":"single","answer":"secret","assets":[{"url":"https://example.test/private.png"},{"url":"/uploads/../../private"},{"url":"/uploads/public.png"}]},"score":5,"space":20}]}
+        """));
+  }
+  UUID share(long owner) throws Exception {
+    return (UUID)((Map<?,?>)sharedPapers.share(owner,publication())).get("id");
+  }
+  @Test void sharedSnapshotIsPublicImmutableAndStripsPrivateFields() throws Exception {
+    long owner=actor("papers"+UUID.randomUUID().toString().substring(0,8),"EDITOR"); UUID id=share(owner);
+    var detail=sharedPapers.detail(id,null);
+    var snapshot=(com.fasterxml.jackson.databind.JsonNode)detail.get("snapshot");
+    assertEquals("Shared test",snapshot.path("title").asText());
+    assertFalse(snapshot.path("items").get(0).path("problem").has("answer"));
+    assertEquals(1,snapshot.path("items").get(0).path("problem").path("assets").size());
+    assertFalse((Boolean)detail.get("canEdit")); assertFalse(detail.containsKey("object_key"));
+    mvc.perform(get("/api/v1/papers/"+id)).andExpect(status().isOk()).andExpect(jsonPath("$.question_count").value(1));
+    mvc.perform(post("/api/v1/papers/share").with(user(new CustomUserPrincipal(users.selectById(owner)))).contentType("application/json").content(json.writeValueAsString(publication()))).andExpect(status().isForbidden());
+    assertThrows(BusinessException.class,()->sharedPapers.list(null,"","","mine","newest",null,"",false,1));
+    sharedPapers.remove(id,owner);
+    assertThrows(BusinessException.class,()->sharedPapers.detail(id,owner));
+  }
+  @Test void paperRatingsFavoritesAndCheckingRespectIdentity() throws Exception {
+    long owner=actor("owner"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), reader=actor("reader"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), reviewer=actor("reviewer"+UUID.randomUUID().toString().substring(0,8),"REVIEWER");UUID id=share(owner);
+    assertThrows(BusinessException.class,()->sharedPapers.rate(id,owner,new cn.mathsea.backend.paper.SharedPaperService.Rating(3,4)));
+    assertThrows(BusinessException.class,()->sharedPapers.rate(id,reader,new cn.mathsea.backend.paper.SharedPaperService.Rating(0,4)));
+    sharedPapers.rate(id,reader,new cn.mathsea.backend.paper.SharedPaperService.Rating(3,4));
+    sharedPapers.rate(id,reader,new cn.mathsea.backend.paper.SharedPaperService.Rating(5,2));
+    sharedPapers.favorite(id,reader,true);sharedPapers.favorite(id,reader,true);
+    var detail=sharedPapers.detail(id,reader);assertEquals(1L,detail.get("rating_count"));assertEquals(1L,detail.get("favorite_count"));assertEquals("5.0",detail.get("difficulty").toString());
+    assertThrows(BusinessException.class,()->sharedPapers.check(id,reader,new cn.mathsea.backend.paper.SharedPaperService.Check(true,"Checked")));
+    sharedPapers.check(id,reviewer,new cn.mathsea.backend.paper.SharedPaperService.Check(true,"Questions checked"));
+    assertNotNull(sharedPapers.detail(id,reader).get("checked_at"));
+    sharedPapers.check(id,reviewer,new cn.mathsea.backend.paper.SharedPaperService.Check(false,""));
+    assertNull(sharedPapers.detail(id,reader).get("checked_at"));
+    assertThrows(BusinessException.class,()->sharedPapers.remove(id,reader));
+  }
+  @Test void paperHotRequiresDistinctReaders() throws Exception {
+    long owner=actor("hot"+UUID.randomUUID().toString().substring(0,8),"EDITOR");UUID id=share(owner);
+    for(int i=0;i<12;i++)sharedPapers.access(id,owner,false);
+    assertEquals(false,sharedPapers.detail(id,null).get("hot"));
+    for(int i=0;i<10;i++)sharedPapers.access(id,actor("visitor"+UUID.randomUUID().toString().substring(0,8),"EDITOR"),false);
+    assertEquals(true,sharedPapers.detail(id,null).get("hot"));
+  }
+  @Test void pdfPublicationNeedsStorageAndOwnerAndCanRetryCompletion() throws Exception {
+    long owner=actor("pdf"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), other=actor("other"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    assertThrows(BusinessException.class,()->sharedPapers.beginUpload(owner,publication()));
+    org.mockito.Mockito.when(paperStorage.available()).thenReturn(true);
+    org.mockito.Mockito.when(paperStorage.upload(org.mockito.ArgumentMatchers.any())).thenReturn(Map.of("url","https://files.example.test"));
+    UUID id=(UUID)((Map<?,?>)sharedPapers.beginUpload(owner,publication())).get("id");
+    assertThrows(BusinessException.class,()->sharedPapers.detail(id,owner));
+    assertThrows(BusinessException.class,()->sharedPapers.finishUpload(other,id));
+    org.mockito.Mockito.when(paperStorage.complete(id)).thenReturn(new cn.mathsea.backend.paper.PaperObjectStorage.Stored("paper-files/hash.pdf",128));
+    sharedPapers.finishUpload(owner,id);sharedPapers.finishUpload(owner,id);
+    org.mockito.Mockito.verify(paperStorage,org.mockito.Mockito.times(1)).complete(id);
+    assertEquals(128L,sharedPapers.detail(id,null).get("file_bytes"));
+  }
+
   cn.mathsea.backend.admin.service.ProblemTrashService.PurgeTarget purgeTarget(String kind,String id) {
     String generation=db.queryForObject(kind.equals("draft") ? "SELECT version::text FROM editorial_items WHERE id=?::uuid" : "SELECT deleted_at::text FROM problems WHERE problem_number=?",String.class,id);
     return new cn.mathsea.backend.admin.service.ProblemTrashService.PurgeTarget(kind,id,generation);

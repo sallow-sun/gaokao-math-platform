@@ -34,7 +34,36 @@ const router = createRouter({
     return { top: 0 }
   },
   routes: [
-    { path: '/contribute', name: 'contribute', component: () => import('../views/ContributionUploadView.vue'), meta: { studyNavigation: true, title: '上传题目' } },
+    {
+      path: '/papers',
+      name: 'papers',
+      component: () => import('../views/SharedPapersView.vue'),
+      meta: { studyNavigation: true, title: '试卷' },
+    },
+    {
+      path: '/papers/new',
+      name: 'paper-publish',
+      component: () => import('../views/PublishPaperView.vue'),
+      meta: { studyNavigation: true, title: '发布试卷' },
+    },
+    {
+      path: '/papers/:resourceId/preview',
+      name: 'paper-shared-preview',
+      component: () => import('../views/PaperBuilderView.vue'),
+      meta: { studyNavigation: true, title: '试卷预览' },
+    },
+    {
+      path: '/papers/:id',
+      name: 'shared-paper',
+      component: () => import('../views/SharedPaperView.vue'),
+      meta: { studyNavigation: true, title: '试卷详情' },
+    },
+    {
+      path: '/contribute',
+      name: 'contribute',
+      component: () => import('../views/ContributionUploadView.vue'),
+      meta: { studyNavigation: true, title: '上传题目' },
+    },
     {
       path: '/paper',
       name: 'paper-library',

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { apiRequest } from '../services/apiClient.js'
 import { useRoute } from 'vue-router'
 import { readPapers, savePaper } from '../services/paperLibrary.js'
 import MathText from '../components/content/MathText.vue'
@@ -31,6 +32,8 @@ import {
 import '../assets/styles/paper-builder.css'
 
 const paperId = useRoute().params.id
+const sharedId = useRoute().params.resourceId
+const sharedError = ref('')
 const windowWidth = ref(window.innerWidth)
 function updateWindowWidth() {
   windowWidth.value = window.innerWidth
@@ -130,7 +133,7 @@ const title = ref('数学练习卷'),
   size = ref('a4'),
   items = ref([]),
   history = ref([])
-const preview = ref(false),
+const preview = ref(!!sharedId),
   message = ref(''),
   storageMessage = ref('草稿仅保存在此浏览器')
 const activeId = ref(''),
@@ -687,6 +690,7 @@ async function layout() {
   fit()
 }
 function persist() {
+  if (sharedId) return
   try {
     if (paperId) savePaper(paperId, state())
     else localStorage.setItem(DRAFT_KEY, JSON.stringify(state()))
@@ -750,7 +754,7 @@ function keydown(event) {
     if (items.value.length && !layingOut.value && !printing.value) printPaper()
   }
   if (event.key === 'Escape') {
-    preview.value = false
+    if (!sharedId) preview.value = false
     settingsOpen.value = false
     activeId.value = ''
     endDrag()
@@ -761,7 +765,7 @@ function keydown(event) {
     !event.target.closest('input,textarea,select')
   ) {
     event.preventDefault()
-    undo()
+    if (!sharedId) undo()
   }
 }
 onMounted(async () => {
@@ -779,9 +783,14 @@ onMounted(async () => {
   }
   narrowScreen.addEventListener('change', adaptFilters)
   try {
-    const saved = paperId
-      ? readPapers().find((paper) => paper.id === paperId && !paper.deletedAt)?.draft
-      : restorePaperDraft(localStorage.getItem(DRAFT_KEY))
+    const shared = sharedId ? await apiRequest(`/api/v1/papers/${sharedId}`) : null
+    if (disposed) return
+    if (sharedId && !shared?.snapshot) throw new Error('No editable snapshot')
+    const saved = sharedId
+      ? restorePaperDraft(JSON.stringify(shared.snapshot))
+      : paperId
+        ? readPapers().find((paper) => paper.id === paperId && !paper.deletedAt)?.draft
+        : restorePaperDraft(localStorage.getItem(DRAFT_KEY))
     if (saved) {
       title.value = saved.title
       size.value = saved.size
@@ -791,7 +800,9 @@ onMounted(async () => {
     }
   } catch {
     storageMessage.value = '未能读取旧草稿，当前可正常组卷'
+    if (sharedId) sharedError.value = '试卷加载失败，请返回详情页重试'
   }
+  if (disposed) return
   resizeObserver = new ResizeObserver(() => {
     fit()
     if (editorHead.value) editorHeadHeight.value = editorHead.value.getBoundingClientRect().height
@@ -805,7 +816,7 @@ onMounted(async () => {
   window.addEventListener('resize', updateWindowWidth)
   window.addEventListener('afterprint', finishPrint)
   window.addEventListener('keydown', keydown)
-  load()
+  if (!sharedId) load()
   queueLayout()
 })
 onBeforeUnmount(() => {
@@ -1077,10 +1088,19 @@ onBeforeUnmount(() => {
         :style="{ '--editor-head-height': `${editorHeadHeight}px` }"
       >
         <div ref="editorHead" class="paper-editor-head">
-          <RouterLink :to="{ name: 'paper-library' }" class="paper-back-library">← 我的试卷</RouterLink>
+          <RouterLink
+            :to="
+              sharedId
+                ? { name: 'shared-paper', params: { id: sharedId } }
+                : { name: 'paper-library' }
+            "
+            class="paper-back-library"
+            >← {{ sharedId ? '试卷详情' : '我的试卷' }}</RouterLink
+          >
           <h2 class="paper-sr-only">我的试卷</h2>
           <input
             class="paper-name-input"
+            :readonly="!!sharedId"
             v-model="title"
             aria-label="试卷名称"
             maxlength="100"
@@ -1088,11 +1108,21 @@ onBeforeUnmount(() => {
           />
           <span class="paper-count">{{ items.length }} 题 · {{ totalScore }} 分</span>
           <div class="paper-top-actions">
-            <button :disabled="!history.length" aria-label="↶ 撤销" title="撤销" @click="undo">
+            <button
+              v-if="!sharedId"
+              :disabled="!history.length"
+              aria-label="↶ 撤销"
+              title="撤销"
+              @click="undo"
+            >
               ↶</button
-            ><button :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">
+            ><button
+              v-if="!sharedId"
+              :aria-expanded="settingsOpen"
+              @click="settingsOpen = !settingsOpen"
+            >
               试卷设置</button
-            ><button :aria-pressed="preview" @click="preview = !preview">
+            ><button v-if="!sharedId" :aria-pressed="preview" @click="preview = !preview">
               {{ preview ? '← 返回编辑' : '预览打印' }}</button
             ><button
               class="paper-primary"
@@ -1160,6 +1190,7 @@ onBeforeUnmount(() => {
         <div v-if="layoutError" class="paper-error" role="alert">
           {{ layoutError }} <button @click="queueLayout">重试排版</button>
         </div>
+        <div v-if="sharedError" class="paper-error" role="alert">{{ sharedError }}</div>
         <div
           v-if="!preview && !settingsOpen && activeIndex >= 0"
           class="paper-item-tools"

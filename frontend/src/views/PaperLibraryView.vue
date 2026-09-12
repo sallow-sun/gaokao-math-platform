@@ -133,6 +133,11 @@ onBeforeUnmount(() => window.removeEventListener('storage', refresh))
             编辑于 {{ date(paper.updatedAt) }} · {{ paper.draft.size === 'a4' ? 'A4' : '16 开' }}
           </p>
           <div class="book-actions">
+            <RouterLink
+              v-if="!trash && paper.draft.items.length"
+              :to="{ name: 'paper-publish', query: { draft: paper.id } }"
+              >分享</RouterLink
+            >
             <button v-if="!trash" @click="create(paper)">复制</button
             ><button @click="recycle(paper)">{{ trash ? '恢复试卷' : '移入回收站' }}</button>
           </div>
@@ -343,7 +348,8 @@ input:focus-visible {
   display: flex;
   gap: 16px;
 }
-.book-actions button {
+.book-actions button,
+.book-actions a {
   border: 0;
   padding: 0;
   background: transparent;
