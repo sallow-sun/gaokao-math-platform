@@ -33,9 +33,13 @@ function updateWindowWidth() {
   windowWidth.value = window.innerWidth
 }
 const leftTab = ref('filters')
-function openOutline() {
-  leftTab.value = 'outline'
-  filterOpen.value = true
+const settingsOpen = ref(false)
+const editorHead = ref(null)
+const editorHeadHeight = ref(56)
+const advancedFilters = ref(false)
+function stepZoom(delta) {
+  autoFit.value = false
+  zoom.value = Math.max(0.28, Math.min(1.5, Math.round((zoom.value + delta) * 100) / 100))
 }
 const targetScore = ref(150)
 const dragPosition = ref({ x: 0, y: 0 })
@@ -153,6 +157,14 @@ const filters = computed(() => ({
   learned: query.learned.value,
   learning: query.learning.value,
 }))
+const hiddenFilterCount = computed(
+  () =>
+    filters.value.years.length +
+    filters.value.sources.length +
+    filters.value.learned.length +
+    filters.value.chapters.length +
+    (filters.value.learning ? 1 : 0),
+)
 const { filterMode, pinnedFilters, setFilterMode, setFilterPinned } = useProblemsFilterPreferences()
 const visibleYearOptions = computed(() =>
   PROBLEMS_YEAR_CATALOG_OPTIONS.filter(
@@ -735,6 +747,8 @@ function keydown(event) {
   }
   if (event.key === 'Escape') {
     preview.value = false
+    settingsOpen.value = false
+    activeId.value = ''
     endDrag()
   }
   if (
@@ -772,8 +786,12 @@ onMounted(async () => {
   } catch {
     storageMessage.value = '未能读取旧草稿，当前可正常组卷'
   }
-  resizeObserver = new ResizeObserver(fit)
+  resizeObserver = new ResizeObserver(() => {
+    fit()
+    if (editorHead.value) editorHeadHeight.value = editorHead.value.getBoundingClientRect().height
+  })
   resizeObserver.observe(workspace.value)
+  resizeObserver.observe(editorHead.value)
   document.addEventListener('pointermove', pointerMove, { passive: false })
   document.addEventListener('pointerup', pointerUp)
   document.addEventListener('pointercancel', endDrag)
@@ -837,21 +855,6 @@ onBeforeUnmount(() => {
             <h3>
               {{ group.label }} <small>{{ group.total }} 分</small>
             </h3>
-            <label class="paper-batch-score"
-              >每题分值<input
-                type="number"
-                min="0"
-                max="100"
-                step="0.5"
-                :aria-label="`${group.label}批量分值`"
-                :value="
-                  group.entries.every((entry) => entry.item.score === group.entries[0].item.score)
-                    ? group.entries[0].item.score
-                    : ''
-                "
-                placeholder="混合"
-                @change="batchScore(group, $event)"
-            /></label>
             <div
               v-for="entry in group.entries"
               :key="entry.item.problem.id"
@@ -871,6 +874,8 @@ onBeforeUnmount(() => {
         <div v-show="leftTab === 'filters'" class="paper-shared-filters">
           <ProblemsFilterPanel
             route-name="paper"
+            compact
+            :advanced="advancedFilters"
             :filter-mode="filterMode"
             :keyword="filters.keyword"
             :level="filters.levels"
@@ -898,6 +903,14 @@ onBeforeUnmount(() => {
             @source-pin-change="setFilterPinned('source', $event.value, $event.pinned)"
             @type-pin-change="setFilterPinned('type', $event.value, $event.pinned)"
           />
+          <button
+            class="paper-more-filters"
+            :aria-expanded="advancedFilters"
+            @click="advancedFilters = !advancedFilters"
+          >
+            {{ advancedFilters ? '收起更多条件' : '更多筛选条件'
+            }}<span v-if="hiddenFilterCount"> · 已选 {{ hiddenFilterCount }} 项</span>
+          </button>
         </div>
       </aside>
       <div
@@ -1016,10 +1029,13 @@ onBeforeUnmount(() => {
             >
               {{ expandedSources.has(problem.id) ? '收起长题 ↑' : '展开完整题目 ↓' }}
             </button>
-            <footer>
-              <span>{{ problem.sourceText }}</span
-              ><small>{{ problem.id }}</small>
-            </footer>
+            <details class="paper-source-details" @pointerdown.stop>
+              <summary>题目详情</summary>
+              <div>
+                <span>{{ problem.sourceText }}</span
+                ><small>{{ problem.id }}</small>
+              </div>
+            </details>
           </article>
         </div>
         <nav class="paper-pagination" aria-label="题库翻页">
@@ -1049,13 +1065,27 @@ onBeforeUnmount(() => {
         @keydown.left.prevent="nudgeColumn(1, -24)"
         @keydown.right.prevent="nudgeColumn(1, 24)"
       />
-      <section class="paper-editor" aria-label="试卷工作区">
-        <div class="paper-editor-head">
-          <span class="paper-count"
-            >已添加 <b>{{ items.length }}</b> 题 · {{ pages.length }} 页</span
-          >
+      <section
+        class="paper-editor"
+        aria-label="试卷工作区"
+        :style="{ '--editor-head-height': `${editorHeadHeight}px` }"
+      >
+        <div ref="editorHead" class="paper-editor-head">
+          <h2 class="paper-sr-only">我的试卷</h2>
+          <input
+            class="paper-name-input"
+            v-model="title"
+            aria-label="试卷名称"
+            maxlength="100"
+            @focus="checkpoint"
+          />
+          <span class="paper-count">{{ items.length }} 题 · {{ totalScore }} 分</span>
           <div class="paper-top-actions">
-            <button :aria-pressed="preview" @click="preview = !preview">
+            <button :disabled="!history.length" aria-label="↶ 撤销" title="撤销" @click="undo">
+              ↶</button
+            ><button :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">
+              试卷设置</button
+            ><button :aria-pressed="preview" @click="preview = !preview">
               {{ preview ? '← 返回编辑' : '预览打印' }}</button
             ><button
               class="paper-primary"
@@ -1066,51 +1096,71 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
-        <div class="paper-document-options">
-          <h2>{{ preview ? '打印预览' : '我的试卷' }}</h2>
-          <span v-if="!preview">所见即所得 · 可拖动排序</span>
-        </div>
-        <div v-show="!preview" class="paper-title-field">
-          <label for="paper-title">试卷名称</label
-          ><input id="paper-title" v-model="title" maxlength="100" @focus="checkpoint" />
-        </div>
-        <div class="paper-view-toolbar">
-          <select v-model="size" aria-label="纸张尺寸" @focus="checkpoint">
-            <option value="a4">A4 纵向</option>
-            <option value="16k">16 开 · 原卷尺寸</option></select
-          ><button :aria-pressed="autoFit" @click="fitWidth">适合宽度</button
-          ><select :value="Math.round(zoom * 100)" aria-label="预览缩放" @change="setZoom">
-            <option :value="Math.round(zoom * 100)">{{ Math.round(zoom * 100) }}%</option>
-            <option v-for="z in [50, 75, 100, 125]" :key="z" :value="z">{{ z }}%</option></select
-          ><span class="paper-save-state">{{ storageMessage }}</span>
-        </div>
-        <div v-if="!preview" class="paper-score-summary">
-          <strong>总分 {{ totalScore }} 分</strong
-          ><label
+        <section
+          v-if="settingsOpen"
+          class="paper-settings-panel"
+          aria-label="试卷设置"
+          @keydown.esc.stop="settingsOpen = false"
+        >
+          <header>
+            <h3>试卷设置</h3>
+            <button aria-label="关闭试卷设置" @click="settingsOpen = false">×</button>
+          </header>
+          <label
+            >纸张尺寸<select v-model="size" aria-label="纸张尺寸" @focus="checkpoint">
+              <option value="a4">A4 纵向</option>
+              <option value="16k">16 开 · 原卷尺寸</option>
+            </select></label
+          >
+          <label
             >目标分数<input
               type="number"
               min="0"
               max="1000"
               step="0.5"
               :value="targetScore"
-              @change="setTarget" /></label
-          ><span>{{ scoreStatus }}</span
-          ><button @click="openOutline">试卷目录</button>
-        </div>
-        <div class="paper-status" aria-live="polite">
-          <span>{{
-            message ||
-            (preview
-              ? '检查分页、公式与配图；打印时可保存为 PDF。'
-              : '卷面即打印效果；点击题目调整留白，拖动题目调整顺序。')
-          }}</span
+              @change="setTarget"
+          /></label>
+          <p>{{ scoreStatus || '不设目标分数' }}</p>
+          <div v-if="sections.length" class="paper-settings-scores">
+            <h4>批量设分</h4>
+            <label v-for="group in sections" :key="group.type"
+              >{{ group.label
+              }}<input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                :aria-label="`${group.label}批量分值`"
+                :value="
+                  group.entries.every((entry) => entry.item.score === group.entries[0].item.score)
+                    ? group.entries[0].item.score
+                    : ''
+                "
+                placeholder="混合"
+                @change="batchScore(group, $event)"
+            /></label>
+          </div>
+          <footer>
+            <button @click="persist">保存草稿</button
+            ><button :disabled="!items.length" @click="clearPaper">清空试卷</button>
+          </footer>
+        </section>
+        <div class="paper-status paper-sr-only" aria-live="polite">
+          <span>{{ message }}</span
           ><span v-if="layingOut">正在排版…</span>
         </div>
         <div v-if="layoutError" class="paper-error" role="alert">
           {{ layoutError }} <button @click="queueLayout">重试排版</button>
         </div>
-        <div v-if="!preview && activeIndex >= 0" class="paper-item-tools" @click.stop>
-          <span class="paper-count">第 {{ activeIndex + 1 }} 题</span
+        <div
+          v-if="!preview && !settingsOpen && activeIndex >= 0"
+          class="paper-item-tools"
+          @click.stop
+        >
+          <button class="paper-dismiss-tools" aria-label="取消选择题目" @click="activeId = ''">
+            ×</button
+          ><span class="paper-count">第 {{ activeIndex + 1 }} 题</span
           ><label class="paper-question-score"
             >分值<input
               type="number"
@@ -1172,7 +1222,7 @@ onBeforeUnmount(() => {
           >
             另起一页</button
           ><button :aria-label="`移除第 ${activeIndex + 1} 题`" @click="remove(activeIndex)">
-            ×
+            移除
           </button>
         </div>
         <div ref="workspace" class="paper-canvas">
@@ -1249,14 +1299,18 @@ onBeforeUnmount(() => {
         </div>
 
         <footer class="paper-workspace-footer">
-          <div>
-            <strong>共 {{ items.length }} 题 · {{ totalScore }} 分</strong
-            ><span>{{ PAPER_SIZES[size].label }} · {{ pages.length }} 页</span>
-          </div>
-          <div>
-            <button :disabled="!history.length" @click="undo">↶ 撤销</button
-            ><button :disabled="!items.length" @click="clearPaper">清空试卷</button
-            ><button class="paper-primary" @click="persist">保存草稿</button>
+          <span class="paper-save-state" :title="storageMessage">{{
+            layingOut ? '正在排版…' : storageMessage
+          }}</span>
+          <div class="paper-zoom-controls">
+            <button aria-label="缩小卷面" @click="stepZoom(-0.1)">−</button
+            ><select :value="Math.round(zoom * 100)" aria-label="预览缩放" @change="setZoom">
+              <option :value="Math.round(zoom * 100)">{{ Math.round(zoom * 100) }}%</option>
+              <option v-for="z in [50, 75, 100, 125, 150]" :key="z" :value="z">
+                {{ z }}%
+              </option></select
+            ><button aria-label="放大卷面" @click="stepZoom(0.1)">＋</button
+            ><button :aria-pressed="autoFit" @click="fitWidth">适合宽度</button>
           </div>
         </footer>
       </section>

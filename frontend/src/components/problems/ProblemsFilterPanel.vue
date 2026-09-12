@@ -5,6 +5,8 @@ import { ref, watch } from 'vue'
 import ProblemsFilterGroup from './ProblemsFilterGroup.vue'
 
 const props = defineProps({
+  compact: { type: Boolean, default: false },
+  advanced: { type: Boolean, default: false },
   routeName: { type: String, default: 'problems' },
   filterMode: {
     type: String,
@@ -147,6 +149,7 @@ function updateFilterMode(event) {
       @reset.prevent="clearSearch"
     >
       <ProblemsFilterGroup
+        v-show="!compact || advanced"
         filter-key="year"
         label="年份"
         :model-value="year"
@@ -161,6 +164,7 @@ function updateFilterMode(event) {
       />
 
       <ProblemsFilterGroup
+        v-show="!compact || advanced"
         filter-key="source"
         label="来源"
         :model-value="source"
@@ -189,7 +193,7 @@ function updateFilterMode(event) {
       />
 
       <TagFilter :route-name="routeName" />
-      <LearningProgressFilter :route-name="routeName" />
+      <LearningProgressFilter v-if="!compact || advanced" :route-name="routeName" />
 
       <ProblemsFilterGroup
         filter-key="level"

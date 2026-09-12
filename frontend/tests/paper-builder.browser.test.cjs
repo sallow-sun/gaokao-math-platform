@@ -111,6 +111,8 @@ let browser, server
   assert.deepEqual(errors, [])
   assert.equal(await page.locator('.paper-canvas:visible .paper-sheet').count(), 1)
   assert.ok(await page.getByLabel('预览缩放').isVisible())
+  assert.equal(await page.getByLabel('纸张尺寸').count(), 0)
+  assert.equal(await page.getByRole('group', { name: '来源', exact: true }).isVisible(), false)
   const firstSplitter = page.getByRole('separator', { name: '调整筛选区和题库宽度' })
   const beforeFilter = await page.locator('.paper-filter-sidebar').boundingBox()
   const handle = await firstSplitter.boundingBox()
@@ -185,7 +187,10 @@ let browser, server
     4,
     'all four option formulas must be preserved',
   )
+  await page.getByRole('button', { name: '取消选择题目', exact: true }).click()
+  const canvasBeforeSelect = await page.locator('.paper-canvas').boundingBox()
   await page.locator('.paper-fragment').nth(1).click()
+  assert.deepEqual(await page.locator('.paper-canvas').boundingBox(), canvasBeforeSelect)
   await page.getByTitle('从新页开始').click()
   await ready()
   assert.equal(await page.locator('.paper-canvas .paper-sheet').count(), 2)
@@ -198,6 +203,7 @@ let browser, server
   assert.ok(queries.at(-1).getAll('tag').includes('函数与导数'))
   assert.equal(await added().count(), 2)
   assert.equal(new URL(page.url()).pathname, '/paper')
+  await page.getByRole('button', { name: '更多筛选条件', exact: true }).click()
   await page
     .getByRole('group', { name: '来源', exact: true })
     .getByRole('button', { name: '更多', exact: true })
@@ -294,13 +300,17 @@ let browser, server
     ),
   )
   await page.getByRole('button', { name: '试卷目录', exact: true }).first().click()
+  await page.getByRole('button', { name: '试卷设置', exact: true }).click()
   await page.getByLabel('解答题批量分值').fill('9')
   await page.getByLabel('解答题批量分值').press('Tab')
   await ready()
-  assert.ok((await page.locator('.paper-score-summary').textContent()).includes('25.5 分'))
+  assert.ok(
+    (await page.locator('.paper-editor-head .paper-count').textContent()).includes('25.5 分'),
+  )
   assert.equal(await page.locator('.paper-outline-item').count(), 3)
   await page.getByRole('button', { name: '筛选条件', exact: true }).click()
   await page.getByRole('button', { name: '保存草稿', exact: true }).click()
+  await page.getByRole('button', { name: '关闭试卷设置', exact: true }).click()
   await page.screenshot({ path: path.join(root, '.tmp/paper-desktop.png'), fullPage: true })
   await page.getByRole('button', { name: '添加题目 GS000099', exact: true }).click()
   await ready()
@@ -400,7 +410,9 @@ let browser, server
     printBackground: true,
   })
   await page.evaluate(() => window.dispatchEvent(new Event('afterprint')))
+  await page.getByRole('button', { name: '试卷设置', exact: true }).click()
   await page.getByLabel('纸张尺寸').selectOption('16k')
+  await page.getByRole('button', { name: '关闭试卷设置', exact: true }).click()
   await ready()
   await page.screenshot({ path: path.join(root, '.tmp/paper-preview.png'), fullPage: true })
   await page.reload({ waitUntil: 'networkidle' })
@@ -410,7 +422,9 @@ let browser, server
   await page.getByLabel('移除第 1 题', { exact: true }).click()
   await ready()
   assert.equal(await added().count(), 3)
+  await page.getByRole('button', { name: '试卷设置', exact: true }).click()
   await page.getByRole('button', { name: '清空试卷', exact: true }).click()
+  await page.getByRole('button', { name: '关闭试卷设置', exact: true }).click()
   await ready()
   assert.equal(await added().count(), 0)
   await page.getByRole('button', { name: '↶ 撤销', exact: true }).click()
