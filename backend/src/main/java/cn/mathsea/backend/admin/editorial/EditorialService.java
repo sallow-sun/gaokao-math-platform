@@ -752,8 +752,8 @@ public class EditorialService {
     String checksum = importChecksum(raw, images);
     var previous =
         db.queryForList(
-            "SELECT item_id,checksum,result FROM editorial_import_entries WHERE batch_id=? AND"
-                + " path=?",
+            "SELECT e.item_id,e.checksum,e.result FROM editorial_import_entries e JOIN editorial_items i ON i.id=e.item_id WHERE e.batch_id=? AND"
+                + " e.path=? AND i.purged_at IS NULL AND i.status<>'TRASH'",
             batch,
             path);
     if (!previous.isEmpty()
@@ -772,9 +772,14 @@ public class EditorialService {
             : parsed.number();
     var prior =
         db.queryForList(
-            "SELECT id FROM editorial_items WHERE paper_id=? AND original_number=?", paper, number);
+            "SELECT id,status FROM editorial_items WHERE paper_id=? AND original_number=? AND purged_at IS NULL FOR UPDATE", paper, number);
     if (!prior.isEmpty()) {
       UUID existing = (UUID) prior.getFirst().get("id");
+      if ("TRASH".equals(prior.getFirst().get("status"))) {
+        String message = "该题仍在回收站，请先恢复或彻底删除后再导入";
+        record(batch, path, checksum, existing, "CONFLICT", message);
+        return Map.of("result", "CONFLICT", "itemId", existing, "message", message);
+      }
       var hashes =
           db.queryForList(
               "SELECT checksum FROM editorial_import_fingerprints WHERE item_id=?", existing);

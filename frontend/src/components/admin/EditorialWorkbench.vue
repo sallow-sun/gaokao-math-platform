@@ -21,16 +21,16 @@ const switching = ref(false)
 const publishFailure = ref(null)
 const publishStatus = ref('')
 let preparation = 0
-let preparationWork = Promise.resolve()
+let preparationController
+let openingId = null
 let disposed = false
 function clearPrepared() {
   preparation++
+  preparationController?.abort()
   const old = prepared.value
   prepared.value = null
   if (old && old.value.id !== item.value?.id)
-    preparationWork = preparationWork.then(() =>
-      api.remove(`/items/${old.value.id}/lease`).catch(() => {}),
-    )
+    void api.remove(`/items/${old.value.id}/lease`).catch(() => {})
 }
 async function prepareNext() {
   if (
@@ -68,14 +68,21 @@ async function prepareNext() {
   })
   if (paperId.value) query.set('paperId', paperId.value)
   const lastPage = Math.max(queue.value.page, Math.ceil(queue.value.total / 40))
-  preparationWork = preparationWork.then(async () => {
+  const controller = new AbortController()
+  preparationController = controller
+  const prefetchTimer = setTimeout(() => controller.abort(), 10000)
+  void (async () => {
     const attempt = async (candidate, batch) => {
       if (disposed || generation !== preparation) return true
       try {
-        const value = await api.post(`/items/${candidate.id}/lease`)
+        const value = await api.post(
+          `/items/${candidate.id}/lease`,
+          {},
+          { signal: controller.signal },
+        )
         if (disposed || generation !== preparation) {
-          if (value.id !== item.value?.id)
-            await api.remove(`/items/${value.id}/lease`).catch(() => {})
+          if (value.id !== item.value?.id && value.id !== openingId)
+            void api.remove(`/items/${value.id}/lease`).catch(() => {})
           return true
         }
         prepared.value = { value, at: Date.now(), batch }
@@ -99,7 +106,7 @@ async function prepareNext() {
       for (let page = Number(query.get('page')); page <= lastPage; page++) {
         if (disposed || generation !== preparation) return
         query.set('page', page)
-        const batch = await api.get(`/items?${query}`)
+        const batch = await api.get(`/items?${query}`, { signal: controller.signal })
         for (const candidate of batch.items) {
           if (
             candidate.id === current ||
@@ -111,9 +118,11 @@ async function prepareNext() {
         }
       }
     } catch {
-      /* Loading remains retryable and never blocks reviewing the current question. */
+      /* Prefetch failure never blocks the foreground navigation. */
+    } finally {
+      clearTimeout(prefetchTimer)
     }
-  })
+  })()
 }
 async function advanceWhilePublishing(previousId) {
   switching.value = true
@@ -123,17 +132,18 @@ async function advanceWhilePublishing(previousId) {
     ...queue.value.items.slice(index + 1),
     ...queue.value.items.slice(0, Math.max(index, 0)),
   ]
+  const controller = new AbortController()
+  const navigationTimer = setTimeout(() => controller.abort(), 12000)
   try {
-    // Reuse a request already in flight instead of falling back to waiting for publication.
-    await preparationWork
+    // Use only a completed prefetch; never wait on background cleanup or loading.
     if (prepared.value && prepared.value.value.id !== previousId) {
-      await openInternal(prepared.value.value.id)
+      await openInternal(prepared.value.value.id, controller.signal)
       return
     }
     for (const candidate of candidates) {
       if (candidate.id === previousId) continue
       try {
-        await openInternal(candidate.id)
+        await openInternal(candidate.id, controller.signal)
         return
       } catch (error) {
         if (error.code !== 'CLAIMED' && error.code !== 'PROBLEM_DELETED') throw error
@@ -149,11 +159,11 @@ async function advanceWhilePublishing(previousId) {
         page,
       })
       if (paperId.value) query.set('paperId', paperId.value)
-      const batch = await api.get(`/items?${query}`)
+      const batch = await api.get(`/items?${query}`, { signal: controller.signal })
       for (const candidate of batch.items) {
         if (candidate.id === previousId || candidates.some((q) => q.id === candidate.id)) continue
         try {
-          await openInternal(candidate.id)
+          await openInternal(candidate.id, controller.signal)
           queue.value = batch
           return
         } catch (error) {
@@ -169,6 +179,7 @@ async function advanceWhilePublishing(previousId) {
     draft.value = null
     message.value = `下一题加载失败：${error.message}。请点击开始 / 继续审核重试。`
   } finally {
+    clearTimeout(navigationTimer)
     switching.value = false
     busy.value = false
   }
@@ -448,30 +459,35 @@ async function releaseCurrent() {
   if (item.value && item.value.id !== publishing.value)
     await api.remove(`/items/${item.value.id}/lease`).catch(() => {})
 }
-async function openInternal(id) {
-  if (id === publishing.value) throw new Error('该题正在后台保存，请稍候')
-  const cached = prepared.value
-  if (cached?.value.id === id) {
-    if (cached.batch) queue.value = cached.batch
-    prepared.value = null
-    preparation++
-  }
-  const value =
-    cached?.value.id === id && Date.now() - cached.at < 15 * 60 * 1000
-      ? cached.value
-      : await api.post(`/items/${id}/lease`)
-  if (item.value?.id !== id) await releaseCurrent()
-  adopt(value)
-  editing.value = false
-  editorTab.value = 'content'
+async function openInternal(id, signal) {
+  openingId = id
   try {
-    localStorage.setItem(`mathsea:review-position:${me.value.id}:${status.value}`, id)
-  } catch {
-    /* optional */
+    if (id === publishing.value) throw new Error('该题正在后台保存，请稍候')
+    const cached = prepared.value
+    if (cached?.value.id === id) {
+      if (cached.batch) queue.value = cached.batch
+      prepared.value = null
+      preparation++
+    }
+    const value =
+      cached?.value.id === id && Date.now() - cached.at < 15 * 60 * 1000
+        ? cached.value
+        : await api.post(`/items/${id}/lease`, {}, { signal })
+    if (item.value?.id !== id) void releaseCurrent()
+    adopt(value)
+    editing.value = false
+    editorTab.value = 'content'
+    try {
+      localStorage.setItem(`mathsea:review-position:${me.value.id}:${status.value}`, id)
+    } catch {
+      /* optional */
+    }
+    returnOpen.value = false
+    await nextTick()
+    document.querySelector('.editorial-edit-scroll')?.scrollTo(0, 0)
+  } finally {
+    if (openingId === id) openingId = null
   }
-  returnOpen.value = false
-  await nextTick()
-  document.querySelector('.editorial-edit-scroll')?.scrollTo(0, 0)
 }
 async function changeQueue(value) {
   if (!discardAllowed()) return

@@ -1,10 +1,20 @@
+import { requestDeadline } from '../utils/requestDeadline.js'
 import { apiRequest } from './apiClient.js'
 
 const root = '/api/v1/admin/editorial'
 export const editorialService = {
-  remove: (path) => apiRequest(`${root}${path}`, { method: 'DELETE' }),
-  get: (path) => apiRequest(`${root}${path}`),
-  post: (path, body = {}) => apiRequest(`${root}${path}`, { method: 'POST', body }),
+  remove: (path) =>
+    requestDeadline((signal) => apiRequest(`${root}${path}`, { method: 'DELETE', signal }), 3000),
+  get: (path, options = {}) =>
+    requestDeadline((signal) => apiRequest(`${root}${path}`, { signal }), 8000, options.signal),
+  post: (path, body = {}, options = {}) =>
+    path.endsWith('/lease')
+      ? requestDeadline(
+          (signal) => apiRequest(`${root}${path}`, { method: 'POST', body, signal }),
+          8000,
+          options.signal,
+        )
+      : apiRequest(`${root}${path}`, { method: 'POST', body }),
   put: (path, body) => apiRequest(`${root}${path}`, { method: 'PUT', body }),
   async importFile(batchId, paperId, entry) {
     const body = new FormData()

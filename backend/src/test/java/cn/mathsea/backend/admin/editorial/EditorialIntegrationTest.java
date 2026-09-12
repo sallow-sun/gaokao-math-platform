@@ -114,6 +114,40 @@ class EditorialIntegrationTest {
   }
 
   @Test
+  void reimportAfterPermanentDeletionCreatesFreshDraftInSameOrNewBatch() {
+    for (boolean published : List.of(false, true)) {
+      long manager = actor("reimport" + UUID.randomUUID().toString().substring(0, 8), "MANAGER");
+      UUID paper = (UUID) service.paper(manager, "重新导入" + UUID.randomUUID()).get("id");
+      UUID batch = (UUID) service.batch(manager, "原批次").get("id");
+      var file = markdown("重新上传的原文件");
+      UUID old = (UUID) service.importFile(manager, batch, paper, "T1.md", file, List.of()).get("itemId");
+      String number = null;
+      if (published) {
+        number = service.action(manager, old, new EditorialService.Action(1, "PUBLISH", "", null)).get("problem_number").toString();
+        trash.delete(manager, List.of(number));
+      } else {
+        trash.deleteDrafts(manager, List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(old, 1)));
+      }
+      assertEquals("CONFLICT", service.importFile(manager, batch, paper, "T1.md", file, List.of()).get("result"));
+      trash.purgeBatch(manager, purgeRequest(List.of(purgeTarget(published ? "published" : "draft", published ? number : old.toString())), approver(), "test-approval-password"));
+      // Even an original successful import entry must not suppress re-uploading a purged item.
+      db.update("UPDATE editorial_import_entries SET result='IMPORTED' WHERE batch_id=?", batch);
+      UUID targetBatch = published ? (UUID) service.batch(manager, "新批次").get("id") : batch;
+      var imported = service.importFile(manager, targetBatch, paper, "T1.md", file, List.of());
+      assertEquals("IMPORTED", imported.get("result"));
+      UUID fresh = (UUID) imported.get("itemId");
+      assertNotEquals(old, fresh);
+      assertEquals("DRAFT", service.detail(fresh).get("status"));
+      assertNotNull(db.queryForObject("SELECT purged_at FROM editorial_items WHERE id=?", Object.class, old));
+      assertEquals("SKIPPED", service.importFile(manager, batch, paper, "T1.md", file, List.of()).get("result"));
+      assertEquals(1, db.queryForObject("SELECT count(*) FROM editorial_items WHERE paper_id=? AND purged_at IS NULL", Integer.class, paper));
+      var result = service.action(manager, fresh, new EditorialService.Action(1, "PUBLISH", "", null));
+      assertEquals("PUBLISHED", result.get("status"));
+      if (published) assertNotEquals(number, result.get("problem_number"));
+    }
+  }
+
+  @Test
   void purgeRequiresDifferentActiveAdminAndIsAtomic() throws Exception {
     String account=approver();
     long approverId=users.findByAccount(account).getId();

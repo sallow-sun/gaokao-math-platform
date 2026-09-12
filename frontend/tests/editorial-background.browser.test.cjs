@@ -85,6 +85,9 @@ for (let n = 1; n <= 2; n++)
   second.id = secondId
   second.document.content = '下一题内容 $x=2$'
   let slowLease = false
+  let stuckLease = false,
+    stuckPrefetch = false,
+    nextLeases = 0
   let finishPublish,
     failPublish = true,
     publishRequests = 0
@@ -122,6 +125,10 @@ for (let n = 1; n <= 2; n++)
         pageSize: 40,
       }
     } else if (pathname.endsWith(`/items/${secondId}/lease`)) {
+      if (request.method() === 'POST') {
+        nextLeases++
+        if (stuckLease || (stuckPrefetch && nextLeases === 1)) return
+      }
       if (slowLease && request.method() === 'POST') await delay(700)
       body = request.method() === 'POST' ? second : {}
     } else if (pathname.endsWith(`/items/${secondId}`)) {
@@ -275,6 +282,37 @@ for (let n = 1; n <= 2; n++)
   assert.equal(item.status, 'DRAFT', 'cold next-question loading must not wait for publication')
   finishPublish()
   await page.getByText('上一题已保存', { exact: true }).waitFor()
+  slowLease = false
+  stuckPrefetch = true
+  nextLeases = 0
+  item.status = 'DRAFT'
+  await page.evaluate((id) => localStorage.setItem('mathsea:review-position:1:PENDING', id), id)
+  await page.reload()
+  await page.getByRole('button', { name: '开始 / 继续审核', exact: true }).click()
+  await page.waitForTimeout(100)
+  await page.getByRole('button', { name: '通过并下一题', exact: true }).click()
+  await page.getByText('下一题内容', { exact: false }).first().waitFor({ timeout: 2000 })
+  for (let n = 0; n < 20 && publishRequests < 5; n++) await page.waitForTimeout(50)
+  finishPublish()
+  await page.getByText('上一题已保存', { exact: true }).waitFor()
+  stuckPrefetch = false
+  stuckLease = true
+  item.status = 'DRAFT'
+  await page.evaluate((id) => localStorage.setItem('mathsea:review-position:1:PENDING', id), id)
+  await page.reload()
+  await page.getByRole('button', { name: '开始 / 继续审核', exact: true }).click()
+  await page.getByRole('button', { name: '通过并下一题', exact: true }).click()
+  for (let n = 0; n < 20 && publishRequests < 6; n++) await page.waitForTimeout(50)
+  finishPublish()
+  await page.getByText(/下一题加载失败：/).waitFor({ timeout: 15000 })
+  assert.equal(await page.locator('.editorial-switching').count(), 0)
+  assert.equal(
+    await page.getByRole('button', { name: '开始 / 继续审核', exact: true }).isEnabled(),
+    true,
+  )
+  stuckLease = false
+  await page.getByRole('button', { name: '开始 / 继续审核', exact: true }).click()
+  await page.getByText('下一题内容', { exact: false }).first().waitFor()
   assert.deepEqual(errors, [])
   console.log('Background review: immediate next question, failure recovery and retry passed')
 })()
