@@ -133,6 +133,41 @@ let browser, server
     savedColumns,
   )
   await firstSplitter.dblclick()
+  const assertFilled = async () => {
+    const gap = await page.evaluate(() => {
+      const workbench = document.querySelector('.paper-workbench')
+      return (
+        workbench.getBoundingClientRect().right -
+        parseFloat(getComputedStyle(workbench).paddingRight) -
+        document.querySelector('.paper-editor').getBoundingClientRect().right
+      )
+    })
+    assert.ok(Math.abs(gap) < 2, `columns must fill the workspace, right gap was ${gap}px`)
+  }
+  const stretch = async (splitter, x) => {
+    const box = await splitter.boundingBox()
+    await page.mouse.move(box.x + box.width / 2, box.y + 80)
+    await page.mouse.down()
+    await page.mouse.move(x, box.y + 80, { steps: 10 })
+    await page.mouse.up()
+    await assertFilled()
+  }
+  await stretch(secondSplitter, 1580)
+  await page.reload({ waitUntil: 'networkidle' })
+  await assertFilled()
+  await stretch(firstSplitter, 120)
+  await stretch(firstSplitter, 1550)
+  await stretch(secondSplitter, 300)
+  await firstSplitter.dblclick()
+  await page.getByRole('button', { name: '收起筛选', exact: true }).click()
+  await stretch(secondSplitter, 1500)
+  await page.setViewportSize({ width: 900, height: 900 })
+  await assertFilled()
+  await stretch(secondSplitter, 40)
+  await stretch(secondSplitter, 880)
+  await page.setViewportSize({ width: 1600, height: 1000 })
+  await firstSplitter.dblclick()
+  await assertFilled()
   const added = () => page.locator('.paper-source-card.is-added')
   const ready = () =>
     page.waitForFunction(

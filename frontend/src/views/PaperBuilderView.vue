@@ -46,11 +46,16 @@ function searchProblems() {
 const workbench = ref(null)
 const columnRatios = ref([0.17, 0.35, 0.48])
 const resizing = ref(false)
-const columnStyle = computed(() => ({
-  '--filter-fr': `${columnRatios.value[0]}fr`,
-  '--bank-fr': `${columnRatios.value[1]}fr`,
-  '--editor-fr': `${columnRatios.value[2]}fr`,
-}))
+const columnStyle = computed(() => {
+  // Sub-unit fr tracks leave unused space when another track hits its minimum.
+  // Keep proportions, but give every track a flex factor of at least one.
+  const unit = Math.min(...columnRatios.value)
+  return {
+    '--filter-fr': `${columnRatios.value[0] / unit}fr`,
+    '--bank-fr': `${columnRatios.value[1] / unit}fr`,
+    '--editor-fr': `${columnRatios.value[2] / unit}fr`,
+  }
+})
 let resizeSession = null
 function saveColumns() {
   try {
@@ -68,7 +73,17 @@ function resizeSnapshot(pair) {
     workbench.value.querySelector(selector),
   )
   const widths = elements.map((el) => el.getBoundingClientRect().width)
-  return { pair, widths, ratios: [...columnRatios.value] }
+  // Start from rendered widths: a previous resize may have clamped a track.
+  // Exclude the filter drawer when it is not part of the grid.
+  const filtersInGrid = filterOpen.value && !narrowScreen.matches
+  const ratios = [...columnRatios.value]
+  const visible = filtersInGrid ? [0, 1, 2] : [1, 2]
+  const width = visible.reduce((sum, index) => sum + widths[index], 0)
+  const share = filtersInGrid ? 1 : 1 - ratios[0]
+  visible.forEach((index) => {
+    ratios[index] = (widths[index] / width) * share
+  })
+  return { pair, widths, ratios }
 }
 function applyResize(snapshot, delta) {
   const { pair, widths, ratios } = snapshot
