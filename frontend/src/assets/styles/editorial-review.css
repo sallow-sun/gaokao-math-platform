@@ -261,3 +261,29 @@
     padding: 14px;
   }
 }
+/* Always reserve one compact line; save messages never resize the review canvas. */
+.editorial-save-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 30px;
+  min-height: 30px;
+  flex: 0 0 30px;
+  margin: 0 0 8px;
+  color: var(--color-ink-muted);
+  font-size: 12px;
+  overflow: hidden;
+}
+.editorial-save-status > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editorial-save-status > button { flex-shrink: 0; padding: 3px 8px; font-size: 12px; }
+.editorial-save-status.has-error { color: #a23f37; }
+.editorial-layout { position: relative; }
+.editorial-switching {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-content: center;
+  background: var(--color-canvas, #f5f8fb);
+  color: var(--color-ink-muted);
+}

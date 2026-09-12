@@ -84,6 +84,7 @@ for (let n = 1; n <= 2; n++)
   const second = structuredClone(item)
   second.id = secondId
   second.document.content = '下一题内容 $x=2$'
+  let slowLease = false
   let finishPublish,
     failPublish = true,
     publishRequests = 0
@@ -120,9 +121,10 @@ for (let n = 1; n <= 2; n++)
         page: 1,
         pageSize: 40,
       }
-    } else if (pathname.endsWith(`/items/${secondId}/lease`))
+    } else if (pathname.endsWith(`/items/${secondId}/lease`)) {
+      if (slowLease && request.method() === 'POST') await delay(700)
       body = request.method() === 'POST' ? second : {}
-    else if (pathname.endsWith(`/items/${secondId}`)) {
+    } else if (pathname.endsWith(`/items/${secondId}`)) {
       if (request.method() === 'PUT') {
         second.document = request.postDataJSON().document
         second.version++
@@ -205,6 +207,10 @@ for (let n = 1; n <= 2; n++)
   await page.getByRole('button', { name: '开始 / 继续审核', exact: true }).click()
   await preloaded
   await page.waitForTimeout(100)
+  const initialTop = await page
+    .locator('.editorial-filters')
+    .first()
+    .evaluate((el) => el.getBoundingClientRect().top)
   await page.getByRole('button', { name: '通过并下一题', exact: true }).click()
   await page.getByText('下一题内容', { exact: false }).first().waitFor({ timeout: 2000 })
   for (let n = 0; n < 20 && !publishRequests; n++) await page.waitForTimeout(50)
@@ -213,15 +219,29 @@ for (let n = 1; n <= 2; n++)
     await page.getByRole('button', { name: '通过并下一题', exact: true }).isDisabled(),
     true,
   )
+  assert.equal(
+    await page
+      .locator('.editorial-filters')
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().top),
+    initialTop,
+  )
   assert.equal(item.status, 'DRAFT', 'next question appears before publish finishes')
   finishPublish()
   await page.getByRole('button', { name: '返回失败题目重试' }).waitFor()
+  assert.equal(
+    await page
+      .locator('.editorial-filters')
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().top),
+    initialTop,
+  )
   await page.getByRole('button', { name: '返回失败题目重试' }).click()
   failPublish = false
   await page.getByRole('button', { name: '通过并下一题', exact: true }).click()
   await page.waitForTimeout(100)
   finishPublish()
-  await page.getByText('审核结果已保存', { exact: true }).waitFor()
+  await page.getByText('上一题已保存', { exact: true }).waitFor()
   assert.equal(item.status, 'PUBLISHED')
   assert.equal(publishRequests, 2)
   item.status = 'DRAFT'
@@ -243,6 +263,18 @@ for (let n = 1; n <= 2; n++)
     await page.getByLabel('编辑 题干', { exact: true }).inputValue(),
     '后台保存时编辑下一题',
   )
+  slowLease = true
+  item.status = 'DRAFT'
+  await page.evaluate((id) => localStorage.setItem('mathsea:review-position:1:PENDING', id), id)
+  await page.reload()
+  await page.getByRole('button', { name: '开始 / 继续审核', exact: true }).click()
+  const requested = page.waitForRequest((r) => r.url().endsWith(`/items/${id}/actions`))
+  await page.getByRole('button', { name: '通过并下一题', exact: true }).click()
+  await requested
+  await page.getByText('下一题内容', { exact: false }).first().waitFor({ timeout: 3000 })
+  assert.equal(item.status, 'DRAFT', 'cold next-question loading must not wait for publication')
+  finishPublish()
+  await page.getByText('上一题已保存', { exact: true }).waitFor()
   assert.deepEqual(errors, [])
   console.log('Background review: immediate next question, failure recovery and retry passed')
 })()

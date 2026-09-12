@@ -17,6 +17,7 @@ import '../../assets/styles/editorial-review.css'
 // Keep just one next question leased: instant handoff without a stale editable snapshot.
 const prepared = ref(null)
 const publishing = ref(null)
+const switching = ref(false)
 const publishFailure = ref(null)
 const publishStatus = ref('')
 let preparation = 0
@@ -32,43 +33,145 @@ function clearPrepared() {
     )
 }
 async function prepareNext() {
+  if (
+    prepared.value &&
+    Date.now() - prepared.value.at < 15 * 60 * 1000 &&
+    tab.value === 'queue' &&
+    item.value &&
+    prepared.value.value.id !== item.value.id &&
+    (prepared.value.batch || queue.value.items.some((q) => q.id === prepared.value.value.id)) &&
+    !feedbackTask.value &&
+    !publishFailure.value
+  )
+    return
   clearPrepared()
   if (
     disposed ||
     tab.value !== 'queue' ||
     !item.value ||
     feedbackTask.value ||
-    publishing.value ||
     publishFailure.value
   )
     return
   const generation = preparation
-  const index = queue.value.items.findIndex((q) => q.id === item.value.id)
-  const candidate = queue.value.items[index + 1]
-  if (index < 0 || !candidate || candidate.id === item.value.id) return
+  const current = item.value.id
+  const index = queue.value.items.findIndex((q) => q.id === current)
+  const candidates = [
+    ...queue.value.items.slice(index + 1),
+    ...queue.value.items.slice(0, Math.max(index, 0)),
+  ].filter((q) => q.id !== current && q.id !== publishing.value)
+  const query = new URLSearchParams({
+    status: status.value,
+    issue: issue.value,
+    keyword: keyword.value,
+    page: queue.value.page,
+  })
+  if (paperId.value) query.set('paperId', paperId.value)
+  const lastPage = Math.max(queue.value.page, Math.ceil(queue.value.total / 40))
   preparationWork = preparationWork.then(async () => {
-    if (disposed || generation !== preparation) return
-    try {
-      const value = await api.post(`/items/${candidate.id}/lease`)
-      if (disposed || generation !== preparation) {
-        if (value.id !== item.value?.id)
-          await api.remove(`/items/${value.id}/lease`).catch(() => {})
-        return
+    const attempt = async (candidate, batch) => {
+      if (disposed || generation !== preparation) return true
+      try {
+        const value = await api.post(`/items/${candidate.id}/lease`)
+        if (disposed || generation !== preparation) {
+          if (value.id !== item.value?.id)
+            await api.remove(`/items/${value.id}/lease`).catch(() => {})
+          return true
+        }
+        prepared.value = { value, at: Date.now(), batch }
+        for (const section of ['content', 'answer', 'solution'])
+          renderMathText(value.document[section] || '')
+        for (const asset of value.document.assets || []) {
+          if (asset.url?.startsWith('/uploads/')) {
+            const image = new Image()
+            image.src = asset.url
+            void image.decode().catch(() => {})
+          }
+        }
+        return true
+      } catch (error) {
+        if (error.code !== 'CLAIMED' && error.code !== 'PROBLEM_DELETED') throw error
+        return false
       }
-      prepared.value = { value, at: Date.now() }
-      for (const section of ['content', 'answer', 'solution'])
-        renderMathText(value.document[section] || '')
-      for (const asset of value.document.assets || []) {
-        if (asset.url?.startsWith('/uploads/')) {
-          const image = new Image()
-          image.src = asset.url
-          void image.decode().catch(() => {})
+    }
+    try {
+      for (const candidate of candidates) if (await attempt(candidate)) return
+      for (let page = Number(query.get('page')); page <= lastPage; page++) {
+        if (disposed || generation !== preparation) return
+        query.set('page', page)
+        const batch = await api.get(`/items?${query}`)
+        for (const candidate of batch.items) {
+          if (
+            candidate.id === current ||
+            candidate.id === publishing.value ||
+            candidates.some((q) => q.id === candidate.id)
+          )
+            continue
+          if (await attempt(candidate, batch)) return
         }
       }
     } catch {
-      /* Prefetch is optional; normal navigation handles claimed or unavailable items. */
+      /* Loading remains retryable and never blocks reviewing the current question. */
     }
   })
+}
+async function advanceWhilePublishing(previousId) {
+  switching.value = true
+  busy.value = true
+  const index = queue.value.items.findIndex((q) => q.id === previousId)
+  const candidates = [
+    ...queue.value.items.slice(index + 1),
+    ...queue.value.items.slice(0, Math.max(index, 0)),
+  ]
+  try {
+    // Reuse a request already in flight instead of falling back to waiting for publication.
+    await preparationWork
+    if (prepared.value && prepared.value.value.id !== previousId) {
+      await openInternal(prepared.value.value.id)
+      return
+    }
+    for (const candidate of candidates) {
+      if (candidate.id === previousId) continue
+      try {
+        await openInternal(candidate.id)
+        return
+      } catch (error) {
+        if (error.code !== 'CLAIMED' && error.code !== 'PROBLEM_DELETED') throw error
+      }
+    }
+    // At a page boundary fetch the remaining queue while the old question is saving.
+    const lastPage = Math.max(queue.value.page, Math.ceil(queue.value.total / 40))
+    for (let page = queue.value.page; page <= lastPage; page++) {
+      const query = new URLSearchParams({
+        status: status.value,
+        issue: issue.value,
+        keyword: keyword.value,
+        page,
+      })
+      if (paperId.value) query.set('paperId', paperId.value)
+      const batch = await api.get(`/items?${query}`)
+      for (const candidate of batch.items) {
+        if (candidate.id === previousId || candidates.some((q) => q.id === candidate.id)) continue
+        try {
+          await openInternal(candidate.id)
+          queue.value = batch
+          return
+        } catch (error) {
+          if (error.code !== 'CLAIMED' && error.code !== 'PROBLEM_DELETED') throw error
+        }
+      }
+    }
+    item.value = null
+    draft.value = null
+    message.value = '当前没有可继续审核的题目'
+  } catch (error) {
+    item.value = null
+    draft.value = null
+    message.value = `下一题加载失败：${error.message}。请点击开始 / 继续审核重试。`
+  } finally {
+    switching.value = false
+    busy.value = false
+  }
 }
 async function publishInBackground() {
   const previous = clone(item.value)
@@ -76,9 +179,13 @@ async function publishInBackground() {
   const operationNote = note.value
   const changed = dirty.value
   const key = recoveryKey()
-  const next = prepared.value.value
-  prepared.value = null
-  preparation++
+  const next =
+    prepared.value && Date.now() - prepared.value.at < 15 * 60 * 1000 ? prepared.value.value : null
+  if (next) {
+    if (prepared.value.batch) queue.value = prepared.value.batch
+    prepared.value = null
+    preparation++
+  }
   clearTimeout(recoveryTimer)
   try {
     localStorage.setItem(
@@ -94,11 +201,13 @@ async function publishInBackground() {
   }
   publishing.value = previous.id
   publishStatus.value = '上一题正在后台保存…'
-  adopt(next)
+  message.value = ''
+  if (next) adopt(next)
   editing.value = false
   editorTab.value = 'content'
   note.value = ''
   returnOpen.value = false
+  const handoff = next ? Promise.resolve() : advanceWhilePublishing(previous.id)
   await nextTick()
   document.querySelector('.editorial-edit-scroll')?.scrollTo(0, 0)
   try {
@@ -122,6 +231,7 @@ async function publishInBackground() {
       /* Server save succeeded. */
     }
     publishStatus.value = '上一题已保存'
+    if (publishFailure.value?.id === previous.id) publishFailure.value = null
     // Do not refresh the active editor or overwrite edits made while publishing.
     if (queue.value.items.some((q) => q.id === previous.id)) {
       queue.value.items = queue.value.items.filter((q) => q.id !== previous.id)
@@ -131,6 +241,7 @@ async function publishInBackground() {
     publishFailure.value = { id: previous.id, document: snapshot, note: operationNote }
     publishStatus.value = `上一题未确认保存：${error.message || '网络异常'}。请返回该题核对后重试。`
   } finally {
+    await handoff
     publishing.value = null
     if (item.value?.id !== previous.id)
       void api.remove(`/items/${previous.id}/lease`).catch(() => {})
@@ -341,11 +452,12 @@ async function openInternal(id) {
   if (id === publishing.value) throw new Error('该题正在后台保存，请稍候')
   const cached = prepared.value
   if (cached?.value.id === id) {
+    if (cached.batch) queue.value = cached.batch
     prepared.value = null
     preparation++
   }
   const value =
-    cached?.value.id === id && Date.now() - cached.at < 60000
+    cached?.value.id === id && Date.now() - cached.at < 15 * 60 * 1000
       ? cached.value
       : await api.post(`/items/${id}/lease`)
   if (item.value?.id !== id) await releaseCurrent()
@@ -509,12 +621,7 @@ async function action(action, historyId) {
     (publishFailure.value && publishFailure.value.id !== item.value?.id)
   )
     return
-  if (
-    action === 'PUBLISH' &&
-    !feedbackTask.value &&
-    prepared.value &&
-    Date.now() - prepared.value.at < 60000
-  ) {
+  if (action === 'PUBLISH' && !feedbackTask.value) {
     await publishInBackground()
     return
   }
@@ -780,20 +887,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload)
   window.removeEventListener('keydown', shortcut)
 })
-watch(
-  [
-    () => item.value?.id,
-    () => queue.value.items,
-    publishing,
-    tab,
-    status,
-    paperId,
-    keyword,
-    issue,
-    feedbackTask,
-  ],
-  prepareNext,
-)
+watch([() => item.value?.id, () => queue.value.items, tab, feedbackTask], prepareNext)
+watch([status, paperId, keyword, issue], () => {
+  clearPrepared()
+  void prepareNext()
+})
 </script>
 
 <template>
@@ -873,11 +971,12 @@ watch(
     </nav>
     <ProblemRecycleBin v-if="tab === 'trash' && me?.permission === 'MANAGER'" />
     <CurriculumSettings v-if="tab === 'curriculum' && me?.permission === 'MANAGER'" />
-    <aside v-if="publishStatus" class="editorial-message" role="status">
-      {{ publishStatus }}
+    <div class="editorial-save-status" role="status" :class="{ 'has-error': publishFailure }">
+      <span :title="publishFailure ? publishStatus : message || publishStatus">{{
+        publishFailure ? publishStatus : message || publishStatus
+      }}</span>
       <button v-if="publishFailure" :disabled="busy" @click="reopenFailed">返回失败题目重试</button>
-    </aside>
-    <p v-if="message" class="editorial-message" role="status">{{ message }}</p>
+    </div>
     <div
       v-if="deleteMode && me?.permission === 'MANAGER'"
       class="editorial-delete-toolbar"
@@ -1096,7 +1195,12 @@ watch(
           批量删除
         </button>
       </form>
-      <div class="editorial-layout" :class="{ 'has-directory': directoryOpen }">
+      <div
+        class="editorial-layout"
+        :class="{ 'has-directory': directoryOpen }"
+        :aria-busy="switching"
+      >
+        <div v-if="switching" class="editorial-switching" role="status">正在准备下一题…</div>
         <aside v-if="directoryOpen" class="editorial-queue">
           <p>共 {{ queue.total }} 题</p>
           <div v-for="entry in queue.items" :key="entry.id" class="editorial-queue-row">
@@ -1158,7 +1262,7 @@ watch(
           </button>
           <p>{{ queue.items.length ? '从上次位置或本页第一题继续' : '当前分区没有待处理题目' }}</p>
         </div>
-        <div v-else class="editorial-edit-area" @paste="paste">
+        <div v-else class="editorial-edit-area" :inert="switching" @paste="paste">
           <header class="editorial-item-header">
             <strong>{{ item.original_id || '新题目' }}</strong
             ><span>{{ statusLabels[item.status] }}{{ dirty ? ' · 未保存' : '' }}</span
