@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import ContributionPanel from '../components/account/ContributionPanel.vue'
 import MistakesPanel from '../components/account/MistakesPanel.vue'
+import UserProblemStatistics from '../components/account/UserProblemStatistics.vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import UserActivityHeatmap from '../components/account/UserActivityHeatmap.vue'
 import UserProfileHero from '../components/account/UserProfileHero.vue'
@@ -121,6 +122,7 @@ watch(() => props.userId, loadProfile, { immediate: true })
             <UserProblemTypeChart :items="profile.typeStats" />
           </div>
 
+          <UserProblemStatistics :key="userId" :user-id="userId" />
           <UserTagStatsChart :items="profile.tagStats" />
         </section>
       </template>

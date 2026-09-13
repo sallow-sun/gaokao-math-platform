@@ -79,6 +79,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/practice-lists/**").permitAll()
                 .requestMatchers("/api/v1/users/me", "/api/v1/users/me/**").authenticated()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/users/*/contributions").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/users/*/problem-statistics").permitAll()
                 .requestMatchers("/api/v1/users/*").permitAll()
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())

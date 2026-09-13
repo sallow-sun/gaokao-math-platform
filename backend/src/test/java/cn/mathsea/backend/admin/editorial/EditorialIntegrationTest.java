@@ -73,6 +73,23 @@ class EditorialIntegrationTest {
   UUID share(long owner) throws Exception {
     return (UUID)((Map<?,?>)sharedPapers.share(owner,publication())).get("id");
   }
+  @Test void profileProblemStatisticsGroupsOnlyLiveCompletedProblems() throws Exception {
+    long owner=actor("stats"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    for(int i=0;i<103;i++) {
+      Long id=db.queryForObject("INSERT INTO problems(problem_number,title,question_type,difficulty,content,deleted) VALUES(?,?,'single-choice',?,'Content',?) RETURNING id",Long.class,"GC"+String.format("%06d",970000+i),"Statistics fixture "+i,i==101?"blue":"red",i==102);
+      db.update("INSERT INTO user_problem_states(user_id,problem_id,completed,favorite) VALUES(?,?,?,?)",owner,id,i!=100,i==100);
+    }
+    String url="/api/v1/users/"+owner+"/problem-statistics";
+    mvc.perform(get(url)).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(101)).andExpect(jsonPath("$.items.length()").value(100)).andExpect(jsonPath("$.items[0].id").value("GC970000"));
+    mvc.perform(get(url+"?page=2")).andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].level").value("blue"));
+    mvc.perform(get(url+"?level=blue")).andExpect(jsonPath("$.total").value(1));
+    mvc.perform(get(url+"?q=GC970100")).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get(url+"?q=GC970102")).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get(url+"?q=GC970001")).andExpect(jsonPath("$.total").value(1));
+    mvc.perform(get(url+"?level=invalid")).andExpect(status().isBadRequest());
+    mvc.perform(get("/api/v1/users/999999999/problem-statistics")).andExpect(status().isNotFound());
+  }
+
   @Test void mistakeBookIsPrivateIdempotentAndSupportsRemoval() throws Exception {
     long owner=actor("mistake"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), other=actor("other"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
     db.update("INSERT INTO problems(problem_number,title,question_type,difficulty,content) VALUES('GC987654','Mistake fixture','single-choice','red','Compute 1+1')");
