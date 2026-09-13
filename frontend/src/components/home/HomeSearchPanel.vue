@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 
 defineProps({
+  randomLoading: { type: Boolean, default: false },
   problemsRoute: {
     type: [String, Object],
     required: true,
@@ -48,8 +49,14 @@ function submitSearch() {
     <div class="home-search-actions" role="group" aria-label="首页快捷入口">
       <RouterLink class="home-text-button" :to="problemsRoute">题库</RouterLink>
       <RouterLink class="home-text-button" :to="trainingRoute">题单</RouterLink>
-      <button class="home-text-button" type="button" @click="emit('random-problem')">
-        随机跳题
+      <button
+        class="home-text-button"
+        type="button"
+        :disabled="randomLoading"
+        :aria-busy="randomLoading"
+        @click="emit('random-problem')"
+      >
+        {{ randomLoading ? '正在选题…' : '随机跳题' }}
       </button>
     </div>
   </section>

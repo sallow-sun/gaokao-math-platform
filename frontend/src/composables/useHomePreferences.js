@@ -3,7 +3,6 @@ import { HOME_BACKGROUND_MAX_FILE_SIZE, HOME_BACKGROUND_OPTIONS } from '../confi
 
 const STORAGE_KEYS = {
   background: 'mathverse-home-background',
-  lastRandomProblem: 'mathverse-home-last-random-problem',
 }
 
 const CUSTOM_BACKGROUND_ID = 'custom'
@@ -103,22 +102,6 @@ export function useHomePreferences() {
     return true
   }
 
-  function pickRandomProblem(problemIds) {
-    const validIds = problemIds.map((id) => id.trim()).filter(Boolean)
-
-    if (!validIds.length) {
-      return ''
-    }
-
-    const lastProblemId = readSetting(STORAGE_KEYS.lastRandomProblem)
-    const availableIds =
-      validIds.length > 1 ? validIds.filter((id) => id !== lastProblemId) : validIds
-    const problemId = availableIds[Math.floor(Math.random() * availableIds.length)]
-
-    saveSetting(STORAGE_KEYS.lastRandomProblem, problemId)
-    return problemId
-  }
-
   onMounted(() => {
     const savedBackground = readSetting(STORAGE_KEYS.background)
 
@@ -144,6 +127,5 @@ export function useHomePreferences() {
     announce,
     applyPresetBackground,
     applyBackground,
-    pickRandomProblem,
   }
 }

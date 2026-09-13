@@ -16,12 +16,6 @@ export const HOME_ROUTES = {
   },
 }
 
-/**
- * 当前仍使用旧首页里的演示题号。
- * 接入后端后，可以改为请求“随机题目”接口。
- */
-export const RANDOM_PROBLEM_IDS = ['P10001', 'P10002']
-
 export const HOME_BACKGROUND_MAX_FILE_SIZE = 2 * 1024 * 1024
 
 /**

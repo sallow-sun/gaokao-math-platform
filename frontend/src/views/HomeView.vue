@@ -1,18 +1,16 @@
 <script setup>
+import { ref } from 'vue'
+import { apiRequest } from '../services/apiClient.js'
 import { useRouter } from 'vue-router'
 import HomeFooter from '../components/home/HomeFooter.vue'
 import HomeModeToggle from '../components/home/HomeModeToggle.vue'
 import HomeSearchPanel from '../components/home/HomeSearchPanel.vue'
 import { useHomePreferences } from '../composables/useHomePreferences'
-import {
-  HOME_BACKGROUND_MAX_FILE_SIZE,
-  HOME_BACKGROUND_OPTIONS,
-  HOME_ROUTES,
-  RANDOM_PROBLEM_IDS,
-} from '../config/home'
+import { HOME_BACKGROUND_MAX_FILE_SIZE, HOME_BACKGROUND_OPTIONS, HOME_ROUTES } from '../config/home'
 import '../assets/styles/home.css'
 
 const router = useRouter()
+const randomLoading = ref(false)
 const {
   backgroundId,
   hasBackground,
@@ -21,7 +19,6 @@ const {
   announce,
   applyPresetBackground,
   applyBackground,
-  pickRandomProblem,
 } = useHomePreferences()
 
 async function navigateTo(route, onError) {
@@ -44,15 +41,24 @@ function searchProblems(keyword) {
   })
 }
 
-function goToRandomProblem() {
-  const problemId = pickRandomProblem(RANDOM_PROBLEM_IDS)
-
-  if (!problemId) {
-    navigateTo(HOME_ROUTES.problems)
-    return
+async function goToRandomProblem() {
+  if (randomLoading.value) return
+  randomLoading.value = true
+  try {
+    const result = await apiRequest('/api/v1/problems/random', {
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!result?.problemId) throw new Error('题库暂时没有可用题目')
+    await navigateTo(HOME_ROUTES.question(result.problemId))
+  } catch (error) {
+    announce(
+      error.name === 'TimeoutError'
+        ? '随机题目加载超时，请重试'
+        : error.message || '随机题目加载失败，请重试',
+    )
+  } finally {
+    randomLoading.value = false
   }
-
-  navigateTo(HOME_ROUTES.question(problemId))
 }
 </script>
 
@@ -62,6 +68,7 @@ function goToRandomProblem() {
 
     <main class="home-main">
       <HomeSearchPanel
+        :random-loading="randomLoading"
         :problems-route="HOME_ROUTES.problems"
         :training-route="HOME_ROUTES.training"
         @search="searchProblems"
