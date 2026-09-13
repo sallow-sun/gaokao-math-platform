@@ -73,6 +73,28 @@ class EditorialIntegrationTest {
   UUID share(long owner) throws Exception {
     return (UUID)((Map<?,?>)sharedPapers.share(owner,publication())).get("id");
   }
+  @Test void mistakeBookIsPrivateIdempotentAndSupportsRemoval() throws Exception {
+    long owner=actor("mistake"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), other=actor("other"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    db.update("INSERT INTO problems(problem_number,title,question_type,difficulty,content) VALUES('GC987654','Mistake fixture','single-choice','red','Compute 1+1')");
+    var principal=new CustomUserPrincipal(users.selectById(owner));
+    var outsider=new CustomUserPrincipal(users.selectById(other));
+    String base="/api/v1/users/me/mistakes", url=base+"/GC987654";
+    mvc.perform(get(base)).andExpect(status().isUnauthorized());
+    mvc.perform(put(url).with(user(principal))).andExpect(status().isForbidden());
+    for(int i=0;i<2;i++)mvc.perform(put(url).with(user(principal)).with(csrf())).andExpect(status().isOk());
+    mvc.perform(get(url).with(user(principal))).andExpect(jsonPath("$.included").value(true));
+    mvc.perform(get(base).with(user(principal))).andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.items[0].problem.id").value("GC987654"));
+    mvc.perform(get(base+"?q=missing").with(user(principal))).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get(base).with(user(outsider))).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(delete(url).with(user(outsider)).with(csrf())).andExpect(status().isOk());
+    mvc.perform(get(url).with(user(principal))).andExpect(jsonPath("$.included").value(true));
+    db.update("UPDATE problems SET deleted=true WHERE problem_number='GC987654'");
+    mvc.perform(get(base).with(user(principal))).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(put(url).with(user(principal)).with(csrf())).andExpect(status().isNotFound());
+    mvc.perform(delete(url).with(user(principal)).with(csrf())).andExpect(status().isOk());
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM user_mistakes WHERE user_id=?",Integer.class,owner));
+  }
+
   @Test void sharedSnapshotIsPublicImmutableAndStripsPrivateFields() throws Exception {
     long owner=actor("papers"+UUID.randomUUID().toString().substring(0,8),"EDITOR"); UUID id=share(owner);
     var detail=sharedPapers.detail(id,null);

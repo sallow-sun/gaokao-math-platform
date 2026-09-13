@@ -380,6 +380,18 @@ onBeforeUnmount(() => {
         学习统计
       </button>
       <button
+        v-if="showSettings"
+        id="account-profile-mistakes-tab"
+        type="button"
+        role="tab"
+        :class="{ 'is-active': activeTab === 'mistakes' }"
+        :aria-selected="activeTab === 'mistakes'"
+        aria-controls="account-profile-mistakes-panel"
+        @click="emit('change-tab', 'mistakes')"
+      >
+        我的错题
+      </button>
+      <button
         id="account-profile-contribution-tab"
         type="button"
         role="tab"

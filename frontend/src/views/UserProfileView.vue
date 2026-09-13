@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import ContributionPanel from '../components/account/ContributionPanel.vue'
+import MistakesPanel from '../components/account/MistakesPanel.vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import UserActivityHeatmap from '../components/account/UserActivityHeatmap.vue'
 import UserProfileHero from '../components/account/UserProfileHero.vue'
@@ -19,10 +20,16 @@ const props = defineProps({
 const route = useRoute()
 const router = useRouter()
 const activeTab = computed(() =>
-  route.query.tab === 'contributions' ? 'contributions' : 'learning',
+  route.query.tab === 'mistakes' && profile.value?.canEdit
+    ? 'mistakes'
+    : route.query.tab === 'contributions'
+      ? 'contributions'
+      : 'learning',
 )
 function changeTab(tab) {
-  router.replace({ query: { ...route.query, tab: tab === 'contributions' ? tab : undefined } })
+  router.replace({
+    query: { ...route.query, tab: ['contributions', 'mistakes'].includes(tab) ? tab : undefined },
+  })
 }
 const profile = ref(null)
 const loading = ref(false)
@@ -98,6 +105,7 @@ watch(() => props.userId, loadProfile, { immediate: true })
           :user-id="userId"
           :owner="profile.canEdit"
         />
+        <MistakesPanel v-if="activeTab === 'mistakes' && profile.canEdit" :key="userId" />
         <UserProfileStats v-if="activeTab === 'learning'" :stats="overviewStats" />
 
         <section
