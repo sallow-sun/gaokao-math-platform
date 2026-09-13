@@ -285,6 +285,9 @@ onBeforeUnmount(() => {
               </button>
               <template v-else>{{ displayedName }}</template>
             </h1>
+            <span class="account-level-badge" :title="`社区等级 Lv.${profile.level || 0}`"
+              >Lv.{{ profile.level || 0 }}</span
+            >
           </div>
 
           <div v-if="editable && isEditingSignature" class="account-profile-signature-editor">

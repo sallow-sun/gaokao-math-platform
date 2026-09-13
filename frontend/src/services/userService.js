@@ -55,6 +55,7 @@ function normalizePublicProfile(value) {
       segments,
     })),
     canEdit: Boolean(value?.canEdit),
+    level: Number(value?.level) || 0,
   }
 }
 

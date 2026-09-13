@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import ContributionPanel from '../components/account/ContributionPanel.vue'
 import MistakesPanel from '../components/account/MistakesPanel.vue'
 import UserProblemStatistics from '../components/account/UserProblemStatistics.vue'
+import UserGrowthPanel from '../components/account/UserGrowthPanel.vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import UserActivityHeatmap from '../components/account/UserActivityHeatmap.vue'
 import UserProfileHero from '../components/account/UserProfileHero.vue'
@@ -108,6 +109,12 @@ watch(() => props.userId, loadProfile, { immediate: true })
         />
         <MistakesPanel v-if="activeTab === 'mistakes' && profile.canEdit" :key="userId" />
         <UserProfileStats v-if="activeTab === 'learning'" :stats="overviewStats" />
+        <UserGrowthPanel
+          v-if="activeTab === 'learning' && profile.canEdit"
+          :key="userId"
+          :user-id="userId"
+          @level="profile.level = $event"
+        />
 
         <section
           v-if="activeTab === 'learning'"

@@ -73,6 +73,45 @@ class EditorialIntegrationTest {
   UUID share(long owner) throws Exception {
     return (UUID)((Map<?,?>)sharedPapers.share(owner,publication())).get("id");
   }
+  @Autowired cn.mathsea.backend.growth.GrowthService growth;
+  @Autowired cn.mathsea.backend.problem.service.ProblemStateService problemStates;
+  long growthProblem(int n){return db.queryForObject("INSERT INTO problems(problem_number,title,question_type,difficulty,content) VALUES(?,'Growth fixture','single-choice','red','Compute') RETURNING id",Long.class,"GC"+String.format("%06d",n));}
+  @Test void growthLearningIsCappedIdempotentAndPrivate() throws Exception {
+    long owner=actor("growth"+UUID.randomUUID().toString().substring(0,8),"EDITOR"),other=actor("viewer"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    for(int i=0;i<12;i++)growthProblem(960000+i);
+    problemStates.patch(owner,"GC960000",new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(true,null));assertEquals(0,growth.summary(owner).experience());
+    for(int i=0;i<12;i++)problemStates.patch(owner,"GC"+(960000+i),new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(null,true));
+    assertEquals(12,growth.summary(owner).experience());
+    problemStates.patch(owner,"GC960000",new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(null,false));
+    problemStates.patch(owner,"GC960000",new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(null,true));assertEquals(12,growth.summary(owner).experience());
+    mvc.perform(get("/api/v1/users/me/growth")).andExpect(status().isUnauthorized());
+    mvc.perform(get("/api/v1/users/me/growth").with(user(new CustomUserPrincipal(users.selectById(other))))).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get("/api/v1/users/"+owner)).andExpect(jsonPath("$.level").value(0)).andExpect(jsonPath("$.experience").doesNotExist());
+    mvc.perform(get("/api/v1/users/me/growth").with(user(new CustomUserPrincipal(users.selectById(owner))))).andExpect(jsonPath("$.summary.experience").value(12)).andExpect(jsonPath("$.total").value(13));
+    long baseline=growthProblem(960099);db.update("INSERT INTO user_growth_events(user_id,event_key,kind,points,description,rule_version) VALUES (?,?,'BASELINE',0,'Before launch','beta-1')",owner,"problem:"+baseline);
+    growth.completed(owner,baseline);assertEquals(12,growth.summary(owner).experience());
+  }
+  @Test void growthParallelMarksAwardOnceAndRevokeIsAudited() throws Exception {
+    long owner=actor("parallel"+UUID.randomUUID().toString().substring(0,8),"EDITOR"),manager=actor("manager"+UUID.randomUUID().toString().substring(0,8),"MANAGER");growthProblem(960100);
+    try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)){
+      var tasks=new ArrayList<java.util.concurrent.Future<?>>();for(int i=0;i<2;i++)tasks.add(executor.submit(()->problemStates.patch(owner,"GC960100",new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(null,true))));
+      for(var task:tasks)task.get(20,java.util.concurrent.TimeUnit.SECONDS);
+    }
+    assertEquals(3,growth.summary(owner).experience());
+    growth.uploadAccepted(owner,manager,"content-fingerprint");growth.uploadAccepted(owner,manager,"content-fingerprint");assertEquals(23,growth.summary(owner).experience());assertEquals(1,growth.summary(owner).level());
+    growth.uploadAccepted(owner,owner,"self-review");assertEquals(23,growth.summary(owner).experience());
+    long event=db.queryForObject("SELECT id FROM user_growth_events WHERE user_id=? AND kind='UPLOAD'",Long.class,owner);
+    assertThrows(BusinessException.class,()->growth.revoke(owner,event,"Invalid"));
+    growth.revoke(manager,event,"Duplicate contribution");growth.revoke(manager,event,"Retry");assertEquals(3,growth.summary(owner).experience());assertEquals(0,growth.summary(owner).level());
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM user_growth_events WHERE reverses_id=?",Integer.class,event));
+    mvc.perform(get("/api/v1/admin/growth/users/"+owner).with(user(new CustomUserPrincipal(users.selectById(owner))))).andExpect(status().isForbidden());
+    mvc.perform(get("/api/v1/admin/growth/users/"+owner).with(user(new CustomUserPrincipal(users.selectById(manager))))).andExpect(status().isOk()).andExpect(jsonPath("$.history.summary.experience").value(3));
+    mvc.perform(post("/api/v1/admin/growth/events/"+event+"/revoke").with(user(new CustomUserPrincipal(users.selectById(manager)))).contentType("application/json").content("{\"reason\":\"test\"}")).andExpect(status().isForbidden());
+    db.update("DELETE FROM users WHERE id=?",owner);
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM user_growth_events WHERE user_id=?",Integer.class,owner));
+
+  }
+
   @Test void profileProblemStatisticsGroupsOnlyLiveCompletedProblems() throws Exception {
     long owner=actor("stats"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
     for(int i=0;i<103;i++) {
@@ -237,6 +276,7 @@ class EditorialIntegrationTest {
     assertEquals(1, db.queryForObject("SELECT count(*) FROM editorial_items WHERE created_by=?", Integer.class, author));
     service.action(reviewer, id, new EditorialService.Action(1, "PUBLISH", "", null));
     mvc.perform(get("/api/v1/users/" + author + "/contributions")).andExpect(status().isOk()).andExpect(jsonPath("$.summary.accepted").value(1)).andExpect(jsonPath("$.items[0].status").value("ACCEPTED")).andExpect(jsonPath("$.items[0].document").doesNotExist());
+    assertEquals(20,growth.summary(author).experience());
     String number = service.detail(id).get("problem_number").toString();
     feedback.submit(author, number, "答案", "私人反馈描述", "私人建议", null);
     mvc.perform(get("/api/v1/users/" + author + "/contributions?kind=feedback")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
@@ -844,6 +884,9 @@ class EditorialIntegrationTest {
     assertThrows(BusinessException.class,()->feedback.resolve(manager,change));
     long second=((Number)((Map<?,?>)feedback.submit(other,number,"解析","解析结论有误","",null)).get("id")).longValue();
     feedback.resolve(manager,new cn.mathsea.backend.feedback.FeedbackService.Resolution(List.of(new cn.mathsea.backend.feedback.FeedbackService.Target(fid,2)),"RESOLVED","已修正答案"));
+    assertEquals(10,growth.summary(user).experience());
+    growth.feedbackAccepted(fid,manager);
+    assertEquals(10,growth.summary(user).experience());
     assertEquals("OPEN",db.queryForObject("SELECT status FROM problem_feedback WHERE id=?",String.class,second));
     assertEquals("RESOLVED",db.queryForObject("SELECT status FROM problem_feedback WHERE id=?",String.class,fid));
     var secondTarget=List.of(new cn.mathsea.backend.feedback.FeedbackService.Target(second,1));

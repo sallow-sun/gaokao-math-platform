@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class EditorialService {
   private final JdbcTemplate db;
+  private final cn.mathsea.backend.growth.GrowthService growth;
   private final ObjectMapper json;
   private final MarkdownQuestionParser parser;
   private final AdminProblemService problems;
@@ -628,6 +629,8 @@ public class EditorialService {
     Long problemId =
         db.queryForObject("SELECT id FROM problems WHERE problem_number=?", Long.class, number);
     curriculum.publish(problemId, doc.curriculum());
+    if (fresh && db.queryForObject("SELECT count(*) FROM editorial_history WHERE item_id=? AND action='CONTRIBUTE'", Long.class, id)>0)
+      growth.uploadAccepted((Long) row.get("created_by"), actor, sha(doc.content().trim().replaceAll("\\s+", " ").getBytes(StandardCharsets.UTF_8)));
     db.update("UPDATE problems SET tag_mapping_blocked=? WHERE id=?", !Objects.toString(doc.originalMetadata().get("unmapped_tags"),"").isBlank(),problemId);
     // Physical files remain referenced by history; only the public attachment list is replaced.
     db.update("DELETE FROM problem_assets WHERE problem_id=?", problemId);

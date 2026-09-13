@@ -21,9 +21,11 @@ import java.util.List;
 public class ProblemStateService {
     private final ProblemMapper problemMapper;
     private final UserProblemStateMapper stateMapper;
+    private final cn.mathsea.backend.growth.GrowthService growth;
 
     @Transactional
     public ProblemStateVO patch(Long userId, String problemNumber, ProblemStatePatchRequest request) {
+        growth.lockAccount(userId);
         if (request.favorite() == null && request.completed() == null) {
             throw BusinessException.badRequest("NO_STATE_CHANGE", "favorite 和 completed 至少提供一个字段");
         }
@@ -34,6 +36,7 @@ public class ProblemStateService {
 
     @Transactional
     public ProblemStateBatchResponse patchBatch(Long userId, ProblemStateBatchRequest request) {
+        growth.lockAccount(userId);
         if (request.favorite() == null && request.completed() == null) {
             throw BusinessException.badRequest("NO_STATE_CHANGE", "favorite 和 completed 至少提供一个字段");
         }
@@ -52,6 +55,7 @@ public class ProblemStateService {
         boolean favorite = favoritePatch == null ? oldFavorite : favoritePatch;
         boolean completed = completedPatch == null ? old != null && Boolean.TRUE.equals(old.getCompleted()) : completedPatch;
         stateMapper.upsert(userId, problem.getId(), favorite, completed);
+        if (Boolean.TRUE.equals(completedPatch) && !Boolean.TRUE.equals(problem.getDeleted())) growth.completed(userId, problem.getId());
         return new ProblemStateVO(problem.getProblemNumber(), favorite, completed);
     }
 }

@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class FeedbackService {
   private final JdbcTemplate db;
+  private final cn.mathsea.backend.growth.GrowthService growth;
   private final EditorialService editorial;
   private final AuditLogService audit;
   private final LocalFileStorageService storage;
@@ -92,6 +93,7 @@ public class FeedbackService {
     for(var item:request.items().stream().sorted(Comparator.comparingLong(Target::id)).toList()) {
       int changed=db.update("UPDATE problem_feedback SET status=?,response=?,handled_by=?,version=version+1,updated_at=now() WHERE id=? AND version=? AND status IN ('OPEN','CHANGES')",request.status(),request.response(),actor,item.id(),item.version());
       if(changed!=1) throw BusinessException.conflict("FEEDBACK_CHANGED","反馈已由其他管理员处理，请刷新后查看");
+      if ("RESOLVED".equals(request.status())) growth.feedbackAccepted(item.id(),actor);
       audit.log(actor,"FEEDBACK_"+request.status(),"FEEDBACK",Long.toString(item.id()),request.response());
     }
   }

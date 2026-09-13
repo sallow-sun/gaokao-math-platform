@@ -15,5 +15,6 @@ public record PublicUserVO(
         List<UserDailyStatVO> dailyActivity,
         List<UserTypeStatVO> typeStats,
         List<UserTagLevelStatVO> tagStats,
-        boolean canEdit
+        boolean canEdit,
+        int level
 ) {}

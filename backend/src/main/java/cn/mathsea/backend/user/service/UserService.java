@@ -22,6 +22,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class UserService {
     private final UserMapper userMapper;
+    private final cn.mathsea.backend.growth.GrowthService growth;
     private final UserProblemStateMapper stateMapper;
     private final ProblemMapper problemMapper;
     private final PasswordEncoder passwordEncoder;
@@ -35,7 +36,7 @@ public class UserService {
                 user.getId(), user.getPublicId().toString(), user.getUid(), user.getUsername(), user.getAvatarUrl(),
                 user.getSignature(), user.getRole(), user.getCreatedAt(), stats(user.getId(), dailyActivity), List.of(),
                 dailyActivity, stateMapper.completedByType(user.getId()), stateMapper.completedByTagAndLevel(user.getId()),
-                user.getId().equals(viewerUserId));
+                user.getId().equals(viewerUserId), growth.summary(user.getId()).level());
     }
 
     public MeProfileVO me(Long userId) {

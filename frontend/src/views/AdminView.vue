@@ -1,4 +1,5 @@
 <script setup>
+import AdminGrowthPanel from '../components/admin/AdminGrowthPanel.vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AdminConfirmDialog from '../components/admin/AdminConfirmDialog.vue'
 import AdminHeader from '../components/admin/AdminHeader.vue'
@@ -167,6 +168,7 @@ onBeforeUnmount(() => {
         @retry="loadSummary"
       />
       <AdminTabs :active-tab="activeTab" :tabs="visibleTabs" @change="changeTab" />
+      <AdminGrowthPanel v-if="activeTab === 'users' && permission === 'MANAGER'" />
 
       <AdminUsersPanel
         v-if="activeTab === 'users'"

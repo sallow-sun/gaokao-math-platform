@@ -1314,3 +1314,4 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.account-level-badge { display:inline-flex;align-items:center;align-self:center;margin-left:12px;padding:3px 8px;border:1px solid #c5d9e7;border-radius:5px;background:#edf4fa;color:#205b87;font:600 12px/1.5 ui-sans-serif,system-ui,sans-serif;white-space:nowrap; }
