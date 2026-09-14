@@ -1,5 +1,6 @@
 <script setup>
 import FeedbackQueue from './FeedbackQueue.vue'
+import OriginalPaperWorkbench from './OriginalPaperWorkbench.vue'
 import ProblemRecycleBin from './ProblemRecycleBin.vue'
 import { apiRequest } from '../../services/apiClient.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -8,7 +9,11 @@ import CurriculumEditor from '../curriculum/CurriculumEditor.vue'
 import CurriculumSettings from '../curriculum/CurriculumSettings.vue'
 import MathText from '../content/MathText.vue'
 import { editorialService as api } from '../../services/editorialService.js'
-import { DIFFICULTY_LEVELS, prepareImport } from '../../utils/editorialImport.js'
+import {
+  DIFFICULTY_LEVELS,
+  prepareImport,
+  normalizedPaperName,
+} from '../../utils/editorialImport.js'
 import { DIFFICULTY_TEMPLATES, suggestedDifficulty } from '../../utils/difficultyTemplates.js'
 import { renderMathText } from '../../utils/renderMathText.js'
 import '../../assets/styles/editorial.css'
@@ -735,8 +740,11 @@ async function selectFiles(files) {
     importPage.value = 1
     batchTitle.value = `题目导入 ${new Date().toLocaleString('zh-CN')}`
     for (const group of groups.value) {
-      const matching = papers.value.find((p) => p.title === group.title)
-      if (matching) group.paperId = matching.id
+      const matches = papers.value.filter(
+        (p) => normalizedPaperName(p.title) === normalizedPaperName(group.title),
+      )
+      if (matches.length === 1) group.paperId = matches[0].id
+      group.suggested = matches.length > 0
     }
     message.value = `识别 ${plan.entries.length} 道题、${plan.groups.length} 个目录。请确认每个目录所属试卷。`
   })
@@ -751,8 +759,16 @@ async function startImport() {
   stopImport.value = false
   try {
     if (!batchId.value) batchId.value = (await api.post('/batches', { title: batchTitle.value })).id
-    for (const group of groups.value)
-      if (!group.paperId) group.paperId = (await api.post('/papers', { title: group.title })).id
+    const newPapers = new Map()
+    for (const group of groups.value) {
+      if (!group.paperId) {
+        const key = normalizedPaperName(group.title)
+        group.paperId =
+          newPapers.get(key) ||
+          (await api.post('/papers', { title: group.title, separate: 'true' })).id
+        newPapers.set(key, group.paperId)
+      }
+    }
     papers.value = await api.get('/papers')
     for (const entry of importEntries.value) {
       if (stopImport.value) break
@@ -950,6 +966,7 @@ watch([status, paperId, keyword, issue], () => {
       </button>
       <button :aria-pressed="tab === 'feedback'" @click="tab = 'feedback'">用户反馈</button>
       <button :aria-pressed="tab === 'import'" @click="tab = 'import'">批量导入</button>
+      <button :aria-pressed="tab === 'originals'" @click="tab = 'originals'">原卷整理</button>
       <button :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">更多</button>
       <template v-if="settingsOpen">
         <button v-if="me?.permission === 'MANAGER'" @click="tab = 'trash'">回收站</button>
@@ -986,6 +1003,7 @@ watch([status, paperId, keyword, issue], () => {
       </template>
     </nav>
     <ProblemRecycleBin v-if="tab === 'trash' && me?.permission === 'MANAGER'" />
+    <OriginalPaperWorkbench v-if="tab === 'originals'" :can-publish="me?.permission !== 'EDITOR'" />
     <CurriculumSettings v-if="tab === 'curriculum' && me?.permission === 'MANAGER'" />
     <div class="editorial-save-status" role="status" :class="{ 'has-error': publishFailure }">
       <span :title="publishFailure ? publishStatus : message || publishStatus">{{
@@ -1087,7 +1105,12 @@ watch([status, paperId, keyword, issue], () => {
         <details open>
           <summary>确认 {{ groups.length }} 个目录的试卷归属</summary>
           <div v-for="group in groups" :key="group.folder" class="editorial-paper-row">
-            <span>{{ group.folder || '所选文件（无目录）' }}</span>
+            <span
+              >{{ group.folder || '所选文件（无目录）'
+              }}<small v-if="group.suggested">
+                · 找到同名候选，请核对年份、地区和卷别；不同试卷请选择新建</small
+              ></span
+            >
             <select
               v-model="group.paperId"
               :disabled="importing || !!batchId"

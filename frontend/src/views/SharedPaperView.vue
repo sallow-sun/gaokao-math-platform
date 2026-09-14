@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiRequest } from '../services/apiClient.js'
 import { createPaper } from '../services/paperLibrary.js'
@@ -15,7 +15,20 @@ const route = useRoute(),
   alignment = ref(3),
   note = ref(''),
   saved = ref('')
-const id = route.params.id
+let id = route.params.id
+watch(
+  () => route.params.id,
+  (value) => {
+    if (value) {
+      id = value
+      paper.value = null
+      error.value = ''
+      pdfUrl.value = ''
+      saved.value = ''
+      load()
+    }
+  },
+)
 async function load() {
   try {
     paper.value = await apiRequest(`/api/v1/papers/${id}`)
@@ -113,7 +126,9 @@ onMounted(load)
           <div class="shared-badges">
             <span>{{ paper.kind === 'PDF' ? 'PDF 文件' : '可编辑组卷' }}</span
             ><span v-if="paper.hot" class="shared-hot">HOT</span
-            ><span v-if="paper.checked_at">✓ 人工校核</span
+            ><span v-if="paper.checked_at"
+              >✓ {{ paper.original_paper_id ? '原卷已核验' : '人工校核' }}</span
+            ><span v-if="paper.revision">固定版本 v{{ paper.revision }}</span
             ><span v-if="paper.has_answers">含答案</span>
           </div>
           <h1>{{ paper.title }}</h1>
@@ -197,7 +212,7 @@ onMounted(load)
             </dl>
             <p class="shared-description">{{ paper.description || '作者尚未添加说明。' }}</p>
             <div v-if="paper.checked_at" class="shared-notice">
-              <strong>已人工校核</strong>
+              <strong>{{ paper.original_paper_id ? '原卷已核验' : '已人工校核' }}</strong>
               <p>{{ paper.check_note }}</p>
               <small
                 >{{ paper.checked_by_name }} ·
@@ -205,6 +220,22 @@ onMounted(load)
               >
             </div>
             <p v-else class="shared-muted">尚未完成人工校核</p>
+            <div v-if="paper.versions?.length" class="shared-notice">
+              <strong>版本记录</strong>
+              <p>
+                当前为 v{{ paper.revision }}，题目内容与分值已固定。复制到自己的组卷后可自由修改。
+              </p>
+              <p v-if="paper.versions[0].revision > paper.revision">
+                已有新版 v{{ paper.versions[0].revision }}，建议查看修订说明。
+              </p>
+              <p v-for="version in paper.versions" :key="version.id">
+                <RouterLink :to="`/papers/${version.id}`"
+                  >v{{ version.revision
+                  }}{{ version.revision === paper.revision ? '（当前）' : '' }}</RouterLink
+                >
+                · {{ version.revision_note }}
+              </p>
+            </div>
           </section>
           <section class="shared-panel">
             <h2>

@@ -52,15 +52,19 @@ function tab(value) {
 function turn(step) {
   router.replace({ query: { ...route.query, page: String(data.value.page + step) } })
 }
-watch(() => route.fullPath, () => {
-  q.value = String(route.query.q || '')
-  kind.value = String(route.query.kind || '')
-  year.value = String(route.query.year || '')
-  examMode.value = String(route.query.examMode || '')
-  checked.value = route.query.checked === 'true'
-  sort.value = String(route.query.sort || 'newest')
-  load()
-}, { immediate: true })
+watch(
+  () => route.fullPath,
+  () => {
+    q.value = String(route.query.q || '')
+    kind.value = String(route.query.kind || '')
+    year.value = String(route.query.year || '')
+    examMode.value = String(route.query.examMode || '')
+    checked.value = route.query.checked === 'true'
+    sort.value = String(route.query.sort || 'newest')
+    load()
+  },
+  { immediate: true },
+)
 </script>
 <template>
   <main class="shared-papers-page">
@@ -72,7 +76,10 @@ watch(() => route.fullPath, () => {
       </div>
       <div class="shared-actions">
         <button v-if="!data?.pdfAvailable" disabled>PDF 上传 · 暂未开放</button>
-        <RouterLink v-else class="shared-button" :to="{ name: 'paper-publish', query: { kind: 'PDF' } }"
+        <RouterLink
+          v-else
+          class="shared-button"
+          :to="{ name: 'paper-publish', query: { kind: 'PDF' } }"
           >上传 PDF</RouterLink
         ><RouterLink class="shared-button primary" :to="{ name: 'paper-publish' }"
           >分享组卷</RouterLink
@@ -156,7 +163,9 @@ watch(() => route.fullPath, () => {
           <h2>{{ paper.title }}</h2>
           <p>{{ paper.source || '用户分享' }}</p>
           <div class="shared-badges">
-            <span v-if="paper.checked_at">✓ 人工校核</span
+            <span v-if="paper.checked_at"
+              >✓ {{ paper.original_paper_id ? '原卷已核验' : '人工校核' }}</span
+            ><span v-if="paper.revision">v{{ paper.revision }}</span
             ><span v-if="paper.has_answers">含答案</span
             ><span v-if="paper.kind === 'BUILDER'"
               >{{ paper.question_count }} 题 · {{ paper.total_score }} 分</span

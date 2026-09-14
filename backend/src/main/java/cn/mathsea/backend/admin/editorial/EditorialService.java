@@ -134,8 +134,14 @@ public class EditorialService {
 
   @Transactional
   public Map<String, Object> paper(Long actor, String title) {
+    return paper(actor,title,false);
+  }
+
+  @Transactional
+  public Map<String,Object> paper(Long actor,String title,boolean separate) {
     title = clean(title, 255, "试卷名称");
-    String key = title.replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+    String key = java.text.Normalizer.normalize(title,java.text.Normalizer.Form.NFKC).replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
+    if(separate) key += ":"+UUID.randomUUID();
     db.update(
         "INSERT INTO editorial_papers(id,identity_key,title,created_by) VALUES (?,?,?,?) ON"
             + " CONFLICT(identity_key) DO NOTHING",

@@ -1,6 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { imageReferences, prepareImport } from './editorialImport.js'
+import { imageReferences, prepareImport, normalizedPaperName } from './editorialImport.js'
+
+test('paper name candidates normalize width and roman numerals without conflating years', () => {
+  assert.equal(normalizedPaperName('２０２６ 新高考Ⅰ卷'), normalizedPaperName('2026新高考 I 卷'))
+  assert.notEqual(normalizedPaperName('2025新高考Ⅰ卷'), normalizedPaperName('2026新高考Ⅰ卷'))
+})
 
 function file(path, text = '') {
   const value = new File([text], path.split('/').at(-1))

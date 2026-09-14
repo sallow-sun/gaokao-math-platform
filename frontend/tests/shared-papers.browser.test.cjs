@@ -120,6 +120,8 @@ let browser, server
       paper.checked_by_name = 'Reviewer'
     } else if (u.pathname.endsWith('/access')) body = { ok: true }
     else if (u.pathname === `/api/v1/papers/${paper.id}`) body = paper
+    else if (u.pathname === '/api/v1/papers/original-v2')
+      body = { ...paper, id: 'original-v2', revision: 2 }
     else if (u.pathname === '/api/v1/curriculum') body = require('./curriculum.fixture.cjs')
     else if (u.pathname === '/api/v1/problems/tag-taxonomy')
       body = require('../../backend/src/main/resources/tag-taxonomy.json')
@@ -189,6 +191,17 @@ let browser, server
     true,
   )
   await page.screenshot({ path: path.join(root, '.tmp/shared-papers-mobile.png'), fullPage: true })
+  paper.original_paper_id = 'original'
+  paper.revision = 1
+  paper.versions = [
+    { id: 'original-v2', revision: 2, revision_note: '修正第1题' },
+    { id: paper.id, revision: 1, revision_note: '首次核验' },
+  ]
+  await page.goto(origin + '/papers/' + paper.id, { waitUntil: 'networkidle' })
+  await page.getByText('已有新版 v2，建议查看修订说明。').waitFor()
+  await page.getByRole('link', { name: 'v2', exact: true }).click()
+  await page.getByText('固定版本 v2').waitFor()
+  assert.equal(await page.getByText('已有新版 v2，建议查看修订说明。').count(), 0)
   assert.deepEqual(errors, [])
   console.log(
     'Shared papers: list, publish, favorite, rating, review, readonly print, draft isolation, copy, OSS-disabled and mobile checks passed',

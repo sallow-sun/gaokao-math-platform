@@ -173,7 +173,7 @@ public class SharedPaperService {
   }
 
   private final String base =
-      "SELECT p.id,p.owner_id,u.username AS"
+      "SELECT p.original_paper_id,p.revision,p.revision_note,p.id,p.owner_id,u.username AS"
           + " author,p.title,p.description,p.source,p.year,p.exam_mode,p.kind,p.question_count,p.total_score,p.has_answers,p.file_bytes,p.created_at,p.checked_at,p.check_note,cu.username"
           + " AS checked_by_name,(SELECT count(*) FROM shared_paper_ratings r WHERE"
           + " r.paper_id=p.id) AS rating_count,(SELECT round(avg(r.difficulty),1) FROM"
@@ -196,6 +196,8 @@ public class SharedPaperService {
       boolean checked,
       int page) {
     String where = " WHERE p.published AND NOT p.deleted";
+    if(!"mine".equals(scope) && !"favorites".equals(scope))
+      where += " AND (p.original_paper_id IS NULL OR NOT EXISTS(SELECT 1 FROM shared_papers newer WHERE newer.original_paper_id=p.original_paper_id AND newer.revision>p.revision AND newer.published AND NOT newer.deleted))";
     List<Object> args = new ArrayList<>();
     if (!Objects.toString(q, "").isBlank()) {
       where += " AND (p.title ILIKE ? OR p.source ILIKE ?)";
@@ -254,6 +256,7 @@ public class SharedPaperService {
     var row = rows.getFirst();
     row.put("canEdit", actor != null && actor.equals(row.get("owner_id")));
     row.put("canCheck", actor != null && isReviewer(actor));
+    if(row.get("original_paper_id")!=null) row.put("versions",db.queryForList("SELECT id,revision,revision_note,checked_at FROM shared_papers WHERE original_paper_id=? AND published AND NOT deleted ORDER BY revision DESC",row.get("original_paper_id")));
     row.put(
         "favorite",
         actor != null

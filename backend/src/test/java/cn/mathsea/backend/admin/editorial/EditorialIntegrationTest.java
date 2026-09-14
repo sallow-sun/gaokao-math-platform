@@ -61,6 +61,77 @@ class EditorialIntegrationTest {
   @org.springframework.test.context.bean.override.mockito.MockitoBean cn.mathsea.backend.common.rate.RateLimitService purgeRateLimit;
 
   @Autowired cn.mathsea.backend.paper.SharedPaperService sharedPapers;
+  @Autowired cn.mathsea.backend.paper.OriginalPaperService originals;
+
+  @Test void originalPaperVersionsReuseAndFreezeReviewedContent() throws Exception {
+    long manager=actor("original"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    long editor=actor("assemble"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    UUID paper=(UUID)service.paper(manager,"Original "+UUID.randomUUID()).get("id");
+    UUID item=UUID.randomUUID();
+    long problem=growthProblem(981001);
+    db.update("UPDATE problems SET content='Compute $1+2$' WHERE id=?",problem);
+    db.update("INSERT INTO problem_assets(problem_id,url,mime_type,alt_text) VALUES (?,'/uploads/fixture.png','image/png','Figure')",problem);
+    db.update("INSERT INTO editorial_items(id,paper_id,original_number,payload,created_by) VALUES (?,?,'1',?::jsonb,?)",item,paper,"{\"type\":\"single-choice\",\"content\":\"Compute $1+3$\"}",manager);
+    var before=originals.detail(paper);
+    assertEquals(1,((List<?>)((Map<?,?>)((List<?>)before.get("items")).getFirst()).get("duplicates")).size());
+    var a=json.createObjectNode();a.put("expectedCount",1);a.put("targetScore",5);
+    var choice=a.putObject("items").putObject(item.toString());choice.put("order",1);choice.put("score",5);
+    originals.save(paper,editor,new cn.mathsea.backend.paper.OriginalPaperService.Edit(1,a));
+    var pending=originals.detail(paper);
+    assertThrows(BusinessException.class,()->originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(2,pending.get("token").toString(),"Checked")));
+    choice.put("reuse","GC981001");
+    originals.save(paper,editor,new cn.mathsea.backend.paper.OriginalPaperService.Edit(2,a));
+    var ready=originals.detail(paper);
+    var request=new cn.mathsea.backend.paper.OriginalPaperService.Publish(3,ready.get("token").toString(),"Checked against source");
+    assertThrows(BusinessException.class,()->originals.publish(paper,editor,request));
+    db.update("UPDATE problems SET content='Compute $1+4$' WHERE id=?",problem);
+    assertThrows(BusinessException.class,()->originals.publish(paper,manager,request));
+    ready=originals.detail(paper);
+    UUID v1=(UUID)((Map<?,?>)originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(3,ready.get("token").toString(),"Checked v1"))).get("id");
+    String frozen=db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v1);
+    assertTrue(frozen.contains("Compute $1+4$"));assertTrue(frozen.contains("fixture.png"));
+    assertThrows(org.springframework.dao.DataAccessException.class,()->db.update("UPDATE shared_papers SET snapshot='{}'::jsonb WHERE id=?",v1));
+    assertThrows(BusinessException.class,()->originals.publish(paper,manager,request));
+    db.update("UPDATE problems SET content='Corrected $1+5$' WHERE id=?",problem);
+    var next=originals.detail(paper);
+    UUID v2=(UUID)((Map<?,?>)originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(4,next.get("token").toString(),"Corrected v2"))).get("id");
+    assertEquals(frozen,db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v1));
+    assertTrue(db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v2).contains("Corrected"));
+    assertEquals(2,((List<?>)sharedPapers.detail(v1,null).get("versions")).size());
+    var catalog=(Map<?,?>)sharedPapers.list(null,before.get("title").toString(),"","","",null,"",false,1);
+    assertEquals(1,((List<?>)catalog.get("items")).size());
+    assertEquals(v2,((Map<?,?>)((List<?>)catalog.get("items")).getFirst()).get("id"));
+    sharedPapers.favorite(v1,editor,true);
+    var favorites=(Map<?,?>)sharedPapers.list(editor,before.get("title").toString(),"","favorites","",null,"",false,1);
+    assertEquals(v1,((Map<?,?>)((List<?>)favorites.get("items")).getFirst()).get("id"));
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM problems WHERE problem_number='GC981001'",Integer.class));
+    sharedPapers.check(v1,manager,new cn.mathsea.backend.paper.SharedPaperService.Check(false,""));
+    assertEquals(frozen,db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v1));
+    mvc.perform(get("/api/v1/admin/original-papers")).andExpect(status().isUnauthorized());
+    mvc.perform(post("/api/v1/admin/original-papers/"+paper+"/publish").with(user(new CustomUserPrincipal(users.selectById(manager)))).contentType("application/json").content("{}")).andExpect(status().isForbidden());
+  }
+
+  @Test void originalAssemblyRejectsIncompleteTotalsAndSupportsSeparateNames() throws Exception {
+    long manager=actor("names"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    String name="2026 Original "+UUID.randomUUID();
+    UUID paper=(UUID)service.paper(manager,name+" Ⅰ").get("id");
+    assertEquals(paper,service.paper(manager,name+" I").get("id"));
+    assertNotEquals(paper,service.paper(manager,name+" I",true).get("id"));
+    growthProblem(981002);
+    UUID item=UUID.randomUUID();
+    db.update("INSERT INTO editorial_items(id,paper_id,original_number,status,problem_number,payload,created_by) VALUES (?,?,'1','PUBLISHED','GC981002','{}'::jsonb,?)",item,paper,manager);
+    var a=json.createObjectNode();a.put("expectedCount",2);a.put("targetScore",5);a.putObject("items").putObject(item.toString()).put("score",5);
+    originals.save(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Edit(1,a));
+    var current=originals.detail(paper);
+    assertThrows(BusinessException.class,()->originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(2,current.get("token").toString(),"Checked")));
+    assertThrows(BusinessException.class,()->originals.save(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Edit(1,a)));
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM shared_papers WHERE original_paper_id=?",Integer.class,paper));
+    a.put("expectedCount",1);a.put("year","");((com.fasterxml.jackson.databind.node.ObjectNode)a.path("items").path(item.toString())).put("reuse","");
+    originals.save(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Edit(2,a));
+    var complete=originals.detail(paper);
+    originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(3,complete.get("token").toString(),"All verified"));
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM shared_papers WHERE original_paper_id=?",Integer.class,paper));
+  }
   @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
   @org.springframework.test.context.bean.override.mockito.MockitoBean cn.mathsea.backend.paper.PaperObjectStorage paperStorage;
 

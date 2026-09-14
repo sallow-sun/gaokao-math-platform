@@ -38,7 +38,7 @@ public class EditorialController {
 
   @PostMapping("/papers")
   public Object paper(@RequestBody Map<String, String> body, Authentication auth) {
-    return service.paper(SecurityUtils.requireUserId(auth), body.get("title"));
+    return service.paper(SecurityUtils.requireUserId(auth), body.get("title"),Boolean.parseBoolean(body.get("separate")));
   }
 
   @GetMapping("/batches")

@@ -1,5 +1,12 @@
 export const DIFFICULTY_LEVELS = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple']
 
+export function normalizedPaperName(title) {
+  return String(title || '')
+    .normalize('NFKC')
+    .replace(/\s+/g, '')
+    .toLowerCase()
+}
+
 function normalizePath(value) {
   const parts = []
   for (const part of value.replaceAll('\\', '/').split('/')) {
