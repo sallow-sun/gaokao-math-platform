@@ -7,6 +7,7 @@
 ## 从这里开始
 
 - [完整本地开发与交接说明](docs/DEVELOPMENT.md)：环境、启动、管理员、测试与代码入口。
+- [本次交接记录](docs/HANDOFF.md)：线上版本、验证结果及后续工作边界。
 - [部署说明](deploy/README.md)：发布包、服务器布局、备份与回滚限制。
 - [原卷整理说明](docs/original-papers.md)：操作入口、核验规则、版本锁定与查重范围。
 - [等级规则](docs/user-growth.md)：测试期经验与等级配置。
