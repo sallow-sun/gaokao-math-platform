@@ -1,3 +1,0 @@
-PyMuPDF==1.28.2
-numpy==2.2.6; python_version < "3.12"
-numpy==2.5.0; python_version >= "3.12"
