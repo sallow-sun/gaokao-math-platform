@@ -247,6 +247,9 @@ async function publishInBackground() {
       /* Server save succeeded. */
     }
     publishStatus.value = '上一题已保存'
+    void refreshPaperOptions()
+      .then((reset) => (reset ? refresh() : null))
+      .catch(() => {})
     if (publishFailure.value?.id === previous.id) publishFailure.value = null
     // Do not refresh the active editor or overwrite edits made while publishing.
     if (queue.value.items.some((q) => q.id === previous.id)) {
@@ -293,6 +296,29 @@ const papers = ref([]),
   status = ref('PENDING'),
   paperId = ref(''),
   keyword = ref('')
+const reviewPapers = computed(() =>
+  papers.value.filter((p) => {
+    const field = status.value === 'CHANGES' ? 'changes_count' : 'pending_count'
+    return p[field] === undefined || Number(p[field]) > 0
+  }),
+)
+let paperOptionsRequest = 0
+async function refreshPaperOptions() {
+  const request = ++paperOptionsRequest
+  const values = await api.get('/papers')
+  if (disposed || request !== paperOptionsRequest) return false
+  papers.value = values
+  if (
+    tab.value === 'queue' &&
+    paperId.value &&
+    !reviewPapers.value.some((p) => p.id === paperId.value)
+  ) {
+    paperId.value = ''
+    queue.value.page = 1
+    return true
+  }
+  return false
+}
 const editorTab = ref('content')
 const directoryOpen = ref(false)
 const deleteMode = ref(false),
@@ -398,6 +424,7 @@ async function run(action) {
   }
 }
 async function refresh() {
+  await refreshPaperOptions()
   const query = new URLSearchParams({
     status: status.value,
     issue: issue.value,
@@ -896,7 +923,6 @@ onMounted(async () => {
   window.addEventListener('keydown', shortcut)
   await run(async () => {
     me.value = await api.get('/me')
-    papers.value = await api.get('/papers')
     await refresh()
   })
   leaseTimer = setInterval(
@@ -1003,7 +1029,11 @@ watch([status, paperId, keyword, issue], () => {
       </template>
     </nav>
     <ProblemRecycleBin v-if="tab === 'trash' && me?.permission === 'MANAGER'" />
-    <OriginalPaperWorkbench v-if="tab === 'originals'" :can-publish="me?.permission !== 'EDITOR'" />
+    <OriginalPaperWorkbench
+      v-if="tab === 'originals'"
+      :can-publish="me?.permission !== 'EDITOR'"
+      @renamed="refreshPaperOptions().catch(() => {})"
+    />
     <CurriculumSettings v-if="tab === 'curriculum' && me?.permission === 'MANAGER'" />
     <div class="editorial-save-status" role="status" :class="{ 'has-error': publishFailure }">
       <span :title="publishFailure ? publishStatus : message || publishStatus">{{
@@ -1212,7 +1242,7 @@ watch([status, paperId, keyword, issue], () => {
         </select>
         <select v-model="paperId" aria-label="试卷">
           <option value="">全部试卷</option>
-          <option v-for="paper in papers" :key="paper.id" :value="paper.id">
+          <option v-for="paper in reviewPapers" :key="paper.id" :value="paper.id">
             {{ paper.title }}
           </option>
         </select>

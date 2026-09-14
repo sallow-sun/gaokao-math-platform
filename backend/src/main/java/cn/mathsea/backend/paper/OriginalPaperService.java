@@ -25,6 +25,8 @@ public class OriginalPaperService {
 
   public record Publish(long version, String token, String note) {}
 
+  public record Rename(long version, String title) {}
+
   private JsonNode parse(Object value) {
     try {
       return json.readTree(Objects.toString(value, "{}"));
@@ -46,8 +48,42 @@ public class OriginalPaperService {
         "SELECT p.id,p.title,p.assembly_version,(SELECT count(*) FROM editorial_items i WHERE"
             + " i.paper_id=p.id AND i.purged_at IS NULL AND i.status<>'TRASH') AS"
             + " question_count,(SELECT max(revision) FROM shared_papers s WHERE"
-            + " s.original_paper_id=p.id) AS revision FROM editorial_papers p ORDER BY p.created_at"
-            + " DESC,p.id");
+            + " s.original_paper_id=p.id) AS revision,(SELECT count(*) FROM editorial_items i WHERE"
+            + " i.paper_id=p.id AND i.purged_at IS NULL AND i.status='PUBLISHED') AS"
+            + " published_count FROM editorial_papers p ORDER BY p.created_at DESC,p.id");
+  }
+
+  @Transactional
+  public Object rename(UUID id, Long actor, Rename request) {
+    var row = paper(id, true);
+    String title = Objects.toString(request.title(), "").trim();
+    if (title.isBlank() || title.length() > 160)
+      throw BusinessException.badRequest("ORIGINAL_TITLE", "请填写1至160字的试卷名称");
+    if (((Number) row.get("assembly_version")).longValue() != request.version())
+      throw BusinessException.conflict("ORIGINAL_VERSION", "原卷已被更新，请重新加载后修改名称");
+    if (!title.equals(row.get("title"))) {
+      String key =
+          java.text.Normalizer.normalize(title, java.text.Normalizer.Form.NFKC)
+                  .replaceAll("\\s+", "")
+                  .toLowerCase(Locale.ROOT)
+              + ":"
+              + id;
+      // Membership uses stable paper_id; every linked item's attribution changes with this row.
+      // Published snapshots retain their original titles and remain immutable.
+      db.update(
+          "UPDATE editorial_papers SET title=?,identity_key=?,assembly_version=assembly_version+1"
+              + " WHERE id=?",
+          title,
+          key,
+          id);
+      audit.log(
+          actor,
+          "ORIGINAL_RENAME",
+          "ORIGINAL_PAPER",
+          id.toString(),
+          row.get("title") + " → " + title);
+    }
+    return detail(id);
   }
 
   private String hash(Object value) {

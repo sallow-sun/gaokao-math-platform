@@ -35,6 +35,7 @@ let server, browser
     console.error(e.message)
   })
   let version = 1,
+    title = '2026年新高考Ⅰ卷数学',
     assembly = {},
     published = false,
     conflict = false
@@ -42,7 +43,7 @@ let server, browser
   function detail() {
     return {
       id: 'one',
-      title: '2026年新高考Ⅰ卷数学',
+      title,
       assembly_version: version,
       assembly,
       token: `token-${version}`,
@@ -82,12 +83,20 @@ let server, browser
       data = [
         {
           id: 'one',
-          title: '2026年新高考Ⅰ卷数学',
+          title,
           question_count: 1,
+          published_count: published ? 1 : 0,
           revision: published ? 1 : null,
         },
+        { id: 'ready', title: '全部通过的试卷', question_count: 2, published_count: 2 },
+        { id: 'empty', title: '空试卷', question_count: 0, published_count: 0 },
       ]
-    else if (url.pathname.endsWith('/publish')) {
+    else if (url.pathname.endsWith('/title')) {
+      assert.equal(r.request().postDataJSON().version, version)
+      title = r.request().postDataJSON().title
+      version++
+      data = detail()
+    } else if (url.pathname.endsWith('/publish')) {
       if (conflict)
         return r.fulfill({
           status: 409,
@@ -116,8 +125,20 @@ let server, browser
   await page.goto(origin, { waitUntil: 'networkidle' })
   errors.length = 0
   await page.goto(origin + '/original-harness', { waitUntil: 'networkidle' })
+  assert.equal(await page.getByRole('button', { name: /全部通过的试卷/ }).count(), 1)
+  assert.equal(await page.getByRole('button', { name: /2026年新高考|空试卷/ }).count(), 0)
+  await page.getByLabel('原卷审核状态').selectOption('pending')
+  assert.equal(await page.getByRole('button', { name: /全部通过的试卷|空试卷/ }).count(), 0)
   await page.getByRole('button', { name: /2026年新高考/ }).click()
   await page.getByLabel('原卷总分').fill('5')
+  await page.getByLabel('试卷名称', { exact: true }).fill('2026新高考数学原卷')
+  await page.getByRole('button', { name: '保存名称', exact: true }).click()
+  await page.getByText('试卷名称和所含题目的归属名称已同步；已发布版本仍保留原名称。').waitFor()
+  assert.equal(await page.getByLabel('原卷总分').inputValue(), '5')
+  assert.equal(
+    await page.getByRole('heading', { name: '2026新高考数学原卷', exact: true }).count(),
+    1,
+  )
   await page.getByText('发现 1 道疑似重复题，请比较公式、选项与配图').click()
   await page.getByRole('button', { name: '复用此题' }).click()
   await page.getByRole('button', { name: '保存整理草稿' }).click()

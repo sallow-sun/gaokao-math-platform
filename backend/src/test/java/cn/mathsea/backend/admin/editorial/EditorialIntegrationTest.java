@@ -107,6 +107,18 @@ class EditorialIntegrationTest {
     assertEquals(1,db.queryForObject("SELECT count(*) FROM problems WHERE problem_number='GC981001'",Integer.class));
     sharedPapers.check(v1,manager,new cn.mathsea.backend.paper.SharedPaperService.Check(false,""));
     assertEquals(frozen,db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v1));
+    var old=originals.detail(paper);
+    long oldVersion=((Number)old.get("assembly_version")).longValue();
+    String renamed="Renamed "+UUID.randomUUID();
+    originals.rename(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Rename(oldVersion,renamed));
+    assertEquals(renamed,originals.detail(paper).get("title"));
+    assertEquals(renamed,((Map<?,?>)((List<?>)service.queue("DRAFT",paper,"",1).get("items")).getFirst()).get("paper_title"));
+    assertEquals(paper,db.queryForObject("SELECT paper_id FROM editorial_items WHERE id=?",UUID.class,item));
+    assertEquals(before.get("title"),sharedPapers.detail(v1,null).get("title"));
+    assertNotEquals(old.get("token"),originals.detail(paper).get("token"));
+    assertThrows(BusinessException.class,()->originals.rename(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Rename(oldVersion,"Stale rename")));
+    assertThrows(BusinessException.class,()->originals.rename(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Rename(oldVersion+1," ")));
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM audit_logs WHERE action='ORIGINAL_RENAME' AND target_id=?",Integer.class,paper.toString()));
     mvc.perform(get("/api/v1/admin/original-papers")).andExpect(status().isUnauthorized());
     mvc.perform(post("/api/v1/admin/original-papers/"+paper+"/publish").with(user(new CustomUserPrincipal(users.selectById(manager)))).contentType("application/json").content("{}")).andExpect(status().isForbidden());
   }
@@ -131,6 +143,23 @@ class EditorialIntegrationTest {
     var complete=originals.detail(paper);
     originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(3,complete.get("token").toString(),"All verified"));
     assertEquals(1,db.queryForObject("SELECT count(*) FROM shared_papers WHERE original_paper_id=?",Integer.class,paper));
+  }
+
+  @Test void paperReviewCountsExcludeTrashPurgedAndEmptyPapers() {
+    long manager=actor("counts"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    UUID paper=(UUID)service.paper(manager,"Counts "+UUID.randomUUID()).get("id");
+    var empty=service.papers().stream().filter(p->paper.equals(p.get("id"))).findFirst().orElseThrow();
+    assertEquals(0L,empty.get("question_count"));
+    var states=List.of("DRAFT","REVIEW","CHANGES","PUBLISHED","TRASH","PUBLISHED");
+    for(int n=0;n<states.size();n++) db.update("INSERT INTO editorial_items(id,paper_id,original_number,status,payload,purged_at) VALUES (?,?,?,?, '{}'::jsonb,CASE WHEN ? THEN now() ELSE NULL END)",UUID.randomUUID(),paper,Integer.toString(n+1),states.get(n),n==5);
+    var mixed=service.papers().stream().filter(p->paper.equals(p.get("id"))).findFirst().orElseThrow();
+    assertEquals(4L,mixed.get("question_count"));assertEquals(2L,mixed.get("pending_count"));assertEquals(1L,mixed.get("changes_count"));assertEquals(1L,mixed.get("published_count"));
+    db.update("UPDATE editorial_items SET status='PUBLISHED' WHERE paper_id=? AND status<>'TRASH' AND purged_at IS NULL",paper);
+    var ready=service.papers().stream().filter(p->paper.equals(p.get("id"))).findFirst().orElseThrow();
+    assertEquals(0L,ready.get("pending_count"));assertEquals(0L,ready.get("changes_count"));assertEquals(4L,ready.get("published_count"));
+    var catalog=(List<?>)originals.list();
+    var original=(Map<?,?>)catalog.stream().filter(p->paper.equals(((Map<?,?>)p).get("id"))).findFirst().orElseThrow();
+    assertEquals(original.get("question_count"),original.get("published_count"));
   }
   @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
   @org.springframework.test.context.bean.override.mockito.MockitoBean cn.mathsea.backend.paper.PaperObjectStorage paperStorage;

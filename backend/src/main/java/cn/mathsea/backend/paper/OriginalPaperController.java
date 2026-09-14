@@ -33,4 +33,10 @@ public class OriginalPaperController {
       @PathVariable UUID id, @RequestBody OriginalPaperService.Publish body, Authentication auth) {
     return service.publish(id, SecurityUtils.requireUserId(auth), body);
   }
+
+  @PutMapping("/{id}/title")
+  public Object rename(
+      @PathVariable UUID id, @RequestBody OriginalPaperService.Rename body, Authentication auth) {
+    return service.rename(id, SecurityUtils.requireUserId(auth), body);
+  }
 }

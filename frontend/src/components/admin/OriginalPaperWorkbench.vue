@@ -3,6 +3,15 @@ import { computed, onMounted, ref } from 'vue'
 import { apiRequest } from '../../services/apiClient.js'
 import MathText from '../content/MathText.vue'
 const props = defineProps({ canPublish: Boolean })
+const emit = defineEmits(['renamed'])
+const reviewFilter = ref('ready'),
+  paperTitle = ref('')
+function allReviewed(paper) {
+  return (
+    Number(paper.question_count) > 0 &&
+    Number(paper.published_count) === Number(paper.question_count)
+  )
+}
 const papers = ref([]),
   current = ref(null),
   assembly = ref(null),
@@ -17,7 +26,16 @@ const endpoint = '/api/v1/admin/original-papers'
 const prepared = ref(false),
   savedAssembly = ref('')
 const dirty = computed(() => JSON.stringify(assembly.value) !== savedAssembly.value)
-const visible = computed(() => papers.value.filter((p) => p.title.includes(query.value)))
+const visible = computed(() =>
+  papers.value.filter(
+    (p) =>
+      p.title.includes(query.value) &&
+      (reviewFilter.value === 'all' ||
+        (reviewFilter.value === 'ready'
+          ? allReviewed(p)
+          : Number(p.question_count) > 0 && !allReviewed(p))),
+  ),
+)
 const rows = computed(() => current.value?.items || [])
 const totals = computed(() =>
   rows.value.reduce(
@@ -48,6 +66,7 @@ async function run(work) {
 function adopt(data) {
   prepared.value = false
   current.value = data
+  paperTitle.value = data.title
   assembly.value = {
     expectedCount: data.items.length,
     targetScore: 150,
@@ -84,6 +103,22 @@ function save() {
     )
     prepared.value = true
     message.value = '整理草稿已保存；可继续核对并发布。'
+  })
+}
+function rename() {
+  run(async () => {
+    const pending = assembly.value,
+      wasDirty = dirty.value
+    adopt(
+      await apiRequest(`${endpoint}/${selected.value}/title`, {
+        method: 'PUT',
+        body: { version: current.value.assembly_version, title: paperTitle.value },
+      }),
+    )
+    if (wasDirty) assembly.value = pending
+    papers.value = await apiRequest(endpoint)
+    emit('renamed')
+    message.value = '试卷名称和所含题目的归属名称已同步；已发布版本仍保留原名称。'
   })
 }
 function reuse(row, candidate) {
@@ -125,6 +160,11 @@ onMounted(() =>
     <div class="original-layout">
       <aside>
         <input v-model="query" placeholder="搜索原卷名称" aria-label="搜索原卷" />
+        <select v-model="reviewFilter" aria-label="原卷审核状态">
+          <option value="ready">全部题目已通过</option>
+          <option value="pending">仍有待审核题目</option>
+          <option value="all">全部原卷</option>
+        </select>
         <button
           v-for="paper in visible"
           :key="paper.id"
@@ -134,14 +174,29 @@ onMounted(() =>
         >
           <strong>{{ paper.title }}</strong
           ><small
-            >{{ paper.question_count }} 题 ·
+            >已通过 {{ paper.published_count || 0 }} / {{ paper.question_count }} 题 ·
             {{ paper.revision ? `已发布 v${paper.revision}` : '待整理' }}</small
           >
         </button>
         <p v-if="!papers.length">导入题目并确认试卷归属后，原卷会自动出现在这里。</p>
+        <p v-else-if="!visible.length">
+          没有符合当前条件的原卷。<button @click="reviewFilter = 'all'">查看全部原卷</button>
+        </p>
       </aside>
       <div v-if="current" class="original-editor">
         <h3>{{ current.title }}</h3>
+        <div class="original-rename">
+          <label>试卷名称<input v-model="paperTitle" maxlength="160" :disabled="busy" /></label>
+          <button
+            :disabled="busy || !paperTitle.trim() || paperTitle.trim() === current.title"
+            @click="rename"
+          >
+            保存名称
+          </button>
+        </div>
+        <p class="original-muted">
+          名称会同步到该原卷下所有题目的试卷归属；题目仍属于同一份原卷。已发布的固定版本保留原名称。
+        </p>
         <p class="original-muted">
           默认分值仅作起点，请对照原卷核验。原卷和自由组卷使用同一打印样式，题型按单选、多选、填空、解答排列。
         </p>
@@ -348,6 +403,7 @@ onMounted(() =>
   font-size: 12px;
 }
 .original-workbench input:not([type='checkbox']),
+.original-workbench select,
 .original-workbench textarea {
   box-sizing: border-box;
   width: 100%;
@@ -358,6 +414,22 @@ onMounted(() =>
   background: #fff;
   color: inherit;
   font: inherit;
+}
+.original-layout aside select {
+  margin-top: 10px;
+}
+.original-rename {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 12px 0;
+}
+.original-rename label {
+  flex: 1;
+  min-width: 0;
+}
+.original-rename button {
+  flex: none;
 }
 .original-workbench input[type='checkbox'] {
   display: inline-block;

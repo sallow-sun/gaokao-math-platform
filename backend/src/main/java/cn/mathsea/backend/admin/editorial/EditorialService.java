@@ -129,7 +129,11 @@ public class EditorialService {
   }
 
   public List<Map<String, Object>> papers() {
-    return db.queryForList("SELECT * FROM editorial_papers ORDER BY title,id");
+    return db.queryForList("SELECT p.*,count(i.id) AS question_count,"
+      + "count(i.id) FILTER (WHERE i.status IN ('DRAFT','REVIEW')) AS pending_count,"
+      + "count(i.id) FILTER (WHERE i.status='CHANGES') AS changes_count,"
+      + "count(i.id) FILTER (WHERE i.status='PUBLISHED') AS published_count "
+      + "FROM editorial_papers p LEFT JOIN editorial_items i ON i.paper_id=p.id AND i.purged_at IS NULL AND i.status<>'TRASH' GROUP BY p.id ORDER BY p.title,p.id");
   }
 
   @Transactional
