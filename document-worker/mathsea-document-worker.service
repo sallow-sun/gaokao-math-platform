@@ -1,0 +1,36 @@
+[Unit]
+Description=MathVerse isolated document splitting worker
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=mathsea-document
+Group=mathsea-document
+WorkingDirectory=/srv/mathsea/document-worker
+EnvironmentFile=/etc/mathsea/document-worker.env
+ExecStart=/srv/mathsea/document-worker/.venv/bin/python worker.py --host 127.0.0.1 --port 8091
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+KillMode=control-group
+UMask=0077
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+MemoryHigh=512M
+MemoryMax=640M
+CPUQuota=75%
+Nice=10
+TasksMax=128
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/mathsea/document-data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

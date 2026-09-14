@@ -2,6 +2,7 @@
 import FeedbackQueue from './FeedbackQueue.vue'
 import OriginalPaperWorkbench from './OriginalPaperWorkbench.vue'
 import ProblemRecycleBin from './ProblemRecycleBin.vue'
+import DocumentSplitWorkbench from '../document-import/DocumentSplitWorkbench.vue'
 import { apiRequest } from '../../services/apiClient.js'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
@@ -966,6 +967,7 @@ watch([status, paperId, keyword, issue], () => {
       </button>
       <button :aria-pressed="tab === 'feedback'" @click="tab = 'feedback'">用户反馈</button>
       <button :aria-pressed="tab === 'import'" @click="tab = 'import'">批量导入</button>
+      <button :aria-pressed="tab === 'split'" @click="tab = 'split'">试卷切分</button>
       <button :aria-pressed="tab === 'originals'" @click="tab = 'originals'">原卷整理</button>
       <button :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">更多</button>
       <template v-if="settingsOpen">
@@ -1003,6 +1005,7 @@ watch([status, paperId, keyword, issue], () => {
       </template>
     </nav>
     <ProblemRecycleBin v-if="tab === 'trash' && me?.permission === 'MANAGER'" />
+    <DocumentSplitWorkbench v-show="tab === 'split'" :active="tab === 'split'" @import-files="async (files) => { await selectFiles(files); tab = 'import' }" />
     <OriginalPaperWorkbench v-if="tab === 'originals'" :can-publish="me?.permission !== 'EDITOR'" />
     <CurriculumSettings v-if="tab === 'curriculum' && me?.permission === 'MANAGER'" />
     <div class="editorial-save-status" role="status" :class="{ 'has-error': publishFailure }">
