@@ -676,17 +676,17 @@
   line-height: 1.5;
 }
 .paper-heading {
-  margin-bottom: 18px;
+  margin-bottom: 15.75pt;
 }
 .paper-heading > p {
-  margin: 0 0 6px;
+  margin: 0 0 3pt;
   text-align: center;
   font-size: 16pt;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
 .paper-sheet .paper-heading > h2 {
-  margin: 0 0 15px;
+  margin: 0 0 6pt;
   font:
     22pt/1.3 SimHei,
     'Heiti SC',
@@ -695,21 +695,48 @@
   text-align: center;
   color: #000;
 }
-.paper-candidate {
-  text-align: center;
-  font-size: 10.5pt;
-  margin-bottom: 13px;
-}
 .paper-instructions {
   font-size: 10.5pt;
 }
+.paper-notices {
+  display: flex;
+  align-items: baseline;
+  font-size: 10.5pt;
+  line-height: 1.5;
+}
+.paper-notices > strong {
+  flex: 0 0 5em;
+  font-family: SimHei, 'Heiti SC', 'Microsoft YaHei', sans-serif;
+  font-weight: normal;
+}
+.paper-notices > ol {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paper-notice;
+}
+.paper-notices li {
+  position: relative;
+  padding-left: 1.5em;
+  text-align: justify;
+}
+.paper-notices li::before {
+  counter-increment: paper-notice;
+  content: counter(paper-notice) '．';
+  position: absolute;
+  left: 0;
+}
 .paper-question-content {
-  padding-bottom: 15px;
+  padding-bottom: 15.75pt;
   font-family: 'Times New Roman', SimSun, 'Songti SC', STSong, serif;
   font-size: 10.5pt;
   line-height: 1.5;
 }
 .paper-sheet .paper-question-text.math-text {
+  display: grid;
+  grid-template-columns: 2em minmax(0, 1fr);
   color: #111;
   --question-font-size: 10.5pt;
   font-size: 10.5pt;
@@ -717,15 +744,41 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
+.paper-question-stem {
+  min-width: 0;
+  text-align: justify;
+}
+.paper-sheet .paper-question-text.is-solution {
+  display: block;
+}
+.paper-solution-label {
+  white-space: nowrap;
+}
+.paper-solution-label .paper-question-number {
+  display: inline-block;
+  min-width: 2em;
+}
+.is-solution > .paper-question-stem {
+  text-indent: 2em;
+}
+.paper-question-stem .math-question-item,
+.paper-question-stem .katex-display,
+.paper-question-stem .math-material {
+  text-indent: 0;
+}
+.is-solution > .paper-question-stem > .math-question-item {
+  margin-left: 2em;
+}
 .paper-question-number {
   font-family: 'Times New Roman', SimSun, serif;
 }
 .paper-sheet .paper-choices {
+  --question-font-size: 10.5pt;
   display: grid;
   grid-template-columns: repeat(var(--choice-columns, 1), minmax(0, 1fr));
-  gap: 3px 12px;
+  gap: 0 12px;
   padding-left: 2em;
-  margin-top: 5px;
+  margin-top: 0;
   font-size: 10.5pt;
   line-height: 1.5;
 }
@@ -767,7 +820,7 @@
 
 .paper-page-footer {
   position: absolute;
-  bottom: 12mm;
+  bottom: 15mm;
   left: 22mm;
   right: 22mm;
   text-align: center;
@@ -1083,12 +1136,17 @@
   border: 0;
 }
 .paper-sheet .paper-section-heading {
-  margin: 0 0 10px;
+  margin: 0 0 5.25pt;
+  padding-left: 2em;
+  text-indent: -2em;
+  text-align: justify;
   color: #111;
   font:
-    700 11pt/1.5 SimSun,
-    'Songti SC',
-    serif;
+    10.5pt/1.5 'Times New Roman',
+    SimHei,
+    'Heiti SC',
+    'Microsoft YaHei',
+    sans-serif;
 }
 .paper-sheet .paper-section-heading + .paper-question-text {
   margin-top: 0;
@@ -1279,4 +1337,9 @@
   }
 }
 
-.paper-back-library { color: var(--color-blue-800); font-size: 12px; text-decoration: none; white-space: nowrap; }
+.paper-back-library {
+  color: var(--color-blue-800);
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}

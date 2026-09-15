@@ -49,6 +49,30 @@ test('paper preserves math and options, strips only the original leading number'
   assert.equal(splitPaperChoices('已知 $A.B.C.D.$，求值'), null)
   assert.deepEqual(splitPaperChoices(source).options, ['$1$', '$2$', '$3$', '$4$'])
 })
+test('objective scores are grouped only when uniform; solution scores stay beside each number', () => {
+  const question = (type, score) => ({
+    problem: { type, content: '已知 $x=1$，求值。', assets: [] },
+    score,
+  })
+  const items = [
+    question('single-choice', 5),
+    question('single-choice', 5),
+    question('solution', 12),
+  ]
+  let groups = paperSections(items)
+  assert.equal(groups[0].showItemScore, false)
+  assert.equal(groups[1].showItemScore, true)
+  assert.ok(groups[0].heading.includes('每小题 5 分'))
+  assert.ok(groups[0].heading.includes('只有一项'))
+  assert.ok(!paperQuestionHtml(items[0], 0, groups[0].heading, false).includes('paper-item-score'))
+  assert.ok(paperQuestionHtml(items[2], 2, groups[1].heading, true).includes('（12 分）'))
+  items[1].score = 7.5
+  groups = paperSections(items)
+  assert.equal(groups[0].showItemScore, true)
+  assert.ok(!/每小题\s+[\d.]+\s+分/.test(groups[0].heading))
+  assert.ok(groups[0].heading.includes('共 12.5 分'))
+  assert.ok(paperQuestionHtml(items[1], 1, '', true).includes('（7.5 分）'))
+})
 test('draft restore excludes answers, duplicate questions and unsafe images', () => {
   const p = {
     id: 'GS000010',

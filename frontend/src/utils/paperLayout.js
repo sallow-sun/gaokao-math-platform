@@ -42,10 +42,18 @@ export function paperSections(items) {
     .map((group, index) => {
       const scores = group.entries.map(({ item }) => cleanScore(item.score, group.score))
       const total = scores.reduce((sum, score) => sum + score, 0)
+      const uniform = scores.every((score) => score === scores[0])
+      const showItemScore = !uniform || ['solution', 'other'].includes(group.type)
+      const instructions = {
+        'single-choice': '在每小题给出的四个选项中，只有一项符合题目要求。',
+        'multiple-choice': '每小题有多个选项符合题目要求。',
+        solution: '解答应写出文字说明、证明过程或演算步骤。',
+      }
       return {
         ...group,
         total,
-        heading: `${['一', '二', '三', '四', '五'][index]}、${group.label}（共 ${scores.length} 小题，${scores.every((score) => score === scores[0]) ? `每小题 ${scores[0]} 分，` : ''}共 ${total} 分）`,
+        showItemScore,
+        heading: `${['一', '二', '三', '四', '五'][index]}、${group.label}：本题共 ${scores.length} 小题，${uniform && !showItemScore ? `每小题 ${scores[0]} 分，` : ''}共 ${total} 分。${instructions[group.type] || ''}`,
       }
     })
 }
@@ -64,13 +72,18 @@ export function cleanPaperProblem(problem) {
   }
 }
 
-export function paperQuestionHtml(item, index, heading = '') {
+export function paperQuestionHtml(item, index, heading = '', showScore = true) {
   const content = normalizeQuestionSpacing(stripPracticeListSourceNumber(item.problem.content))
   const assets = item.problem.assets.filter((a) => !content.includes(`](${a.url})`))
   const choices = splitPaperChoices(content)
+  const solution = paperType(item.problem.type).type === 'solution'
+  const score = showScore
+    ? `<span class="paper-item-score">（${cleanScore(item.score, paperType(item.problem.type).score)} 分）</span>`
+    : ''
+  const number = `<span class="paper-question-number">${index + 1}．</span>`
   return (
     (heading ? `<h3 class="paper-section-heading">${escapeHtml(heading)}</h3>` : '') +
-    `<div class="paper-question-text math-text"><span class="paper-question-number">${index + 1}．</span>（${cleanScore(item.score, paperType(item.problem.type).score)} 分）${renderQuestionText(choices?.stem ?? content)}</div>` +
+    `<div class="paper-question-text math-text${solution ? ' is-solution' : ''}">${solution ? `<div class="paper-solution-label">${number}${score}</div>` : number}<div class="paper-question-stem">${solution ? '' : score}${renderQuestionText(choices?.stem ?? content)}</div></div>` +
     (choices
       ? `<div class="paper-choices math-text">${choices.options.map((option, i) => `<div class="paper-choice"><span class="paper-choice-content">${'ABCD'[i]}．${renderQuestionText(option)}</span></div>`).join('')}</div>`
       : '') +

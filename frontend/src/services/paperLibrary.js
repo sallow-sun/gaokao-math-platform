@@ -14,7 +14,7 @@ export function readPapers(storage = localStorage) {
   return papers
 }
 export function createPaper(
-  draft = { version: 1, title: '数学练习卷', items: [], size: 'a4', targetScore: 150 },
+  draft = { version: 1, title: '数学练习卷', items: [], size: '16k', targetScore: 150 },
 ) {
   const papers = readPapers()
   const paper = {

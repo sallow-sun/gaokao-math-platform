@@ -4,6 +4,7 @@ import { apiRequest } from '../services/apiClient.js'
 import { useRoute } from 'vue-router'
 import { readPapers, savePaper } from '../services/paperLibrary.js'
 import MathText from '../components/content/MathText.vue'
+import PaperHeading from '../components/content/PaperHeading.vue'
 import { listProblems } from '../services/problemService.js'
 import ProblemsFilterPanel from '../components/problems/ProblemsFilterPanel.vue'
 import { useProblemsQuery } from '../composables/useProblemsQuery.js'
@@ -130,7 +131,7 @@ function nudgeColumn(pair, delta) {
   saveColumns()
 }
 const title = ref('数学练习卷'),
-  size = ref('a4'),
+  size = ref('16k'),
   items = ref([]),
   history = ref([])
 const preview = ref(!!sharedId),
@@ -230,6 +231,9 @@ const activeSection = computed(() =>
 )
 const headingFor = (index) =>
   sections.value.find((group) => group.entries[0].index === index)?.heading || ''
+const showScoreFor = (index) =>
+  sections.value.find((group) => group.entries.some((entry) => entry.index === index))
+    ?.showItemScore ?? true
 function batchScore(group, event) {
   checkpoint()
   const score = cleanScore(event.target.value, group.score)
@@ -601,9 +605,12 @@ async function layout() {
       (choice) => choice.getBoundingClientRect().width,
     )
     const max = Math.max(...widths)
+    const style = getComputedStyle(el)
+    const width = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    const gap = parseFloat(style.columnGap)
     el.style.setProperty(
       '--choice-columns',
-      max <= (el.clientWidth - 36) / 4 ? '4' : max <= (el.clientWidth - 12) / 2 ? '2' : '1',
+      max <= (width - 3 * gap) / 4 ? '4' : max <= (width - gap) / 2 ? '2' : '1',
     )
     el.querySelectorAll('.paper-choice-content').forEach((choice) => {
       choice.style.maxWidth = '100%'
@@ -613,13 +620,17 @@ async function layout() {
     if (el.parentElement.closest('.katex')) return
     el.style.fontSize = ''
     const container =
-      el.closest('.paper-choice') || el.closest('.math-question-body') || el.closest('.math-text')
+      el.closest('.paper-choice') ||
+      el.closest('.math-question-body') ||
+      el.closest('.paper-question-stem') ||
+      el.closest('.math-text')
     if (container && el.getBoundingClientRect().width > container.clientWidth)
       el.style.fontSize = `${container.clientWidth / el.getBoundingClientRect().width}em`
   })
   const capacity = (sheet.value.height - 40) * MM
+  const header = measure.value.querySelector('.paper-heading')
   const headerHeight =
-    measure.value.querySelector('.paper-heading').getBoundingClientRect().height + 18
+    header.getBoundingClientRect().height + parseFloat(getComputedStyle(header).marginBottom)
   const result = [{ fragments: [], used: headerHeight }]
   const nextPage = () => {
     const p = { fragments: [], used: 0 }
@@ -1278,15 +1289,13 @@ onBeforeUnmount(() => {
               :style="{ ...sheetStyle, zoom }"
               :aria-label="`试卷第 ${pageIndex + 1} 页`"
             >
-              <header v-if="pageIndex === 0" class="paper-heading">
-                <p>{{ title || '数学练习卷' }}</p>
-                <h2>数　学</h2>
-                <div class="paper-candidate">姓名：____________　班级：____________</div>
-                <div class="paper-instructions">
-                  本试卷共 {{ pages.length }} 页，{{ items.length }} 小题，满分
-                  {{ totalScore }} 分。请认真审题，规范作答。
-                </div>
-              </header>
+              <PaperHeading
+                v-if="pageIndex === 0"
+                :title="title"
+                :page-count="pages.length"
+                :question-count="items.length"
+                :total-score="totalScore"
+              />
               <div v-if="!items.length && !preview" class="paper-empty">
                 <span class="paper-empty-icon">＋</span>
                 <h3>拖拽题目到这里</h3>
@@ -1369,20 +1378,17 @@ onBeforeUnmount(() => {
       }}</small>
     </div>
     <div ref="measure" class="paper-measure paper-sheet" :style="sheetStyle" aria-hidden="true">
-      <header class="paper-heading">
-        <p>{{ title || '数学练习卷' }}</p>
-        <h2>数　学</h2>
-        <div class="paper-candidate">姓名：____________　班级：____________</div>
-        <div class="paper-instructions">
-          本试卷共 {{ pages.length }} 页，{{ items.length }} 小题，满分
-          {{ totalScore }} 分。请认真审题，规范作答。
-        </div>
-      </header>
+      <PaperHeading
+        :title="title"
+        :page-count="pages.length"
+        :question-count="items.length"
+        :total-score="totalScore"
+      />
       <div
         v-for="(item, index) in items"
         :key="item.problem.id"
         class="paper-measure-question paper-question-content"
-        v-html="paperQuestionHtml(item, index, headingFor(index))"
+        v-html="paperQuestionHtml(item, index, headingFor(index), showScoreFor(index))"
       />
     </div>
   </main>
