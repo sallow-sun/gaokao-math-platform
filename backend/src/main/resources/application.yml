@@ -76,6 +76,9 @@ mathsea:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   storage:
     root: ${STORAGE_ROOT:./uploads}
+  importer:
+    base-url: ${IMPORTER_BASE_URL:http://127.0.0.1:8001}
+    integration-secret: ${IMPORTER_INTEGRATION_SECRET:}
   security:
     login-max-attempts: ${LOGIN_MAX_ATTEMPTS:10}
     login-window-seconds: ${LOGIN_WINDOW_SECONDS:600}

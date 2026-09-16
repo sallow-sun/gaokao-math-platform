@@ -64,6 +64,13 @@ for (let n = 1; n <= 2; n++)
     status: 'DRAFT',
     history: [],
     availableAssets: [],
+    sourceReference: {
+      provider: 'mathsea-importer',
+      externalJobId: 'source-job',
+      sourceFilename: '2024全国甲卷.pdf',
+      pages: [2],
+      spans: [{ page: 2, bbox: [10, 20, 30, 40], type: 'text' }],
+    },
     document: {
       title: '2024全国甲卷T1',
       year: 2024,
@@ -199,6 +206,12 @@ for (let n = 1; n <= 2; n++)
     ['全部试卷', '2024全国甲卷'],
   )
   await page.getByRole('button', { name: '开始 / 继续审核', exact: true }).click()
+  const sourceFrame = page.locator('.editorial-source-frame')
+  await sourceFrame.waitFor()
+  assert.match(await sourceFrame.getAttribute('src'), new RegExp(`/items/${id}/source-file#page=2$`))
+  assert.equal(await page.getByText('第 2 页', { exact: true }).count(), 1)
+  await page.getByRole('button', { name: '题目预览', exact: true }).click()
+  assert.equal(await page.locator('.editorial-question-preview').count(), 1)
   const approveBounds = await page
     .getByRole('button', { name: '通过并下一题', exact: true })
     .boundingBox()

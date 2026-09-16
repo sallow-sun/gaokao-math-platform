@@ -1,6 +1,7 @@
 <script setup>
 import AdminGrowthPanel from '../components/admin/AdminGrowthPanel.vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import AdminConfirmDialog from '../components/admin/AdminConfirmDialog.vue'
 import AdminHeader from '../components/admin/AdminHeader.vue'
 import EditorialWorkbench from '../components/admin/EditorialWorkbench.vue'
@@ -15,7 +16,11 @@ import '../assets/styles/admin.css'
 
 const SEARCH_DELAY = 250
 
+const route = useRoute()
 const activeTab = ref('problems')
+const linkedPaperId = computed(() =>
+  typeof route.query.paperId === 'string' ? route.query.paperId : '',
+)
 const permission = ref('EDITOR')
 const visibleTabs = computed(() =>
   ADMIN_TABS.filter((tab) => tab.key !== 'users' || permission.value === 'MANAGER'),
@@ -203,7 +208,11 @@ onBeforeUnmount(() => {
           正在读取题目选项……
         </p>
 
-        <EditorialWorkbench :tags="tagOptions" :sources="sourceOptions" />
+        <EditorialWorkbench
+          :tags="tagOptions"
+          :sources="sourceOptions"
+          :initial-paper-id="linkedPaperId"
+        />
       </section>
     </main>
 

@@ -69,6 +69,18 @@ public class EditorialService {
 
   public record Action(long version, String action, String note, Long historyId) {}
 
+  public record ImportSourceItem(
+      UUID itemId, List<Integer> pages, List<Map<String, Object>> spans) {}
+
+  public record ImportSource(
+      UUID batchId,
+      UUID paperId,
+      String provider,
+      String externalJobId,
+      String sourceFilename,
+      String sourceChecksum,
+      List<ImportSourceItem> items) {}
+
   public record Target(UUID id, long version) {}
 
   public record Bulk(List<Target> items, String field, String value, String note) {}
@@ -255,7 +267,126 @@ public class EditorialService {
     row.put(
         "curriculumSuggestions",
         curriculum.suggest(((EditorialDocument) row.get("document")).tags()));
+    var source =
+        db.queryForList(
+            "SELECT s.id,s.provider,s.external_job_id,s.source_filename,s.source_checksum,"
+                + "r.pages,r.spans FROM editorial_item_source_refs r JOIN editorial_import_sources"
+                + " s ON s.id=r.source_id WHERE r.item_id=?",
+            id);
+    if (!source.isEmpty()) {
+      var value = source.getFirst();
+      var reference = new LinkedHashMap<String, Object>();
+      reference.put("id", value.get("id"));
+      reference.put("provider", value.get("provider"));
+      reference.put("externalJobId", value.get("external_job_id"));
+      reference.put("sourceFilename", value.get("source_filename"));
+      reference.put("sourceChecksum", value.get("source_checksum"));
+      reference.put("pages", jsonValue(value.get("pages")));
+      reference.put("spans", jsonValue(value.get("spans")));
+      row.put("sourceReference", reference);
+    }
     return row;
+  }
+
+  @Transactional
+  public Map<String, Object> registerImportSource(Long actor, ImportSource request) {
+    if (request == null || request.batchId() == null || request.paperId() == null)
+      throw BusinessException.badRequest("IMPORT_SOURCE", "导入批次和试卷不能为空");
+    String provider = clean(request.provider(), 32, "来源服务");
+    String externalJobId = clean(request.externalJobId(), 128, "来源任务");
+    String filename = clean(request.sourceFilename(), 255, "原卷文件名");
+    String checksum = Objects.toString(request.sourceChecksum(), "").trim().toLowerCase(Locale.ROOT);
+    if (!checksum.isEmpty() && !checksum.matches("[0-9a-f]{64}"))
+      throw BusinessException.badRequest("IMPORT_SOURCE", "原卷校验值不合法");
+    if (request.items() == null || request.items().isEmpty() || request.items().size() > 200)
+      throw BusinessException.badRequest("IMPORT_SOURCE", "原卷关联必须包含 1 至 200 道题");
+    if (db.queryForObject(
+            "SELECT count(*) FROM editorial_batches b JOIN editorial_papers p ON p.id=? WHERE"
+                + " b.id=? AND b.actor_id=?",
+            Long.class,
+            request.paperId(),
+            request.batchId(),
+            actor)
+        == 0) throw BusinessException.forbidden("BATCH_OWNER", "只能登记自己导入批次的原卷");
+
+    var existing =
+        db.queryForList(
+            "SELECT id,batch_id,paper_id FROM editorial_import_sources WHERE provider=? AND"
+                + " external_job_id=? FOR UPDATE",
+            provider,
+            externalJobId);
+    UUID sourceId;
+    if (existing.isEmpty()) {
+      sourceId = UUID.randomUUID();
+      db.update(
+          "INSERT INTO editorial_import_sources(id,batch_id,paper_id,provider,external_job_id,"
+              + "source_filename,source_checksum,created_by) VALUES (?,?,?,?,?,?,?,?)",
+          sourceId,
+          request.batchId(),
+          request.paperId(),
+          provider,
+          externalJobId,
+          filename,
+          checksum,
+          actor);
+    } else {
+      var row = existing.getFirst();
+      if (!request.paperId().equals(row.get("paper_id")))
+        throw BusinessException.conflict("IMPORT_SOURCE", "该来源任务已登记到其他试卷");
+      sourceId = (UUID) row.get("id");
+      db.update(
+          "UPDATE editorial_import_sources SET batch_id=?,source_filename=?,source_checksum=?"
+              + " WHERE id=?",
+          request.batchId(),
+          filename,
+          checksum,
+          sourceId);
+    }
+
+    var seen = new HashSet<UUID>();
+    for (var item : request.items()) {
+      if (item == null || item.itemId() == null || !seen.add(item.itemId()))
+        throw BusinessException.badRequest("IMPORT_SOURCE", "题目关联不能为空或重复");
+      if (db.queryForObject(
+              "SELECT count(*) FROM editorial_import_entries e JOIN editorial_items i ON"
+                  + " i.id=e.item_id WHERE e.batch_id=? AND e.item_id=? AND i.paper_id=?",
+              Long.class,
+              request.batchId(),
+              item.itemId(),
+              request.paperId())
+          == 0) throw BusinessException.badRequest("IMPORT_SOURCE", "题目不属于指定导入批次");
+      List<Integer> pages =
+          item.pages() == null
+              ? List.of()
+              : item.pages().stream().filter(Objects::nonNull).distinct().sorted().toList();
+      List<Map<String, Object>> spans = item.spans() == null ? List.of() : item.spans();
+      if (pages.size() > 30
+          || pages.stream().anyMatch(page -> page < 1 || page > 10000)
+          || spans.size() > 500
+          || encode(spans).length() > 250_000)
+        throw BusinessException.badRequest("IMPORT_SOURCE", "原卷页码或定位信息超过限制");
+      db.update(
+          "INSERT INTO editorial_item_source_refs(item_id,source_id,pages,spans) VALUES"
+              + " (?,?,?::jsonb,?::jsonb) ON CONFLICT(item_id) DO UPDATE SET"
+              + " source_id=excluded.source_id,pages=excluded.pages,spans=excluded.spans",
+          item.itemId(),
+          sourceId,
+          encode(pages),
+          encode(spans));
+    }
+    return Map.of("sourceId", sourceId, "itemCount", seen.size());
+  }
+
+  public String sourceExternalJobId(UUID itemId) {
+    return db
+        .query(
+            "SELECT s.external_job_id FROM editorial_item_source_refs r JOIN"
+                + " editorial_import_sources s ON s.id=r.source_id WHERE r.item_id=?",
+            (rs, n) -> rs.getString(1),
+            itemId)
+        .stream()
+        .findFirst()
+        .orElseThrow(() -> BusinessException.notFound("IMPORT_SOURCE", "此题没有关联原卷"));
   }
 
   @Transactional
@@ -989,6 +1120,14 @@ public class EditorialService {
       return json.writeValueAsString(value);
     } catch (Exception e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  private Object jsonValue(Object value) {
+    try {
+      return json.readValue(Objects.toString(value, "null"), Object.class);
+    } catch (Exception e) {
+      throw new IllegalStateException("无法读取原卷定位信息", e);
     }
   }
 

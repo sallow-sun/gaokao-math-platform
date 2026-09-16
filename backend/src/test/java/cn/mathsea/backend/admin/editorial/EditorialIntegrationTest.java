@@ -1024,6 +1024,72 @@ class EditorialIntegrationTest {
         .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(first.getFirst()));
   }
 
+  @Test
+  void importerSourceIsBoundToTheImportedDraftAndReturnedInDetail() {
+    long editor = actor("source" + UUID.randomUUID().toString().substring(0, 8), "EDITOR");
+    UUID paper = (UUID) service.paper(editor, "原卷关联 " + UUID.randomUUID()).get("id");
+    UUID batch = (UUID) service.batch(editor, "source-batch").get("id");
+    UUID item =
+        (UUID)
+            service
+                .importFile(editor, batch, paper, "卷/T1.md", markdown("核对原卷"), List.of())
+                .get("itemId");
+    var sourceItem =
+        new EditorialService.ImportSourceItem(
+            item,
+            List.of(1, 2),
+            List.of(Map.of("page", 1, "bbox", List.of(10, 20, 30, 40), "type", "text")));
+    var registered =
+        service.registerImportSource(
+            editor,
+            new EditorialService.ImportSource(
+                batch,
+                paper,
+                "mathsea-importer",
+                "job-123",
+                "test.pdf",
+                "a".repeat(64),
+                List.of(sourceItem)));
+    assertEquals(1, registered.get("itemCount"));
+    assertEquals("job-123", service.sourceExternalJobId(item));
+    var reference = (Map<?, ?>) service.detail(item).get("sourceReference");
+    assertEquals("test.pdf", reference.get("sourceFilename"));
+    assertEquals(List.of(1, 2), reference.get("pages"));
+    assertEquals(1, ((List<?>) reference.get("spans")).size());
+
+    UUID retryBatch = (UUID) service.batch(editor, "source-retry").get("id");
+    service.importFile(editor, retryBatch, paper, "卷/T1.md", markdown("核对原卷"), List.of());
+    var retried =
+        service.registerImportSource(
+            editor,
+            new EditorialService.ImportSource(
+                retryBatch,
+                paper,
+                "mathsea-importer",
+                "job-123",
+                "test.pdf",
+                "a".repeat(64),
+                List.of(sourceItem)));
+    assertEquals(registered.get("sourceId"), retried.get("sourceId"));
+
+    UUID unrelated = (UUID) service.manual(editor).get("id");
+    assertThrows(
+        BusinessException.class,
+        () ->
+            service.registerImportSource(
+                editor,
+                new EditorialService.ImportSource(
+                    batch,
+                    paper,
+                    "mathsea-importer",
+                    "job-123",
+                    "test.pdf",
+                    "a".repeat(64),
+                    List.of(
+                        new EditorialService.ImportSourceItem(
+                            unrelated, List.of(1), List.of())))));
+  }
+
   private List<String> paperQuery(String keyword, String sort, String seed, int page, int pageSize) {
     return publicProblems.query(new cn.mathsea.backend.problem.dto.ProblemQuery(keyword, List.of(), List.of(),
         List.of("single-choice"), List.of(), List.of(), sort, page, pageSize, false, List.of(), List.of(), seed), null)

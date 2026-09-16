@@ -5,14 +5,17 @@ import cn.mathsea.backend.security.SecurityUtils;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @RestController
 @RequestMapping("/api/v1/admin/editorial")
 @RequiredArgsConstructor
 public class EditorialController {
   private final EditorialService service;
+  private final ImporterSourceProxy importerSourceProxy;
 
   @GetMapping("/me")
   public Map<String, Object> me(Authentication auth) {
@@ -54,6 +57,12 @@ public class EditorialController {
   @PostMapping("/batches")
   public Object batch(@RequestBody Map<String, String> body, Authentication auth) {
     return service.batch(SecurityUtils.requireUserId(auth), body.get("title"));
+  }
+
+  @PostMapping("/import-sources")
+  public Object registerImportSource(
+      @RequestBody EditorialService.ImportSource body, Authentication auth) {
+    return service.registerImportSource(SecurityUtils.requireUserId(auth), body);
   }
 
   @PostMapping(value = "/import", consumes = "multipart/form-data")
@@ -116,6 +125,11 @@ public class EditorialController {
   @GetMapping("/items/{id}")
   public Object detail(@PathVariable UUID id) {
     return service.detail(id);
+  }
+
+  @GetMapping("/items/{id}/source-file")
+  public ResponseEntity<StreamingResponseBody> sourceFile(@PathVariable UUID id) {
+    return importerSourceProxy.source(service.sourceExternalJobId(id));
   }
 
   @GetMapping("/items/{id}/history/{historyId}")

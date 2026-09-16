@@ -286,6 +286,7 @@ async function reopenFailed() {
 const props = defineProps({
   tags: { type: Array, default: () => [] },
   sources: { type: Array, default: () => [] },
+  initialPaperId: { type: String, default: '' },
 })
 const me = ref(null),
   tab = ref('queue'),
@@ -320,6 +321,7 @@ async function refreshPaperOptions() {
   return false
 }
 const editorTab = ref('content')
+const previewMode = ref('question')
 const directoryOpen = ref(false)
 const deleteMode = ref(false),
   deleteSelected = ref([])
@@ -372,6 +374,11 @@ const formulaWarnings = computed(() =>
 )
 const isReviewer = computed(() => me.value && me.value.permission !== 'EDITOR')
 const dirty = computed(() => draft.value && JSON.stringify(draft.value) !== baseline.value)
+const sourceFileUrl = computed(() => {
+  if (!item.value?.sourceReference) return ''
+  const page = Number(item.value.sourceReference.pages?.[0]) || 1
+  return `/api/v1/admin/editorial/items/${item.value.id}/source-file#page=${page}`
+})
 const sourceCategory = computed({
   get: () => draft.value?.originalMetadata?.source_category || '',
   set: (value) => {
@@ -468,6 +475,7 @@ function restoreHistory(id) {
 function adopt(value) {
   item.value = value
   draft.value = clone(value.document)
+  previewMode.value = value.sourceReference ? 'source' : 'question'
   baseline.value = JSON.stringify(draft.value)
   conflict.value = null
   historyDocument.value = null
@@ -923,6 +931,7 @@ onMounted(async () => {
   window.addEventListener('keydown', shortcut)
   await run(async () => {
     me.value = await api.get('/me')
+    paperId.value = props.initialPaperId
     await refresh()
   })
   leaseTimer = setInterval(
@@ -1374,27 +1383,51 @@ watch([status, paperId, keyword, issue], () => {
             <div class="editorial-columns" :class="{ 'is-editing': editing }">
               <div class="editorial-preview">
                 <div class="editorial-preview-tools">
-                  <span>核对题干、答案与解析</span
-                  ><button @click="editing = !editing">
+                  <div class="editorial-preview-switcher">
+                    <button
+                      v-if="item.sourceReference"
+                      type="button"
+                      :aria-pressed="previewMode === 'source'"
+                      @click="previewMode = 'source'"
+                    >原卷</button>
+                    <button
+                      type="button"
+                      :aria-pressed="previewMode === 'question'"
+                      @click="previewMode = 'question'"
+                    >题目预览</button>
+                    <span v-if="previewMode === 'source' && item.sourceReference?.pages?.length">
+                      第 {{ item.sourceReference.pages.join('、') }} 页
+                    </span>
+                    <span v-else>核对题干、答案与解析</span>
+                  </div>
+                  <button @click="editing = !editing">
                     {{ editing ? '收起编辑' : '编辑题目' }}
                   </button>
                 </div>
-                <h4>{{ draft.title }}</h4>
-                <section v-for="section in ['content', 'answer', 'solution']" :key="section">
-                  <h4>{{ { content: '题干', answer: '答案', solution: '解析' }[section] }}</h4>
-                  <MathText :text="previewText(section)" />
-                  <figure
-                    v-for="asset in draft.assets.filter(
-                      (a) => a.section === section && !previewText(section).includes(`](${a.url})`),
-                    )"
-                    :key="asset.id"
-                  >
-                    <a :href="asset.url" target="_blank" rel="noopener"
-                      ><img :src="asset.url" :alt="asset.altText"
-                    /></a>
-                    <figcaption>{{ asset.altText }}</figcaption>
-                  </figure>
-                </section>
+                <iframe
+                  v-if="previewMode === 'source' && sourceFileUrl"
+                  class="editorial-source-frame"
+                  :src="sourceFileUrl"
+                  :title="`原卷：${item.sourceReference.sourceFilename}`"
+                ></iframe>
+                <div v-else class="editorial-question-preview">
+                  <h4>{{ draft.title }}</h4>
+                  <section v-for="section in ['content', 'answer', 'solution']" :key="section">
+                    <h4>{{ { content: '题干', answer: '答案', solution: '解析' }[section] }}</h4>
+                    <MathText :text="previewText(section)" />
+                    <figure
+                      v-for="asset in draft.assets.filter(
+                        (a) => a.section === section && !previewText(section).includes(`](${a.url})`),
+                      )"
+                      :key="asset.id"
+                    >
+                      <a :href="asset.url" target="_blank" rel="noopener"
+                        ><img :src="asset.url" :alt="asset.altText"
+                      /></a>
+                      <figcaption>{{ asset.altText }}</figcaption>
+                    </figure>
+                  </section>
+                </div>
               </div>
               <fieldset v-if="editing" class="editorial-form" :disabled="busy">
                 <div class="editorial-actions">
