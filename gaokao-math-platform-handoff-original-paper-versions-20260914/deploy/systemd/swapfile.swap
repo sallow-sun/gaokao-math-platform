@@ -1,0 +1,10 @@
+[Unit]
+Description=MathSea server swap file
+Before=swap.target
+
+[Swap]
+What=/swapfile
+TimeoutSec=60
+
+[Install]
+WantedBy=swap.target

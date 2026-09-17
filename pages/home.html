@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171b35">
+  <meta name="description" content="Mathverse 高中数学题库、题单、整卷与讨论社区">
+  <title>首页 · Mathverse</title>
+  <link rel="stylesheet" href="../styles/tokens.css">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/layout.css">
+  <link rel="stylesheet" href="../styles/components.css">
+  <link rel="stylesheet" href="../styles/pages/home.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="mobile-menu" id="mobile-menu" type="button" aria-label="打开导航" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+
+      <a class="brand" href="home.html" aria-label="Mathverse 首页">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span class="brand-word">math<span>verse</span></span>
+      </a>
+
+      <form class="top-search" id="top-search" role="search">
+        <label class="sr-only" for="top-search-input">搜索题目、试卷或知识点</label>
+        <span class="search-symbol" aria-hidden="true">⌕</span>
+        <input id="top-search-input" type="search" placeholder="搜索题号、试卷、知识点或解法" autocomplete="off">
+        <kbd>Ctrl K</kbd>
+      </form>
+
+      <div class="top-actions">
+        <button class="icon-button" type="button" aria-label="查看通知">
+          <span aria-hidden="true">◌</span><i></i>
+        </button>
+        <button class="login-button" type="button" data-demo-action="login">登录 / 注册</button>
+      </div>
+    </header>
+
+    <aside class="sidebar" id="sidebar" aria-label="主导航">
+      <nav>
+        <p class="nav-caption">探索</p>
+        <a class="nav-item active" href="home.html" aria-current="page">
+          <span class="nav-icon">⌂</span><span>首页</span>
+        </a>
+        <a class="nav-item" href="#" data-demo-link="题库">
+          <span class="nav-icon">∑</span><span>题库</span>
+        </a>
+        <a class="nav-item" href="#" data-demo-link="题单">
+          <span class="nav-icon">≡</span><span>题单</span>
+        </a>
+        <a class="nav-item" href="#" data-demo-link="整卷">
+          <span class="nav-icon">▤</span><span>整卷</span>
+        </a>
+        <a class="nav-item" href="#discussion">
+          <span class="nav-icon">∴</span><span>讨论</span>
+        </a>
+        <a class="nav-item" href="#columns">
+          <span class="nav-icon">¶</span><span>专栏</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-discovery">
+        <span class="orbit-mark" aria-hidden="true"></span>
+        <p>尚未解决的问题，正等待一次新的观察。</p>
+        <button type="button" data-random-problem>随机探索</button>
+      </div>
+
+      <p class="sidebar-foot">MATHEMATICAL COMMONS · 2026</p>
+    </aside>
+    <button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="关闭导航"></button>
+
+    <main class="page-content">
+      <div class="home-layout">
+        <div class="main-column">
+          <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+              <p class="section-kicker"><span></span>探索从一个好问题开始</p>
+              <h1 id="hero-title">今天，从哪一个<br>问题开始？</h1>
+              <p class="hero-description">检索历年高考与模拟题，沿着知识标签和不同解法，找到真正连贯的数学理解。</p>
+
+              <form class="hero-search" id="hero-search" role="search">
+                <label class="sr-only" for="hero-search-input">检索数学题目</label>
+                <span class="hero-search-icon" aria-hidden="true">⌕</span>
+                <input id="hero-search-input" type="search" placeholder="例如：2024 新高考Ⅰ卷 · 导数压轴题" autocomplete="off">
+                <button type="submit">开始检索 <span aria-hidden="true">→</span></button>
+              </form>
+
+              <div class="search-suggestions" aria-label="热门搜索">
+                <span>热门：</span>
+                <button type="button" data-search-value="圆锥曲线定点问题">圆锥曲线</button>
+                <button type="button" data-search-value="导数中的隐零点">隐零点</button>
+                <button type="button" data-search-value="新高考概率统计">概率统计</button>
+                <button type="button" data-search-value="2025 高考真题">2025 真题</button>
+              </div>
+            </div>
+
+            <div class="hero-visual" id="formula-universe" aria-label="数学黑洞动态场景">
+              <div id="home-universe-scene" aria-hidden="true"></div>
+              <div class="black-hole-core"><span></span></div>
+              <p class="universe-status"><i></i> ADAPTIVE UNIVERSE</p>
+              <p class="gravity-label">SEARCH GRAVITY · ACTIVE</p>
+            </div>
+          </section>
+
+          <section class="quick-actions" aria-label="快捷入口">
+            <button class="quick-card" type="button" data-demo-action="continue">
+              <span class="quick-icon blue">↗</span>
+              <span><strong>继续学习</strong><small>回到上次浏览的题目</small></span>
+              <b aria-hidden="true">→</b>
+            </button>
+            <button class="quick-card" type="button" data-random-problem>
+              <span class="quick-icon gold">⌁</span>
+              <span><strong>随机一题</strong><small>在未知中发现联系</small></span>
+              <b aria-hidden="true">→</b>
+            </button>
+            <button class="quick-card" type="button" data-demo-action="paper">
+              <span class="quick-icon violet">▤</span>
+              <span><strong>最新整卷</strong><small>本周新增 18 套试卷</small></span>
+              <b aria-hidden="true">→</b>
+            </button>
+          </section>
+
+          <section class="planner-board" aria-labelledby="planner-title">
+            <div class="timer-panel">
+              <div class="planner-heading">
+                <div>
+                  <p class="section-kicker light"><span></span>MY COORDINATES</p>
+                  <h2 id="planner-title">我的时间坐标</h2>
+                </div>
+                <button class="planner-add" id="add-timer" type="button" aria-label="新建计时表">＋</button>
+              </div>
+
+              <div class="timer-empty" id="timer-empty">
+                <div class="coordinate-orbit" aria-hidden="true"><i></i></div>
+                <strong>设定一个值得抵达的日期</strong>
+                <p>考试、竞赛、申请或任何属于你的目标。</p>
+                <button type="button" id="create-first-timer">创建时间坐标</button>
+              </div>
+
+              <div class="timer-view" id="timer-view" hidden>
+                <div class="timer-toolbar">
+                  <span id="timer-position">01 / 01</span>
+                  <div>
+                    <button id="previous-timer" type="button" aria-label="上一个计时表">←</button>
+                    <button id="next-timer" type="button" aria-label="下一个计时表">→</button>
+                  </div>
+                </div>
+                <p class="timer-prefix">距离 <strong id="timer-name"></strong></p>
+                <div class="timer-number"><strong id="timer-days">0</strong><span>天</span></div>
+                <div class="timer-date-row">
+                  <time id="timer-date"></time>
+                  <button id="delete-timer" type="button">删除</button>
+                </div>
+              </div>
+              <p class="device-note">当前计划保存在此设备</p>
+            </div>
+
+            <div class="today-plan-panel">
+              <div class="planner-heading plan-heading">
+                <div>
+                  <p class="section-kicker"><span></span>TODAY'S PLAN</p>
+                  <h2>今日计划</h2>
+                </div>
+                <time id="plan-date">08月07日 · 星期五</time>
+              </div>
+
+              <form class="plan-form" id="plan-form">
+                <label class="sr-only" for="plan-input">添加今日计划</label>
+                <input id="plan-input" type="text" maxlength="80" placeholder="写下今天想完成的一件事" autocomplete="off">
+                <button type="submit">添加</button>
+              </form>
+
+              <div class="plan-empty" id="plan-empty">
+                <span>○</span>
+                <p>今天还没有计划。<br>从一件小事开始。</p>
+              </div>
+              <ul class="plan-list" id="plan-list" aria-label="今日计划列表"></ul>
+
+              <div class="plan-progress">
+                <span><b id="plan-completed">0</b> / <b id="plan-total">0</b> 已完成</span>
+                <div><i id="plan-progress-bar"></i></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="content-card daily-explore" aria-labelledby="daily-title">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker"><span></span>DAILY EXPLORATION</p>
+                <h2 id="daily-title">今日探索</h2>
+              </div>
+              <button class="text-button" type="button" data-random-problem>换一题 <span>↻</span></button>
+            </div>
+
+            <article class="problem-feature" id="problem-feature">
+              <div class="problem-main">
+                <div class="problem-meta">
+                  <span class="difficulty hard">较难</span>
+                  <span>2023 · 新高考全国Ⅰ卷</span>
+                  <span>第 22 题</span>
+                </div>
+                <h3>已知函数 <em>f(x) = 2x − a ln x</em>，讨论函数的单调性与零点。</h3>
+                <p>从参数分类到隐零点构造，这道题连接了导数、单调性与极值点偏移的多个重要思路。</p>
+                <div class="tag-row">
+                  <span>导数</span><span>函数零点</span><span>分类讨论</span><span>隐零点</span>
+                </div>
+              </div>
+              <div class="problem-side">
+                <div><strong>6</strong><span>种解法</span></div>
+                <div><strong>128</strong><span>人讨论</span></div>
+                <button type="button" data-demo-action="problem">进入问题 <span>→</span></button>
+              </div>
+            </article>
+          </section>
+
+          <section class="knowledge-preview" aria-labelledby="knowledge-title">
+            <div class="knowledge-copy">
+              <p class="section-kicker light"><span></span>KNOWLEDGE GALAXY</p>
+              <h2 id="knowledge-title">知识并非孤岛</h2>
+              <p>每一道题，都可以沿着概念、结论与方法继续展开，在知识星系中看见自己的探索轨迹。</p>
+              <a href="galaxy.html">进入知识星系 <span>→</span></a>
+            </div>
+            <div class="knowledge-path" aria-hidden="true">
+              <span class="path-node node-primary">导数</span>
+              <span class="path-line line-a"></span>
+              <span class="path-node node-a">单调性</span>
+              <span class="path-line line-b"></span>
+              <span class="path-node node-b">零点</span>
+              <span class="path-line line-c"></span>
+              <span class="path-node node-c">隐零点</span>
+              <span class="path-node node-d">极值</span>
+            </div>
+          </section>
+
+          <section class="content-card discussion-card" id="discussion" aria-labelledby="discussion-title">
+            <div class="card-heading">
+              <div>
+                <p class="section-kicker"><span></span>COMMUNITY</p>
+                <h2 id="discussion-title">正在讨论</h2>
+              </div>
+              <button class="text-button" type="button" data-demo-link="讨论区">进入讨论区 <span>→</span></button>
+            </div>
+
+            <div class="discussion-list">
+              <article class="discussion-item">
+                <span class="discussion-type problem">题目</span>
+                <div>
+                  <h3>这道圆锥曲线题能否不设直线斜率？</h3>
+                  <p><span>P-MOCK-2417</span> · 解析几何 · 定点问题</p>
+                </div>
+                <div class="discussion-stats"><strong>24</strong><span>回复</span></div>
+              </article>
+              <article class="discussion-item">
+                <span class="discussion-type method">方法</span>
+                <div>
+                  <h3>“同构变形”在导数大题里究竟如何识别？</h3>
+                  <p><span>方法讨论</span> · 导数 · 构造函数</p>
+                </div>
+                <div class="discussion-stats"><strong>38</strong><span>回复</span></div>
+              </article>
+              <article class="discussion-item">
+                <span class="discussion-type study">学习</span>
+                <div>
+                  <h3>一轮复习时，题单应该按章节还是按方法组织？</h3>
+                  <p><span>学习方法</span> · 高三 · 一轮复习</p>
+                </div>
+                <div class="discussion-stats"><strong>17</strong><span>回复</span></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="columns-section" id="columns" aria-labelledby="columns-title">
+            <div class="card-heading simple-heading">
+              <div><h2 id="columns-title">精选专栏</h2><p>从一道题走向一种思想</p></div>
+              <button class="text-button" type="button" data-demo-link="专栏">查看全部 <span>→</span></button>
+            </div>
+            <div class="column-grid">
+              <article class="column-card">
+                <div class="column-index">01</div>
+                <p>方法论</p>
+                <h3>辅助函数从哪里来：导数证明题的构造线索</h3>
+                <span>12 分钟阅读 · 1.8k 收藏</span>
+              </article>
+              <article class="column-card dark-column">
+                <div class="column-index">02</div>
+                <p>真题观察</p>
+                <h3>五年高考圆锥曲线：那些反复出现的结构</h3>
+                <span>18 分钟阅读 · 2.4k 收藏</span>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <aside class="right-rail" aria-label="主页信息">
+          <section class="rail-card progress-card">
+            <div class="rail-heading"><h2>我的学习</h2><button type="button" aria-label="更多">•••</button></div>
+            <div class="progress-empty">
+              <span class="progress-ring"><i>0</i></span>
+              <div><strong>从第一道题开始</strong><p>登录后同步做题记录、收藏与讨论。</p></div>
+            </div>
+            <button class="rail-primary" type="button" data-demo-action="login">登录并开始学习</button>
+          </section>
+
+          <section class="rail-card notice-card">
+            <div class="rail-heading"><h2>社区公告</h2><button class="mini-link" type="button" data-demo-link="公告">全部</button></div>
+            <ul>
+              <li><span>置顶</span><a href="#" data-demo-link="公告">Mathverse 社区公约与讨论规范</a></li>
+              <li><time>08.06</time><a href="#" data-demo-link="公告">首批 2025 高考真题完成标签整理</a></li>
+              <li><time>08.02</time><a href="#" data-demo-link="公告">如何提交一种新的题目解法？</a></li>
+            </ul>
+          </section>
+
+          <section class="rail-card tags-card">
+            <div class="rail-heading"><h2>此刻热门</h2><span>探索趋势</span></div>
+            <div class="hot-tags">
+              <button type="button" data-search-value="函数与导数">函数与导数 <b>428</b></button>
+              <button type="button" data-search-value="解析几何">解析几何 <b>316</b></button>
+              <button type="button" data-search-value="数列">数列 <b>207</b></button>
+              <button type="button" data-search-value="概率统计">概率统计 <b>184</b></button>
+              <button type="button" data-search-value="立体几何">立体几何 <b>172</b></button>
+            </div>
+          </section>
+
+          <blockquote class="quote-card">
+            <span>“</span>
+            <p>数学的本质，在于它的自由。</p>
+            <cite>— Georg Cantor</cite>
+          </blockquote>
+        </aside>
+      </div>
+
+      <footer class="site-footer">
+        <span>Mathverse · 在问题中相遇</span>
+        <nav aria-label="页脚导航"><a href="#">关于我们</a><a href="#">社区规范</a><a href="#">反馈建议</a></nav>
+      </footer>
+    </main>
+  </div>
+
+  <dialog class="timer-dialog" id="timer-dialog">
+    <form method="dialog" id="timer-form">
+      <div class="dialog-heading">
+        <div><span>NEW COORDINATE</span><h2>创建时间坐标</h2></div>
+        <button value="cancel" aria-label="关闭">×</button>
+      </div>
+      <label for="timer-title">目标名称</label>
+      <input id="timer-title" name="title" type="text" maxlength="36" placeholder="例如：期末考试" required>
+      <label for="timer-target-date">目标日期</label>
+      <input id="timer-target-date" name="date" type="date" required>
+      <p>可以是考试、竞赛、申请或任何你想抵达的日期。</p>
+      <div class="dialog-actions">
+        <button value="cancel">取消</button>
+        <button id="save-timer" value="default">创建计时表</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="../scripts/pages/home.js" defer></script>
+  <script src="../scripts/pages/home-universe.js?v=20260808"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "name": "frontend-vue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test src/utils/*.test.js",
+    "test:ai-upload": "node tests/ai-upload.browser.test.cjs",
+    "test:csrf-recovery": "node tests/csrf-recovery.browser.test.cjs",
+    "test:exam-print": "node tests/exam-print.browser.test.cjs",
+    "test:browser": "node tests/editorial.browser.test.cjs && node tests/editorial-background.browser.test.cjs && node tests/curriculum.browser.test.cjs && node tests/bug-visual.browser.test.cjs && node tests/feedback.browser.test.cjs && node tests/question-layout.browser.test.cjs && node tests/problems-performance.browser.test.cjs && node tests/batch-delete.browser.test.cjs && node tests/paper-builder.browser.test.cjs && node tests/paper-library.browser.test.cjs && node tests/community.browser.test.cjs && node tests/shared-papers.browser.test.cjs && node tests/home-random.browser.test.cjs && node tests/mistakes.browser.test.cjs && node tests/profile-statistics.browser.test.cjs && node tests/growth.browser.test.cjs && node tests/original-papers.browser.test.cjs",
+    "lint": "run-s \"lint:*\"",
+    "lint:oxlint": "oxlint . --fix",
+    "lint:eslint": "eslint . --fix --cache",
+    "format": "prettier --write --experimental-cli src/"
+  },
+  "dependencies": {
+    "katex": "^0.18.4",
+    "pinia": "^4.0.2",
+    "vue": "^3.5.40",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-oxlint": "~1.73.0",
+    "eslint-plugin-vue": "~10.9.2",
+    "globals": "^17.7.0",
+    "npm-run-all2": "^9.0.2",
+    "oxlint": "~1.73.0",
+    "playwright": "^1.63.0",
+    "prettier": "3.9.5",
+    "vite": "^8.1.5",
+    "vite-plugin-vue-devtools": "^8.1.5",
+    "vue-eslint-parser": "^10.4.1"
+  },
+  "engines": {
+    "node": "^22.18.0 || >=24.12.0"
+  }
+}

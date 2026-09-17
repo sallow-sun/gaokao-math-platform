@@ -1,0 +1,1395 @@
+<script setup>
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { apiRequest } from '../services/apiClient.js'
+import { useRoute } from 'vue-router'
+import { readPapers, savePaper } from '../services/paperLibrary.js'
+import MathText from '../components/content/MathText.vue'
+import PaperHeading from '../components/content/PaperHeading.vue'
+import { listProblems } from '../services/problemService.js'
+import ProblemsFilterPanel from '../components/problems/ProblemsFilterPanel.vue'
+import { useProblemsQuery } from '../composables/useProblemsQuery.js'
+import { useProblemsFilterPreferences } from '../composables/useProblemsFilterPreferences.js'
+import {
+  PROBLEMS_TYPE_CATALOG_OPTIONS,
+  PROBLEMS_LEVEL_OPTIONS,
+  PROBLEMS_YEAR_CATALOG_OPTIONS,
+  PROBLEMS_SOURCE_CATALOG_OPTIONS,
+  PROBLEMS_SORT_OPTIONS,
+} from '../config/problems.js'
+import {
+  cleanPaperProblem,
+  paperType,
+  cleanScore,
+  groupPaperItems,
+  paperSections,
+  DRAFT_KEY,
+  MM,
+  PAPER_SIZES,
+  paperQuestionHtml,
+  questionBands,
+  restorePaperDraft,
+  safePageCut,
+} from '../utils/paperLayout.js'
+import '../assets/styles/paper-builder.css'
+
+const paperId = useRoute().params.id
+const sharedId = useRoute().params.resourceId
+const sharedError = ref('')
+const windowWidth = ref(window.innerWidth)
+function updateWindowWidth() {
+  windowWidth.value = window.innerWidth
+}
+const leftTab = ref('filters')
+const settingsOpen = ref(false)
+const editorHead = ref(null)
+const editorHeadHeight = ref(56)
+const advancedFilters = ref(false)
+function stepZoom(delta) {
+  autoFit.value = false
+  zoom.value = Math.max(0.28, Math.min(1.5, Math.round((zoom.value + delta) * 100) / 100))
+}
+const targetScore = ref(150)
+const dragPosition = ref({ x: 0, y: 0 })
+const searchText = ref('')
+function searchProblems() {
+  updateKeyword(searchText.value)
+}
+const workbench = ref(null)
+const columnRatios = ref([0.17, 0.35, 0.48])
+const resizing = ref(false)
+const columnStyle = computed(() => {
+  // Sub-unit fr tracks leave unused space when another track hits its minimum.
+  // Keep proportions, but give every track a flex factor of at least one.
+  const unit = Math.min(...columnRatios.value)
+  return {
+    '--filter-fr': `${columnRatios.value[0] / unit}fr`,
+    '--bank-fr': `${columnRatios.value[1] / unit}fr`,
+    '--editor-fr': `${columnRatios.value[2] / unit}fr`,
+  }
+})
+let resizeSession = null
+function saveColumns() {
+  try {
+    localStorage.setItem('mathsea:paper-columns:v1', JSON.stringify(columnRatios.value))
+  } catch {
+    /* Optional preference. */
+  }
+}
+function resetColumns() {
+  columnRatios.value = [0.17, 0.35, 0.48]
+  saveColumns()
+}
+function resizeSnapshot(pair) {
+  const elements = ['.paper-filter-sidebar', '.paper-bank', '.paper-editor'].map((selector) =>
+    workbench.value.querySelector(selector),
+  )
+  const widths = elements.map((el) => el.getBoundingClientRect().width)
+  // Start from rendered widths: a previous resize may have clamped a track.
+  // Exclude the filter drawer when it is not part of the grid.
+  const filtersInGrid = filterOpen.value && !narrowScreen.matches
+  const ratios = [...columnRatios.value]
+  const visible = filtersInGrid ? [0, 1, 2] : [1, 2]
+  const width = visible.reduce((sum, index) => sum + widths[index], 0)
+  const share = filtersInGrid ? 1 : 1 - ratios[0]
+  visible.forEach((index) => {
+    ratios[index] = (widths[index] / width) * share
+  })
+  return { pair, widths, ratios }
+}
+function applyResize(snapshot, delta) {
+  const { pair, widths, ratios } = snapshot
+  const min = [160, 240, 320]
+  const lower = min[pair] - widths[pair],
+    upper = widths[pair + 1] - min[pair + 1]
+  if (lower > upper) return
+  const shift = Math.max(lower, Math.min(upper, delta))
+  const total = ratios[pair] + ratios[pair + 1]
+  const left = ((widths[pair] + shift) / (widths[pair] + widths[pair + 1])) * total
+  const next = [...ratios]
+  next[pair] = left
+  next[pair + 1] = total - left
+  columnRatios.value = next
+}
+function beginResize(event, pair) {
+  if (event.button !== 0) return
+  resizeSession = { ...resizeSnapshot(pair), x: event.clientX }
+  resizing.value = true
+  event.currentTarget.setPointerCapture(event.pointerId)
+  event.preventDefault()
+}
+function resizeColumns(event) {
+  if (resizeSession) applyResize(resizeSession, event.clientX - resizeSession.x)
+}
+function endResize() {
+  if (!resizeSession) return
+  resizeSession = null
+  resizing.value = false
+  saveColumns()
+}
+function nudgeColumn(pair, delta) {
+  applyResize(resizeSnapshot(pair), delta)
+  saveColumns()
+}
+const title = ref('数学练习卷'),
+  size = ref('16k'),
+  items = ref([]),
+  history = ref([])
+const preview = ref(!!sharedId),
+  message = ref(''),
+  storageMessage = ref('草稿仅保存在此浏览器')
+const activeId = ref(''),
+  drag = ref(null),
+  dropIndex = ref(-1),
+  workspace = ref(null),
+  measure = ref(null)
+const pages = ref([{ fragments: [] }]),
+  layingOut = ref(false),
+  layoutError = ref(''),
+  printing = ref(false)
+const available = ref([]),
+  total = ref(0),
+  currentPage = ref(1),
+  loading = ref(false),
+  loadError = ref('')
+const query = useProblemsQuery('paper')
+const { clearFilters, updateKeyword, updateYear, updateSource, updateType, updateLevel } = query
+const filters = computed(() => ({
+  keyword: query.keyword.value,
+  types: query.questionTypes.value,
+  tags: query.tags.value,
+  levels: query.levels.value,
+  years: query.years.value,
+  sources: query.sources.value,
+  chapters: query.chapters.value,
+  learned: query.learned.value,
+  learning: query.learning.value,
+}))
+const hiddenFilterCount = computed(
+  () =>
+    filters.value.years.length +
+    filters.value.sources.length +
+    filters.value.learned.length +
+    filters.value.chapters.length +
+    (filters.value.learning ? 1 : 0),
+)
+const { filterMode, pinnedFilters, setFilterMode, setFilterPinned } = useProblemsFilterPreferences()
+const visibleYearOptions = computed(() =>
+  PROBLEMS_YEAR_CATALOG_OPTIONS.filter(
+    (o) => !o.value || pinnedFilters.value.year.includes(o.value),
+  ),
+)
+const visibleSourceOptions = computed(() =>
+  PROBLEMS_SOURCE_CATALOG_OPTIONS.filter(
+    (o) => !o.value || pinnedFilters.value.source.includes(o.value),
+  ),
+)
+const visibleTypeOptions = computed(() =>
+  PROBLEMS_TYPE_CATALOG_OPTIONS.filter(
+    (o) => !o.value || pinnedFilters.value.type.includes(o.value),
+  ),
+)
+function updateFilterMode(mode) {
+  setFilterMode(mode)
+  if (mode === 'single') query.collapseFiltersToSingle()
+}
+const sort = ref('newest'),
+  seed = ref(crypto.randomUUID())
+const expandedSources = ref(new Set())
+function toggleSource(id) {
+  const expanded = new Set(expandedSources.value)
+  if (expanded.has(id)) expanded.delete(id)
+  else expanded.add(id)
+  expandedSources.value = expanded
+}
+watch(
+  () => filters.value.keyword,
+  (value) => {
+    searchText.value = value
+  },
+  { immediate: true },
+)
+const narrowScreen = window.matchMedia('(max-width: 980px)')
+const filterOpen = ref(!narrowScreen.matches),
+  zoom = ref(0.8),
+  autoFit = ref(true)
+const activeIndex = computed(() =>
+  items.value.findIndex((item) => item.problem.id === activeId.value),
+)
+const sections = computed(() => paperSections(items.value))
+const totalScore = computed(() => sections.value.reduce((sum, group) => sum + group.total, 0))
+const scoreStatus = computed(() =>
+  !targetScore.value
+    ? ''
+    : totalScore.value === targetScore.value
+      ? '已达到目标分数'
+      : totalScore.value < targetScore.value
+        ? `还差 ${targetScore.value - totalScore.value} 分`
+        : `超出 ${totalScore.value - targetScore.value} 分`,
+)
+const activeSection = computed(() =>
+  sections.value.find((group) => group.entries.some((entry) => entry.index === activeIndex.value)),
+)
+const headingFor = (index) =>
+  sections.value.find((group) => group.entries[0].index === index)?.heading || ''
+const showScoreFor = (index) =>
+  sections.value.find((group) => group.entries.some((entry) => entry.index === index))
+    ?.showItemScore ?? true
+function batchScore(group, event) {
+  checkpoint()
+  const score = cleanScore(event.target.value, group.score)
+  group.entries.forEach(({ item }) => {
+    item.score = score
+  })
+  event.target.value = score
+}
+function setTarget(event) {
+  checkpoint()
+  const value = Number(event.target.value)
+  targetScore.value = Number.isFinite(value)
+    ? Math.max(0, Math.min(1000, Math.round(value * 2) / 2))
+    : 150
+  event.target.value = targetScore.value
+}
+const selectedIds = computed(() => new Set(items.value.map((i) => i.problem.id)))
+function adaptFilters(event) {
+  filterOpen.value = !event.matches
+}
+const sheet = computed(() => PAPER_SIZES[size.value])
+const sheetStyle = computed(() => ({
+  '--paper-width': `${sheet.value.width}mm`,
+  '--paper-height': `${sheet.value.height}mm`,
+}))
+const state = () => ({
+  version: 1,
+  title: title.value,
+  size: size.value,
+  items: items.value,
+  targetScore: targetScore.value,
+})
+let request,
+  requestId = 0,
+  searchTimer,
+  layoutTimer,
+  layoutId = 0,
+  resizeObserver,
+  saveTimer,
+  scrollFrame,
+  lastDragY = 0
+let disposed = false
+
+function checkpoint() {
+  history.value = [...history.value.slice(-19), JSON.stringify(state())]
+}
+function undo() {
+  const previous = history.value.at(-1)
+  if (!previous) return
+  const restored = restorePaperDraft(previous)
+  history.value = history.value.slice(0, -1)
+  title.value = restored.title
+  size.value = restored.size
+  items.value = restored.items
+  targetScore.value = restored.targetScore
+  message.value = '已撤销上一步'
+}
+function fitWidth() {
+  autoFit.value = true
+  fit()
+}
+function setZoom(event) {
+  autoFit.value = false
+  zoom.value = Number(event.target.value) / 100
+}
+async function load(page = 1) {
+  clearTimeout(searchTimer)
+  request?.abort()
+  request = new AbortController()
+  const id = ++requestId
+  loading.value = true
+  loadError.value = ''
+  available.value = []
+  try {
+    const result = await listProblems(
+      { ...filters.value, sort: sort.value, seed: seed.value, page, pageSize: 12 },
+      { signal: request.signal },
+    )
+    if (id !== requestId || disposed) return
+    available.value = result.items
+    total.value = result.pagination.total
+    currentPage.value = page
+  } catch (e) {
+    if (id === requestId && e.name !== 'AbortError')
+      loadError.value = e.message || '题库读取失败，请重试'
+  } finally {
+    if (id === requestId) loading.value = false
+  }
+}
+watch(
+  [filters, sort, seed],
+  () => {
+    request?.abort()
+    requestId++
+    loading.value = true
+    available.value = []
+    total.value = 0
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => load(), 250)
+  },
+  { deep: true },
+)
+function shuffle() {
+  sort.value = 'random'
+  seed.value = crypto.randomUUID()
+}
+function add(problem, index = items.value.length) {
+  if (selectedIds.value.has(problem.id)) {
+    locate(problem.id)
+    return
+  }
+  if (items.value.length >= 100) {
+    message.value = '一份试卷最多添加 100 题'
+    return
+  }
+  checkpoint()
+  items.value.splice(index, 0, {
+    problem: cleanPaperProblem(problem),
+    space: 0,
+    breakBefore: false,
+    score: paperType(problem.type).score,
+  })
+  items.value = groupPaperItems(items.value)
+  activeId.value = problem.id
+  message.value = `已加入${paperType(problem.type).label}，默认 ${paperType(problem.type).score} 分，可修改`
+}
+function remove(index) {
+  checkpoint()
+  items.value.splice(index, 1)
+  message.value = '已移除题目，可撤销'
+}
+function move(from, to) {
+  if (to < 0 || to >= items.value.length || from === to) return
+  if (
+    paperType(items.value[from].problem.type).type !== paperType(items.value[to].problem.type).type
+  ) {
+    message.value = '请在同一题型内调整顺序'
+    return
+  }
+  checkpoint()
+  const [item] = items.value.splice(from, 1)
+  items.value.splice(to, 0, item)
+}
+function changeItem(index, field, value) {
+  checkpoint()
+  items.value[index][field] =
+    field === 'score' ? cleanScore(value, items.value[index].score) : value
+}
+function setQuestionScore(event) {
+  const score = cleanScore(event.target.value, items.value[activeIndex.value].score)
+  changeItem(activeIndex.value, 'score', score)
+  event.target.value = score
+}
+function clearPaper() {
+  if (items.value.length) {
+    checkpoint()
+    items.value = []
+    message.value = '已清空试卷，可撤销'
+  }
+}
+function locate(id) {
+  activeId.value = id
+  workspace.value
+    ?.querySelector(`[data-paper-id="${CSS.escape(id)}"]`)
+    ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+}
+let pendingDrag = null
+let dragBoundaries = []
+let edgeSince = 0,
+  edgeDirection = 0,
+  edgeFrame = 0
+function rememberDragOrigin(event) {
+  if (
+    event.button !== 0 ||
+    event.pointerType === 'touch' ||
+    preview.value ||
+    layingOut.value ||
+    event.target.closest('button:not(.paper-grip), input, select, a')
+  )
+    return
+  const source = event.currentTarget.closest('[data-source-id]')
+  const id = event.currentTarget.closest('[data-paper-id]')?.dataset.paperId
+  const from = source
+    ? -1
+    : id
+      ? items.value.findIndex((item) => item.problem.id === id)
+      : activeIndex.value
+  const problem = source
+    ? available.value.find((item) => item.id === source.dataset.sourceId)
+    : items.value[from]?.problem
+  if (!problem) return
+  pendingDrag = { problem, from, x: event.clientX, y: event.clientY, pointerId: event.pointerId }
+}
+function collectBoundaries() {
+  const box = workspace.value.getBoundingClientRect()
+  const nodes = [...workspace.value.querySelectorAll('.paper-fragment')]
+  const result = []
+  items.value.forEach((item, index) => {
+    const parts = nodes.filter((node) => node.dataset.paperId === item.problem.id)
+    if (!parts.length) return
+    result.push({
+      index,
+      y: parts[0].getBoundingClientRect().top - box.top + workspace.value.scrollTop,
+    })
+    result.push({
+      index: index + 1,
+      y: parts.at(-1).getBoundingClientRect().bottom - box.top + workspace.value.scrollTop,
+    })
+  })
+  return result
+}
+const allowedDropRange = computed(() => {
+  if (!drag.value) return [0, items.value.length]
+  const type = paperType(drag.value.problem.type).type
+  const group = sections.value.find((section) => section.type === type)
+  if (group) return [group.entries[0].index, group.entries.at(-1).index + 1]
+  const marker = { problem: drag.value.problem }
+  const index = groupPaperItems([...items.value, marker]).indexOf(marker)
+  return [index, index]
+})
+function allowedBoundary(index) {
+  return index >= allowedDropRange.value[0] && index <= allowedDropRange.value[1]
+}
+function pointerMove(event) {
+  if (!pendingDrag || event.pointerId !== pendingDrag.pointerId) return
+  if (!drag.value) {
+    if (Math.hypot(event.clientX - pendingDrag.x, event.clientY - pendingDrag.y) < 10) return
+    drag.value = { problem: pendingDrag.problem, from: pendingDrag.from }
+    dragBoundaries = collectBoundaries()
+    window.getSelection()?.removeAllRanges()
+    scrollFrame = requestAnimationFrame(scrollDrag)
+  }
+  event.preventDefault()
+  dragPosition.value = { x: event.clientX, y: event.clientY }
+  lastDragY = event.clientY
+  updatePointerTarget()
+}
+function updatePointerTarget() {
+  const { x, y } = dragPosition.value
+  const hit = document.elementFromPoint(x, y)
+  const row = hit?.closest('.paper-outline-item')
+  if (row) {
+    const index =
+      Number(row.dataset.index) +
+      (y > row.getBoundingClientRect().top + row.offsetHeight / 2 ? 1 : 0)
+    dropIndex.value = allowedBoundary(index) ? index : -1
+    return
+  }
+  if (!hit?.closest('.paper-canvas')) {
+    dropIndex.value = -1
+    return
+  }
+  if (!items.value.length) {
+    dropIndex.value = 0
+    return
+  }
+  const box = workspace.value.getBoundingClientRect()
+  const position = y - box.top + workspace.value.scrollTop
+  const candidates = dragBoundaries.filter((boundary) => allowedBoundary(boundary.index))
+  const closest = candidates.reduce(
+    (best, boundary) =>
+      !best || Math.abs(boundary.y - position) < Math.abs(best.y - position) ? boundary : best,
+    null,
+  )
+  if (!closest) {
+    dropIndex.value = -1
+    return
+  }
+  const oldDistance = Math.min(
+    ...candidates
+      .filter((boundary) => boundary.index === dropIndex.value)
+      .map((boundary) => Math.abs(boundary.y - position)),
+  )
+  if (dropIndex.value < 0 || Math.abs(closest.y - position) + 18 < oldDistance)
+    dropIndex.value = closest.index
+}
+function pointerUp(event) {
+  if (!pendingDrag || event.pointerId !== pendingDrag.pointerId) return
+  if (drag.value && dropIndex.value >= 0) {
+    const { problem, from } = drag.value,
+      index = dropIndex.value
+    endDrag()
+    if (from < 0) add(problem, index)
+    else move(from, from < index ? index - 1 : index)
+  } else endDrag()
+}
+function endDrag() {
+  pendingDrag = null
+  drag.value = null
+  dropIndex.value = -1
+  edgeSince = 0
+  edgeDirection = 0
+  edgeFrame = 0
+  cancelAnimationFrame(scrollFrame)
+}
+function scrollDrag(time) {
+  if (!drag.value || !workspace.value) return
+  const box = workspace.value.getBoundingClientRect(),
+    { x } = dragPosition.value
+  const direction =
+    x >= box.left && x <= box.right && lastDragY >= box.top && lastDragY <= box.bottom
+      ? lastDragY < box.top + 36
+        ? -1
+        : lastDragY > box.bottom - 36
+          ? 1
+          : 0
+      : 0
+  if (direction !== edgeDirection) {
+    edgeSince = time
+    edgeDirection = direction
+  }
+  if (direction && time - edgeSince > 450) {
+    const speed = Math.min(180, 40 + (time - edgeSince - 450) / 8)
+    workspace.value.scrollTop +=
+      (direction * speed * Math.min(32, time - (edgeFrame || time))) / 1000
+    updatePointerTarget()
+  }
+  edgeFrame = time
+  scrollFrame = requestAnimationFrame(scrollDrag)
+}
+function fit() {
+  if (autoFit.value && workspace.value)
+    zoom.value = Math.min(
+      1,
+      Math.max(0.28, (workspace.value.clientWidth - 58) / (sheet.value.width * MM)),
+    )
+}
+function queueLayout() {
+  layoutId++
+  layingOut.value = true
+  clearTimeout(layoutTimer)
+  layoutTimer = setTimeout(layout, 80)
+}
+async function layout() {
+  if (drag.value) {
+    layoutTimer = setTimeout(layout, 120)
+    return
+  }
+  const id = ++layoutId
+  layingOut.value = true
+  layoutError.value = ''
+  await nextTick()
+  await document.fonts.ready
+  if (disposed || id !== layoutId || !measure.value) return
+  const images = [...measure.value.querySelectorAll('img')]
+  const loaded = await Promise.all(
+    images.map(async (img) => {
+      img.loading = 'eager'
+      try {
+        await Promise.race([
+          img.decode(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000)),
+        ])
+        return true
+      } catch {
+        return false
+      }
+    }),
+  )
+  if (disposed || id !== layoutId) return
+  if (loaded.some((ok) => !ok))
+    layoutError.value = '部分配图未加载，暂不能打印。请检查网络后重试排版。'
+  measure.value.querySelectorAll('.paper-choices').forEach((el) => {
+    el.style.setProperty('--choice-columns', '1')
+    el.querySelectorAll('.paper-choice-content').forEach((choice) => {
+      choice.style.maxWidth = ''
+    })
+    const widths = [...el.querySelectorAll('.paper-choice-content')].map(
+      (choice) => choice.getBoundingClientRect().width,
+    )
+    const max = Math.max(...widths)
+    const style = getComputedStyle(el)
+    const width = el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    const gap = parseFloat(style.columnGap)
+    el.style.setProperty(
+      '--choice-columns',
+      max <= (width - 3 * gap) / 4 ? '4' : max <= (width - gap) / 2 ? '2' : '1',
+    )
+    el.querySelectorAll('.paper-choice-content').forEach((choice) => {
+      choice.style.maxWidth = '100%'
+    })
+  })
+  measure.value.querySelectorAll('.katex').forEach((el) => {
+    if (el.parentElement.closest('.katex')) return
+    el.style.fontSize = ''
+    const container =
+      el.closest('.paper-choice') ||
+      el.closest('.math-question-body') ||
+      el.closest('.paper-question-stem') ||
+      el.closest('.math-text')
+    if (container && el.getBoundingClientRect().width > container.clientWidth)
+      el.style.fontSize = `${container.clientWidth / el.getBoundingClientRect().width}em`
+  })
+  const capacity = (sheet.value.height - 40) * MM
+  const header = measure.value.querySelector('.paper-heading')
+  const headerHeight =
+    header.getBoundingClientRect().height + parseFloat(getComputedStyle(header).marginBottom)
+  const result = [{ fragments: [], used: headerHeight }]
+  const nextPage = () => {
+    const p = { fragments: [], used: 0 }
+    result.push(p)
+    return p
+  }
+  const elements = [...measure.value.querySelectorAll('.paper-measure-question')]
+  for (let index = 0; index < elements.length; index++) {
+    const el = elements[index],
+      item = items.value[index]
+    const height = Math.ceil(el.getBoundingClientRect().height) + 1
+    const html = el.innerHTML,
+      bands = questionBands(el)
+    const sectionHeading = el.querySelector('.paper-section-heading')
+    if (sectionHeading)
+      bands.push([
+        0,
+        sectionHeading.getBoundingClientRect().bottom - el.getBoundingClientRect().top + 35,
+      ])
+    let page = result.at(-1)
+    if (
+      (item.breakBefore || (height > capacity - page.used && height <= capacity)) &&
+      page.used > 0
+    )
+      page = nextPage()
+    let offset = 0
+    while (offset < height) {
+      let room = capacity - page.used
+      if (room < 45) {
+        page = nextPage()
+        room = capacity
+      }
+      let end = safePageCut(bands, offset, room, height)
+      if (end <= offset + 1) {
+        if (page.used) {
+          page = nextPage()
+          continue
+        }
+        // A single unusually tall formula is kept whole and scaled to one page.
+        const scale = Math.min(1, capacity / (height - offset))
+        page.fragments.push({
+          index,
+          html,
+          offset,
+          height: (height - offset) * scale,
+          scale,
+          first: offset === 0,
+        })
+        page.used = capacity
+        offset = height
+      } else {
+        page.fragments.push({
+          index,
+          html,
+          offset,
+          height: end - offset,
+          scale: 1,
+          first: offset === 0,
+        })
+        page.used += end - offset
+        offset = end
+        if (offset < height) page = nextPage()
+      }
+    }
+  }
+  pages.value = result
+  layingOut.value = false
+  fit()
+}
+function persist() {
+  if (sharedId) return
+  try {
+    if (paperId) savePaper(paperId, state())
+    else localStorage.setItem(DRAFT_KEY, JSON.stringify(state()))
+    storageMessage.value = '草稿已保存在此浏览器'
+  } catch {
+    storageMessage.value = '浏览器存储不可用，离开页面可能丢失草稿'
+  }
+}
+watch(
+  [items, title, size, targetScore],
+  () => {
+    queueLayout()
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(persist, 250)
+  },
+  { deep: true },
+)
+watch(preview, () => nextTick(fit))
+function finishPrint() {
+  printing.value = false
+  document.getElementById('paper-print-root')?.remove()
+  document.getElementById('paper-print-page-rule')?.remove()
+  document.body.classList.remove('is-printing-paper')
+}
+async function printPaper() {
+  await layout()
+  if (layoutError.value || layingOut.value || !items.value.length) return
+  await nextTick()
+  const root = document.createElement('div')
+  root.id = 'paper-print-root'
+  const style = document.createElement('style')
+  style.id = 'paper-print-page-rule'
+  style.textContent = `@page { size: ${sheet.value.width}mm ${sheet.value.height}mm; margin: 0; }`
+  workspace.value.querySelectorAll('.paper-sheet').forEach((el) => {
+    const clone = el.cloneNode(true)
+    clone.querySelectorAll('.paper-item-tools,.paper-drop-line').forEach((tool) => tool.remove())
+    clone.removeAttribute('id')
+    clone.style.zoom = '1'
+    root.append(clone)
+  })
+  document.head.append(style)
+  document.body.append(root)
+  try {
+    await Promise.all([...root.querySelectorAll('img')].map((img) => img.decode()))
+    printing.value = true
+    document.body.classList.add('is-printing-paper')
+    window.print()
+  } catch {
+    finishPrint()
+    message.value = '打印准备失败，请检查配图后重试'
+  }
+}
+function keydown(event) {
+  if (drag.value) {
+    if (event.key === 'Escape') endDrag()
+    event.preventDefault()
+    return
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
+    event.preventDefault()
+    if (items.value.length && !layingOut.value && !printing.value) printPaper()
+  }
+  if (event.key === 'Escape') {
+    if (!sharedId) preview.value = false
+    settingsOpen.value = false
+    activeId.value = ''
+    endDrag()
+  }
+  if (
+    (event.ctrlKey || event.metaKey) &&
+    event.key === 'z' &&
+    !event.target.closest('input,textarea,select')
+  ) {
+    event.preventDefault()
+    if (!sharedId) undo()
+  }
+}
+onMounted(async () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('mathsea:paper-columns:v1') || 'null')
+    if (
+      Array.isArray(saved) &&
+      saved.length === 3 &&
+      saved.every((value) => Number.isFinite(value) && value > 0 && value < 1) &&
+      Math.abs(saved.reduce((a, b) => a + b, 0) - 1) < 0.001
+    )
+      columnRatios.value = saved
+  } catch {
+    /* Ignore invalid optional layout preference. */
+  }
+  narrowScreen.addEventListener('change', adaptFilters)
+  try {
+    const shared = sharedId ? await apiRequest(`/api/v1/papers/${sharedId}`) : null
+    if (disposed) return
+    if (sharedId && !shared?.snapshot) throw new Error('No editable snapshot')
+    const saved = sharedId
+      ? restorePaperDraft(JSON.stringify(shared.snapshot))
+      : paperId
+        ? readPapers().find((paper) => paper.id === paperId && !paper.deletedAt)?.draft
+        : restorePaperDraft(localStorage.getItem(DRAFT_KEY))
+    if (saved) {
+      title.value = saved.title
+      size.value = saved.size
+      items.value = saved.items
+      targetScore.value = saved.targetScore
+      storageMessage.value = '已恢复此浏览器的草稿'
+    }
+  } catch {
+    storageMessage.value = '未能读取旧草稿，当前可正常组卷'
+    if (sharedId) sharedError.value = '试卷加载失败，请返回详情页重试'
+  }
+  if (disposed) return
+  resizeObserver = new ResizeObserver(() => {
+    fit()
+    if (editorHead.value) editorHeadHeight.value = editorHead.value.getBoundingClientRect().height
+  })
+  resizeObserver.observe(workspace.value)
+  resizeObserver.observe(editorHead.value)
+  document.addEventListener('pointermove', pointerMove, { passive: false })
+  document.addEventListener('pointerup', pointerUp)
+  document.addEventListener('pointercancel', endDrag)
+  window.addEventListener('blur', endDrag)
+  window.addEventListener('resize', updateWindowWidth)
+  window.addEventListener('afterprint', finishPrint)
+  window.addEventListener('keydown', keydown)
+  if (!sharedId) load()
+  queueLayout()
+})
+onBeforeUnmount(() => {
+  narrowScreen.removeEventListener('change', adaptFilters)
+  document.removeEventListener('pointermove', pointerMove)
+  document.removeEventListener('pointerup', pointerUp)
+  document.removeEventListener('pointercancel', endDrag)
+  window.removeEventListener('blur', endDrag)
+  window.removeEventListener('resize', updateWindowWidth)
+  endDrag()
+  disposed = true
+  request?.abort()
+  resizeObserver?.disconnect()
+  persist()
+  clearTimeout(searchTimer)
+  clearTimeout(layoutTimer)
+  clearTimeout(saveTimer)
+  cancelAnimationFrame(scrollFrame)
+  window.removeEventListener('afterprint', finishPrint)
+  window.removeEventListener('keydown', keydown)
+  finishPrint()
+})
+</script>
+
+<template>
+  <main
+    class="paper-builder"
+    :class="{ 'is-preview': preview, 'is-dragging': drag, 'is-laying-out': layingOut }"
+  >
+    <div
+      ref="workbench"
+      class="paper-workbench"
+      :class="{ 'filters-hidden': !filterOpen, 'is-resizing': resizing }"
+      :style="columnStyle"
+    >
+      <aside v-show="!preview && filterOpen" class="paper-filter-sidebar" aria-label="筛选条件">
+        <div class="paper-filter-title">
+          <h2>{{ leftTab === 'filters' ? '筛选条件' : '试卷目录' }}</h2>
+          <button class="paper-link" aria-label="收起筛选" @click="filterOpen = false">
+            收起筛选 ‹
+          </button>
+        </div>
+        <div class="paper-left-tabs">
+          <button :aria-pressed="leftTab === 'filters'" @click="leftTab = 'filters'">
+            筛选条件</button
+          ><button :aria-pressed="leftTab === 'outline'" @click="leftTab = 'outline'">
+            试卷目录
+          </button>
+        </div>
+        <div v-show="leftTab === 'outline'" class="paper-outline">
+          <p v-if="!items.length">加入题目后，这里显示题型与题号。</p>
+          <section v-for="group in sections" :key="group.type">
+            <h3>
+              {{ group.label }} <small>{{ group.total }} 分</small>
+            </h3>
+            <div
+              v-for="entry in group.entries"
+              :key="entry.item.problem.id"
+              class="paper-outline-item"
+              :class="{ 'is-drop-target': dropIndex === entry.index }"
+              :data-paper-id="entry.item.problem.id"
+              :data-index="entry.index"
+              @pointerdown="rememberDragOrigin"
+            >
+              <button @click="locate(entry.item.problem.id)">
+                第 {{ entry.index + 1 }} 题 <small>{{ entry.item.problem.id }}</small></button
+              ><span>{{ entry.item.score }} 分</span
+              ><span class="paper-outline-grip" aria-hidden="true">⠿</span>
+            </div>
+          </section>
+        </div>
+        <div v-show="leftTab === 'filters'" class="paper-shared-filters">
+          <ProblemsFilterPanel
+            route-name="paper"
+            compact
+            :advanced="advancedFilters"
+            :filter-mode="filterMode"
+            :keyword="filters.keyword"
+            :level="filters.levels"
+            :level-options="PROBLEMS_LEVEL_OPTIONS"
+            :question-type="filters.types"
+            :source="filters.sources"
+            :source-catalog-options="PROBLEMS_SOURCE_CATALOG_OPTIONS"
+            :source-options="visibleSourceOptions"
+            :source-pinned-values="pinnedFilters.source"
+            :type-catalog-options="PROBLEMS_TYPE_CATALOG_OPTIONS"
+            :type-options="visibleTypeOptions"
+            :type-pinned-values="pinnedFilters.type"
+            :year="filters.years"
+            :year-catalog-options="PROBLEMS_YEAR_CATALOG_OPTIONS"
+            :year-options="visibleYearOptions"
+            :year-pinned-values="pinnedFilters.year"
+            @search="updateKeyword"
+            @clear="clearFilters"
+            @filter-mode-change="updateFilterMode"
+            @year-change="updateYear"
+            @source-change="updateSource"
+            @type-change="updateType"
+            @level-change="updateLevel"
+            @year-pin-change="setFilterPinned('year', $event.value, $event.pinned)"
+            @source-pin-change="setFilterPinned('source', $event.value, $event.pinned)"
+            @type-pin-change="setFilterPinned('type', $event.value, $event.pinned)"
+          />
+          <button
+            class="paper-more-filters"
+            :aria-expanded="advancedFilters"
+            @click="advancedFilters = !advancedFilters"
+          >
+            {{ advancedFilters ? '收起更多条件' : '更多筛选条件'
+            }}<span v-if="hiddenFilterCount"> · 已选 {{ hiddenFilterCount }} 项</span>
+          </button>
+        </div>
+      </aside>
+      <div
+        v-show="!preview && filterOpen"
+        class="paper-splitter splitter-0"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        aria-label="调整筛选区和题库宽度"
+        :aria-valuenow="Math.round(columnRatios[0] * 100)"
+        title="拖动调整宽度，双击恢复默认"
+        @pointerdown="beginResize($event, 0)"
+        @pointermove="resizeColumns"
+        @pointerup="endResize"
+        @pointercancel="endResize"
+        @lostpointercapture="endResize"
+        @dblclick="resetColumns"
+        @keydown.left.prevent="nudgeColumn(0, -24)"
+        @keydown.right.prevent="nudgeColumn(0, 24)"
+      />
+      <section v-show="!preview" class="paper-bank" aria-label="选题题库">
+        <div class="paper-bank-head">
+          <h2>
+            题库 <small>共 {{ total }} 道题</small>
+          </h2>
+          <button v-if="!filterOpen" class="paper-link" @click="filterOpen = true">展开筛选</button>
+        </div>
+        <form class="paper-search" role="search" @submit.prevent="searchProblems">
+          <input
+            v-model="searchText"
+            type="search"
+            aria-label="搜索题目"
+            placeholder="搜索题号、来源或知识点…"
+          /><button type="submit">搜索</button>
+        </form>
+        <div class="paper-sortbar">
+          <span>{{ loading ? '正在筛选…' : '拖动题卡，或点击加入' }}</span
+          ><select v-model="sort" aria-label="题目排序">
+            <option value="newest">新题优先</option>
+            <option value="random">随机排序</option>
+            <option
+              v-for="o in PROBLEMS_SORT_OPTIONS.filter((o) => o.value !== 'newest')"
+              :key="o.value"
+              :value="o.value"
+            >
+              {{ o.label }}
+            </option></select
+          ><button :disabled="loading" title="对全部筛选结果重新随机排序" @click="shuffle">
+            ↻ 换一批
+          </button>
+        </div>
+        <div class="paper-bank-results" :aria-busy="loading">
+          <p v-if="loadError" class="paper-error" role="alert">
+            {{ loadError }} <button @click="load()">重试</button>
+          </p>
+          <div v-else-if="loading" class="paper-result-placeholder">正在寻找合适的题目…</div>
+          <div v-else-if="!available.length" class="paper-result-placeholder">
+            没有符合条件的题目<br /><button class="paper-link" @click="clearFilters">
+              调整或清除筛选条件
+            </button>
+          </div>
+          <article
+            v-for="problem in available"
+            :key="problem.id"
+            class="paper-source-card"
+            :class="{ 'is-added': selectedIds.has(problem.id) }"
+            :data-source-id="problem.id"
+            :draggable="false"
+            @pointerdown="rememberDragOrigin"
+          >
+            <header>
+              <span class="paper-type-chip" :data-type="problem.type">{{ problem.typeLabel }}</span>
+              <span v-for="tag in problem.tags?.slice(0, 2)" :key="tag" class="paper-tag-chip">{{
+                tag
+              }}</span>
+              <span class="paper-grip" title="整张题卡均可拖动">⠿</span
+              ><button
+                v-if="selectedIds.has(problem.id)"
+                class="paper-added"
+                @click="locate(problem.id)"
+              >
+                ✓ 已加入 · {{ items.findIndex((i) => i.problem.id === problem.id) + 1 }}</button
+              ><button
+                v-else
+                class="paper-add"
+                :aria-label="`添加题目 ${problem.id}`"
+                @click="add(problem)"
+              >
+                ＋ 加入
+              </button>
+            </header>
+            <div
+              class="paper-source-content"
+              :class="{
+                'is-collapsed':
+                  !expandedSources.has(problem.id) &&
+                  (problem.content.length > 350 || problem.content.split('\n').length > 7),
+              }"
+            >
+              <MathText :text="problem.content" /><img
+                v-for="asset in cleanPaperProblem(problem).assets.filter(
+                  (a) => !problem.content.includes(`](${a.url})`),
+                )"
+                :key="asset.url"
+                :src="asset.url"
+                :alt="asset.altText"
+                loading="lazy"
+                draggable="false"
+              />
+            </div>
+            <button
+              v-if="problem.content.length > 350 || problem.content.split('\n').length > 7"
+              class="paper-source-expand paper-link"
+              :aria-expanded="expandedSources.has(problem.id)"
+              @click="toggleSource(problem.id)"
+            >
+              {{ expandedSources.has(problem.id) ? '收起长题 ↑' : '展开完整题目 ↓' }}
+            </button>
+            <details class="paper-source-details" @pointerdown.stop>
+              <summary>题目详情</summary>
+              <div>
+                <span>{{ problem.sourceText }}</span
+                ><small>{{ problem.id }}</small>
+              </div>
+            </details>
+          </article>
+        </div>
+        <nav class="paper-pagination" aria-label="题库翻页">
+          <button :disabled="loading || currentPage <= 1" @click="load(currentPage - 1)">
+            上一页</button
+          ><span>{{ total ? currentPage : 0 }} / {{ Math.ceil(total / 12) || 0 }}</span
+          ><button :disabled="loading || currentPage * 12 >= total" @click="load(currentPage + 1)">
+            下一页
+          </button>
+        </nav>
+      </section>
+      <div
+        v-show="!preview"
+        class="paper-splitter splitter-1"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        aria-label="调整题库和试卷宽度"
+        :aria-valuenow="Math.round(columnRatios[1] * 100)"
+        title="拖动调整宽度，双击恢复默认"
+        @pointerdown="beginResize($event, 1)"
+        @pointermove="resizeColumns"
+        @pointerup="endResize"
+        @pointercancel="endResize"
+        @lostpointercapture="endResize"
+        @dblclick="resetColumns"
+        @keydown.left.prevent="nudgeColumn(1, -24)"
+        @keydown.right.prevent="nudgeColumn(1, 24)"
+      />
+      <section
+        class="paper-editor"
+        aria-label="试卷工作区"
+        :style="{ '--editor-head-height': `${editorHeadHeight}px` }"
+      >
+        <div ref="editorHead" class="paper-editor-head">
+          <RouterLink
+            :to="
+              sharedId
+                ? { name: 'shared-paper', params: { id: sharedId } }
+                : { name: 'paper-library' }
+            "
+            class="paper-back-library"
+            >← {{ sharedId ? '试卷详情' : '我的试卷' }}</RouterLink
+          >
+          <h2 class="paper-sr-only">我的试卷</h2>
+          <input
+            class="paper-name-input"
+            :readonly="!!sharedId"
+            v-model="title"
+            aria-label="试卷名称"
+            maxlength="100"
+            @focus="checkpoint"
+          />
+          <span class="paper-count">{{ items.length }} 题 · {{ totalScore }} 分</span>
+          <div class="paper-top-actions">
+            <button
+              v-if="!sharedId"
+              :disabled="!history.length"
+              aria-label="↶ 撤销"
+              title="撤销"
+              @click="undo"
+            >
+              ↶</button
+            ><button
+              v-if="!sharedId"
+              :aria-expanded="settingsOpen"
+              @click="settingsOpen = !settingsOpen"
+            >
+              试卷设置</button
+            ><button v-if="!sharedId" :aria-pressed="preview" @click="preview = !preview">
+              {{ preview ? '← 返回编辑' : '预览打印' }}</button
+            ><button
+              class="paper-primary"
+              :disabled="!items.length || layingOut || !!layoutError || printing"
+              @click="printPaper"
+            >
+              打印 / 存为 PDF
+            </button>
+          </div>
+        </div>
+        <section
+          v-if="settingsOpen"
+          class="paper-settings-panel"
+          aria-label="试卷设置"
+          @keydown.esc.stop="settingsOpen = false"
+        >
+          <header>
+            <h3>试卷设置</h3>
+            <button aria-label="关闭试卷设置" @click="settingsOpen = false">×</button>
+          </header>
+          <label
+            >纸张尺寸<select v-model="size" aria-label="纸张尺寸" @focus="checkpoint">
+              <option value="a4">A4 纵向</option>
+              <option value="16k">16 开 · 原卷尺寸</option>
+            </select></label
+          >
+          <label
+            >目标分数<input
+              type="number"
+              min="0"
+              max="1000"
+              step="0.5"
+              :value="targetScore"
+              @change="setTarget"
+          /></label>
+          <p>{{ scoreStatus || '不设目标分数' }}</p>
+          <div v-if="sections.length" class="paper-settings-scores">
+            <h4>批量设分</h4>
+            <label v-for="group in sections" :key="group.type"
+              >{{ group.label
+              }}<input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                :aria-label="`${group.label}批量分值`"
+                :value="
+                  group.entries.every((entry) => entry.item.score === group.entries[0].item.score)
+                    ? group.entries[0].item.score
+                    : ''
+                "
+                placeholder="混合"
+                @change="batchScore(group, $event)"
+            /></label>
+          </div>
+          <footer>
+            <button @click="persist">保存草稿</button
+            ><button :disabled="!items.length" @click="clearPaper">清空试卷</button>
+          </footer>
+        </section>
+        <div class="paper-status paper-sr-only" aria-live="polite">
+          <span>{{ message }}</span
+          ><span v-if="layingOut">正在排版…</span>
+        </div>
+        <div v-if="layoutError" class="paper-error" role="alert">
+          {{ layoutError }} <button @click="queueLayout">重试排版</button>
+        </div>
+        <div v-if="sharedError" class="paper-error" role="alert">{{ sharedError }}</div>
+        <div
+          v-if="!preview && !settingsOpen && activeIndex >= 0"
+          class="paper-item-tools"
+          @click.stop
+        >
+          <button class="paper-dismiss-tools" aria-label="取消选择题目" @click="activeId = ''">
+            ×</button
+          ><span class="paper-count">第 {{ activeIndex + 1 }} 题</span
+          ><label class="paper-question-score"
+            >分值<input
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              :aria-label="`第 ${activeIndex + 1} 题分值`"
+              :value="items[activeIndex].score"
+              @change="setQuestionScore" /></label
+          ><select
+            aria-label="移至题号"
+            :value="activeIndex"
+            @change="move(activeIndex, Number($event.target.value))"
+          >
+            <option
+              v-for="entry in activeSection?.entries"
+              :key="entry.item.problem.id"
+              :value="entry.index"
+            >
+              移至第 {{ entry.index + 1 }} 题
+            </option>
+          </select>
+          <button
+            class="paper-grip"
+            :draggable="false"
+            @pointerdown="rememberDragOrigin"
+            title="拖动排序"
+            :aria-label="`拖动第 ${activeIndex + 1} 题`"
+          >
+            ⠿
+          </button>
+          <button
+            :disabled="activeIndex === activeSection?.entries[0].index"
+            title="上移"
+            @click="move(activeIndex, activeIndex - 1)"
+          >
+            ↑</button
+          ><button
+            :disabled="activeIndex === activeSection?.entries.at(-1).index"
+            title="下移"
+            @click="move(activeIndex, activeIndex + 1)"
+          >
+            ↓
+          </button>
+          <select
+            :value="items[activeIndex].space"
+            :aria-label="`第 ${activeIndex + 1} 题答题留白`"
+            @change="changeItem(activeIndex, 'space', Number($event.target.value))"
+          >
+            <option :value="0">无留白</option>
+            <option :value="20">留白 · 少</option>
+            <option :value="40">留白 · 中</option>
+            <option :value="60">留白 · 多</option>
+          </select>
+          <button
+            :aria-pressed="items[activeIndex].breakBefore"
+            title="从新页开始"
+            @click="changeItem(activeIndex, 'breakBefore', !items[activeIndex].breakBefore)"
+          >
+            另起一页</button
+          ><button :aria-label="`移除第 ${activeIndex + 1} 题`" @click="remove(activeIndex)">
+            移除
+          </button>
+        </div>
+        <div ref="workspace" class="paper-canvas">
+          <div
+            v-for="(page, pageIndex) in pages"
+            :key="pageIndex"
+            class="paper-page-wrap"
+            :style="{
+              width: `${sheet.width * MM * zoom}px`,
+              height: `${sheet.height * MM * zoom}px`,
+            }"
+          >
+            <section
+              class="paper-sheet"
+              :style="{ ...sheetStyle, zoom }"
+              :aria-label="`试卷第 ${pageIndex + 1} 页`"
+            >
+              <PaperHeading
+                v-if="pageIndex === 0"
+                :title="title"
+                :page-count="pages.length"
+                :question-count="items.length"
+                :total-score="totalScore"
+              />
+              <div v-if="!items.length && !preview" class="paper-empty">
+                <span class="paper-empty-icon">＋</span>
+                <h3>拖拽题目到这里</h3>
+                <p>或点击题库中的「＋ 加入」</p>
+              </div>
+              <article
+                v-for="(fragment, fi) in page.fragments"
+                :key="`${fragment.index}:${fi}`"
+                class="paper-fragment"
+                :class="{
+                  'is-active': activeId === items[fragment.index]?.problem.id,
+                  'is-drop-target': fragment.first && dropIndex === fragment.index,
+                }"
+                :data-paper-id="items[fragment.index]?.problem.id"
+                :draggable="false"
+                @pointerdown="rememberDragOrigin"
+                @click="activeId = items[fragment.index]?.problem.id"
+                :style="{ height: `${fragment.height}px` }"
+              >
+                <div
+                  v-if="drag && fragment.first && dropIndex === fragment.index"
+                  class="paper-drop-line"
+                >
+                  插入为第 {{ fragment.index + 1 }} 题
+                </div>
+                <div class="paper-fragment-clip" :style="{ height: `${fragment.height}px` }">
+                  <div
+                    class="paper-question-content"
+                    :style="{
+                      transform: `scale(${fragment.scale}) translateY(-${fragment.offset}px)`,
+                      transformOrigin: 'top left',
+                    }"
+                    v-html="fragment.html"
+                  />
+                </div>
+              </article>
+              <div
+                v-if="drag && pageIndex === pages.length - 1 && dropIndex === items.length"
+                class="paper-drop-line is-last"
+              >
+                追加为第 {{ items.length + 1 }} 题
+              </div>
+              <footer class="paper-page-footer">
+                数学试题　第 {{ pageIndex + 1 }} 页（共 {{ pages.length }} 页）
+              </footer>
+            </section>
+          </div>
+        </div>
+
+        <footer class="paper-workspace-footer">
+          <span class="paper-save-state" :title="storageMessage">{{
+            layingOut ? '正在排版…' : storageMessage
+          }}</span>
+          <div class="paper-zoom-controls">
+            <button aria-label="缩小卷面" @click="stepZoom(-0.1)">−</button
+            ><select :value="Math.round(zoom * 100)" aria-label="预览缩放" @change="setZoom">
+              <option :value="Math.round(zoom * 100)">{{ Math.round(zoom * 100) }}%</option>
+              <option v-for="z in [50, 75, 100, 125, 150]" :key="z" :value="z">
+                {{ z }}%
+              </option></select
+            ><button aria-label="放大卷面" @click="stepZoom(0.1)">＋</button
+            ><button :aria-pressed="autoFit" @click="fitWidth">适合宽度</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+    <div
+      v-if="drag"
+      class="paper-drag-ghost"
+      :style="{
+        left: `${Math.min(dragPosition.x + 16, windowWidth - 270)}px`,
+        top: `${dragPosition.y + 14}px`,
+      }"
+    >
+      {{ paperType(drag.problem.type).label }} · {{ drag.problem.id
+      }}<small>{{
+        dropIndex < 0
+          ? '移动到卷面或目录，松手取消'
+          : `松手放入第 ${dropIndex + 1} 题位置（按题型归组）`
+      }}</small>
+    </div>
+    <div ref="measure" class="paper-measure paper-sheet" :style="sheetStyle" aria-hidden="true">
+      <PaperHeading
+        :title="title"
+        :page-count="pages.length"
+        :question-count="items.length"
+        :total-score="totalScore"
+      />
+      <div
+        v-for="(item, index) in items"
+        :key="item.problem.id"
+        class="paper-measure-question paper-question-content"
+        v-html="paperQuestionHtml(item, index, headingFor(index), showScoreFor(index))"
+      />
+    </div>
+  </main>
+</template>

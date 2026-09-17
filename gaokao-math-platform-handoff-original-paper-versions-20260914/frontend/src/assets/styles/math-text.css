@@ -1,0 +1,53 @@
+/* Latin glyphs use Times; Chinese glyphs fall back to Song/Kai. */
+.math-text {
+  --math-text-font: 'Times New Roman', SimSun, 'Songti SC', STSong, serif;
+  font-family: var(--math-text-font);
+  line-height: 1.9;
+}
+.math-question-item { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: .35em; margin-top: .35em; }
+.math-question-number { white-space: nowrap; }
+.math-question-body { min-width: 0; }
+
+.math-text:not(.is-inline) {
+  font-size: var(--question-font-size, 18px);
+  max-width: 100%;
+  overflow: visible;
+}
+
+/* Keep Chinese prose and inline mathematics at a comparable visual size. */
+.math-text .katex {
+  font-size: 1.05em;
+}
+
+@media screen and (max-width: 640px) {
+  .math-text:not(.is-inline) {
+    font-size: var(--question-font-size, 17px);
+  }
+}
+
+@media print {
+  .math-text:not(.is-inline) {
+    font-size: 12pt;
+    line-height: 1.9;
+    overflow: visible;
+  }
+}
+
+.math-text .math-material {
+  --math-text-font: 'Times New Roman', KaiTi, STKaiti, 'Kaiti SC', serif;
+  font-family: var(--math-text-font);
+}
+
+/* KaTeX's CJK fallback must follow the surrounding text, including materials. */
+.math-text .katex .cjk_fallback {
+  font-family: var(--math-text-font);
+}
+
+.math-text .math-inline-image {
+  display: block;
+  max-width: 100%;
+  max-height: 560px;
+  height: auto;
+  margin: 16px auto;
+  object-fit: contain;
+}

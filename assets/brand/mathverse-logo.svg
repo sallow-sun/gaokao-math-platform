@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 242 64" role="img" aria-labelledby="title desc">
+  <title id="title">Mathverse</title>
+  <desc id="desc">Mathverse wordmark with a manifold and black-hole symbol.</desc>
+  <g aria-hidden="true">
+    <path
+      d="M49.5 12.5C39.5 5 24 6 14.5 15.5C3.5 26.5 4.5 44 16.5 54C28.5 64 47 58.5 54 45C60.5 32.5 53.5 18 41 15C30 12.5 19.5 19.5 18.5 30C17.5 39.5 24.5 47 34 47.5"
+      fill="none"
+      stroke="#3155c6"
+      stroke-width="7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <circle cx="35" cy="32.5" r="10.5" fill="#171b35"/>
+    <path
+      d="M43.9 27A10.5 10.5 0 0 1 40.4 41.5"
+      fill="none"
+      stroke="#b98235"
+      stroke-width="3.2"
+      stroke-linecap="round"
+    />
+  </g>
+  <text
+    x="76"
+    y="41"
+    fill="#171b35"
+    font-family="Inter, 'SF Pro Display', 'Segoe UI', sans-serif"
+    font-size="29"
+    font-weight="650"
+    letter-spacing="-1.2"
+  >math<tspan fill="#3155c6" font-weight="450">verse</tspan></text>
+</svg>

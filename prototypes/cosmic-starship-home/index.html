@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#010207">
+  <meta name="description" content="Mathverse 星际探索式高中数学主页整合原型">
+  <title>Mathverse · Knowledge Expedition</title>
+  <link rel="stylesheet" href="integrated-home.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three":"../../vendor/three/three.module.min.js",
+        "three/addons/":"../../vendor/three/addons/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main class="expedition-home" id="expedition-home">
+    <canvas id="scene-stage" aria-label="可拖拽观察的流体飞船与深空黑洞"></canvas>
+    <div class="scene-grade" aria-hidden="true"></div>
+    <div class="copy-shield" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="../../pages/home.html" aria-label="Mathverse 主页">
+        <span class="brand-orbit" aria-hidden="true"><i></i></span>
+        <span><strong>math<span>verse</span></strong><small>KNOWLEDGE EXPEDITION</small></span>
+      </a>
+      <div class="coordinates">
+        <i aria-hidden="true"></i>
+        <span><small>CURRENT SECTOR</small><strong>高中数学宇宙 · 基础星域</strong></span>
+      </div>
+      <button class="profile" type="button" data-action="profile"><span>YZ</span><b>探索者档案</b></button>
+    </header>
+
+    <section class="navigation-console" aria-labelledby="home-title">
+      <p><i></i>NAVIGATION CONSOLE · ONLINE</p>
+      <h1 id="home-title">输入一个问题，<br>开始一次知识远征。</h1>
+      <form class="coordinate-search" id="coordinate-search" role="search">
+        <span class="search-orbit" aria-hidden="true"><i></i></span>
+        <label class="sr-only" for="coordinate-input">搜索题目、知识点、试卷或解法</label>
+        <input id="coordinate-input" type="search" placeholder="搜索题目、知识点、试卷或解法" autocomplete="off">
+        <kbd aria-label="快捷键">/</kbd>
+        <button type="submit">锁定坐标 <span aria-hidden="true">→</span></button>
+      </form>
+      <div class="quick-routes" aria-label="推荐搜索">
+        <span>推荐坐标</span>
+        <button type="button" data-query="圆锥曲线定点问题">圆锥曲线</button>
+        <button type="button" data-query="导数中的隐零点">隐零点</button>
+        <button type="button" data-query="2025 新高考真题">2025 真题</button>
+      </div>
+    </section>
+
+    <aside class="vessel-readout" aria-label="飞船状态">
+      <span>MV–01</span>
+      <i aria-hidden="true"></i>
+      <p><small>MANIFOLD RESEARCH VESSEL</small><strong>流形场稳定 · 航向待命</strong></p>
+    </aside>
+
+    <aside class="singularity-readout" aria-label="黑洞信标状态">
+      <i aria-hidden="true"></i>
+      <p><small>GRAVITATIONAL BEACON / BH–01</small><strong>远景引力坐标已校准</strong></p>
+    </aside>
+
+    <section class="mission-strip" aria-label="今日学习进度">
+      <div class="progress-ring" style="--progress:68"><span>68</span><small>%</small></div>
+      <p><small>TODAY'S EXPEDITION</small><strong>今日已探索 4 个知识节点</strong><span>距离计划完成还剩 2 项</span></p>
+      <button type="button" data-action="mission">继续计划</button>
+    </section>
+
+    <button type="button" class="signal signal-a" data-query="今日新增高考数学题" aria-label="今日新增题目">
+      <i aria-hidden="true"></i><span><small>NEW PROBLEMS</small><strong>今日新增 24 道题</strong></span>
+    </button>
+    <button type="button" class="signal signal-b" data-query="圆锥曲线最新解法" aria-label="新增解法">
+      <i aria-hidden="true"></i><span><small>NEW METHOD</small><strong>圆锥曲线 · 新增一种解法</strong></span>
+    </button>
+    <button type="button" class="signal signal-c" data-query="2025 新高考全国卷" aria-label="新增试卷">
+      <i aria-hidden="true"></i><span><small>FULL PAPER</small><strong>2025 新高考Ⅱ卷已收录</strong></span>
+    </button>
+
+    <nav class="command-dock" aria-label="主要功能">
+      <span class="dock-status"><i></i><b>ALL SYSTEMS NOMINAL</b></span>
+      <div class="dock-apps">
+        <button type="button" data-system="problems"><span>∴</span><b>题库</b><small>PLANETS</small></button>
+        <button type="button" data-system="lists"><span>⌁</span><b>题单</b><small>ROUTES</small></button>
+        <button type="button" data-system="papers"><span>▱</span><b>整卷</b><small>MISSIONS</small></button>
+        <button type="button" class="dock-primary" data-system="galaxy"><span>◉</span><b>星图</b><small>GALAXY</small></button>
+        <button type="button" data-system="discuss"><span>⌬</span><b>讨论</b><small>SIGNALS</small></button>
+        <button type="button" data-system="columns"><span>§</span><b>专栏</b><small>LOGBOOK</small></button>
+      </div>
+      <time id="dock-time">--:--</time>
+    </nav>
+
+    <section class="route-panel" id="route-panel" aria-labelledby="route-title" hidden>
+      <header><div><p>COORDINATES RESOLVED</p><h2 id="route-title">可抵达的知识区域</h2></div><button type="button" data-close-panel aria-label="关闭">×</button></header>
+      <p class="resolved-copy">正在分析：<strong id="resolved-query"></strong></p>
+      <div class="route-options">
+        <button type="button"><i class="planet"></i><span><small>PLANET · PROBLEM</small><strong>相关高考题目</strong><b>5 种解法 · 46 条讨论</b></span><em>01</em></button>
+        <button type="button"><i class="nebula"></i><span><small>NEBULA · KNOWLEDGE</small><strong>相关知识星域</strong><b>标签、结论与学习深度</b></span><em>02</em></button>
+        <button type="button"><i class="signal-node"></i><span><small>SIGNAL · COMMUNITY</small><strong>正在发生的讨论</strong><b>来自 18 位探索者</b></span><em>03</em></button>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <p class="prototype-note">INTEGRATED STARSHIP HOME · PROTOTYPE 04</p>
+    <div class="webgl-fallback" id="webgl-fallback" hidden><strong>当前设备无法启动远征主页</strong><p>请使用支持 WebGL 的现代浏览器。</p></div>
+  </main>
+  <script type="module" src="integrated-home.js"></script>
+</body>
+</html>

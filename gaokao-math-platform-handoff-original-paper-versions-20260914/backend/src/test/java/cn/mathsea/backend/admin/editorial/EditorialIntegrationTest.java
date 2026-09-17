@@ -1,0 +1,1110 @@
+package cn.mathsea.backend.admin.editorial;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import cn.mathsea.backend.common.exception.BusinessException;
+import cn.mathsea.backend.security.CustomUserPrincipal;
+import cn.mathsea.backend.user.mapper.UserMapper;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+
+@SpringBootTest(
+    properties = {
+      "logging.level.root=WARN",
+      "logging.level.org.springframework=WARN",
+      "debug=false",
+      "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.session.SessionAutoConfiguration"
+    })
+@AutoConfigureMockMvc
+class EditorialIntegrationTest {
+  static EmbeddedPostgres postgres;
+
+  static {
+    try {
+      postgres = EmbeddedPostgres.builder().setPort(0).start();
+    } catch (Exception e) {
+      throw new ExceptionInInitializerError(e);
+    }
+  }
+
+  @DynamicPropertySource
+  static void properties(DynamicPropertyRegistry r) {
+    r.add("spring.datasource.url", () -> postgres.getJdbcUrl("postgres", "postgres"));
+    r.add("spring.datasource.username", () -> "postgres");
+    r.add("spring.datasource.password", () -> "");
+    r.add("mathsea.storage.root", () -> "target/editorial-test-uploads");
+  }
+
+  @Autowired EditorialService service;
+  @Autowired JdbcTemplate db;
+  @Autowired cn.mathsea.backend.feedback.FeedbackService feedback;
+  @Autowired MockMvc mvc;
+  @Autowired UserMapper users;
+  @Autowired cn.mathsea.backend.curriculum.CurriculumService curriculum;
+  @Autowired cn.mathsea.backend.problem.service.ProblemService publicProblems;
+  @Autowired cn.mathsea.backend.problem.mapper.ProblemMapper problemMapper;
+  @Autowired cn.mathsea.backend.admin.service.ProblemTrashService trash;
+  @Autowired org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+  @org.springframework.test.context.bean.override.mockito.MockitoBean cn.mathsea.backend.common.rate.RateLimitService purgeRateLimit;
+
+  @Autowired cn.mathsea.backend.paper.SharedPaperService sharedPapers;
+  @Autowired cn.mathsea.backend.paper.OriginalPaperService originals;
+
+  @Test void originalPaperVersionsReuseAndFreezeReviewedContent() throws Exception {
+    long manager=actor("original"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    long editor=actor("assemble"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    UUID paper=(UUID)service.paper(manager,"Original "+UUID.randomUUID()).get("id");
+    UUID item=UUID.randomUUID();
+    long problem=growthProblem(981001);
+    db.update("UPDATE problems SET content='Compute $1+2$' WHERE id=?",problem);
+    db.update("INSERT INTO problem_assets(problem_id,url,mime_type,alt_text) VALUES (?,'/uploads/fixture.png','image/png','Figure')",problem);
+    db.update("INSERT INTO editorial_items(id,paper_id,original_number,payload,created_by) VALUES (?,?,'1',?::jsonb,?)",item,paper,"{\"type\":\"single-choice\",\"content\":\"Compute $1+3$\"}",manager);
+    var before=originals.detail(paper);
+    assertEquals(1,((List<?>)((Map<?,?>)((List<?>)before.get("items")).getFirst()).get("duplicates")).size());
+    var a=json.createObjectNode();a.put("expectedCount",1);a.put("targetScore",5);
+    var choice=a.putObject("items").putObject(item.toString());choice.put("order",1);choice.put("score",5);
+    originals.save(paper,editor,new cn.mathsea.backend.paper.OriginalPaperService.Edit(1,a));
+    var pending=originals.detail(paper);
+    assertThrows(BusinessException.class,()->originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(2,pending.get("token").toString(),"Checked")));
+    choice.put("reuse","GC981001");
+    originals.save(paper,editor,new cn.mathsea.backend.paper.OriginalPaperService.Edit(2,a));
+    var ready=originals.detail(paper);
+    var request=new cn.mathsea.backend.paper.OriginalPaperService.Publish(3,ready.get("token").toString(),"Checked against source");
+    assertThrows(BusinessException.class,()->originals.publish(paper,editor,request));
+    db.update("UPDATE problems SET content='Compute $1+4$' WHERE id=?",problem);
+    assertThrows(BusinessException.class,()->originals.publish(paper,manager,request));
+    ready=originals.detail(paper);
+    UUID v1=(UUID)((Map<?,?>)originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(3,ready.get("token").toString(),"Checked v1"))).get("id");
+    String frozen=db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v1);
+    assertTrue(frozen.contains("Compute $1+4$"));assertTrue(frozen.contains("fixture.png"));
+    assertThrows(org.springframework.dao.DataAccessException.class,()->db.update("UPDATE shared_papers SET snapshot='{}'::jsonb WHERE id=?",v1));
+    assertThrows(BusinessException.class,()->originals.publish(paper,manager,request));
+    db.update("UPDATE problems SET content='Corrected $1+5$' WHERE id=?",problem);
+    var next=originals.detail(paper);
+    UUID v2=(UUID)((Map<?,?>)originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(4,next.get("token").toString(),"Corrected v2"))).get("id");
+    assertEquals(frozen,db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v1));
+    assertTrue(db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v2).contains("Corrected"));
+    assertEquals(2,((List<?>)sharedPapers.detail(v1,null).get("versions")).size());
+    var catalog=(Map<?,?>)sharedPapers.list(null,before.get("title").toString(),"","","",null,"",false,1);
+    assertEquals(1,((List<?>)catalog.get("items")).size());
+    assertEquals(v2,((Map<?,?>)((List<?>)catalog.get("items")).getFirst()).get("id"));
+    sharedPapers.favorite(v1,editor,true);
+    var favorites=(Map<?,?>)sharedPapers.list(editor,before.get("title").toString(),"","favorites","",null,"",false,1);
+    assertEquals(v1,((Map<?,?>)((List<?>)favorites.get("items")).getFirst()).get("id"));
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM problems WHERE problem_number='GC981001'",Integer.class));
+    sharedPapers.check(v1,manager,new cn.mathsea.backend.paper.SharedPaperService.Check(false,""));
+    assertEquals(frozen,db.queryForObject("SELECT snapshot::text FROM shared_papers WHERE id=?",String.class,v1));
+    var old=originals.detail(paper);
+    long oldVersion=((Number)old.get("assembly_version")).longValue();
+    String renamed="Renamed "+UUID.randomUUID();
+    originals.rename(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Rename(oldVersion,renamed));
+    assertEquals(renamed,originals.detail(paper).get("title"));
+    assertEquals(renamed,((Map<?,?>)((List<?>)service.queue("DRAFT",paper,"",1).get("items")).getFirst()).get("paper_title"));
+    assertEquals(paper,db.queryForObject("SELECT paper_id FROM editorial_items WHERE id=?",UUID.class,item));
+    assertEquals(before.get("title"),sharedPapers.detail(v1,null).get("title"));
+    assertNotEquals(old.get("token"),originals.detail(paper).get("token"));
+    assertThrows(BusinessException.class,()->originals.rename(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Rename(oldVersion,"Stale rename")));
+    assertThrows(BusinessException.class,()->originals.rename(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Rename(oldVersion+1," ")));
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM audit_logs WHERE action='ORIGINAL_RENAME' AND target_id=?",Integer.class,paper.toString()));
+    mvc.perform(get("/api/v1/admin/original-papers")).andExpect(status().isUnauthorized());
+    mvc.perform(post("/api/v1/admin/original-papers/"+paper+"/publish").with(user(new CustomUserPrincipal(users.selectById(manager)))).contentType("application/json").content("{}")).andExpect(status().isForbidden());
+  }
+
+  @Test void originalAssemblyRejectsIncompleteTotalsAndSupportsSeparateNames() throws Exception {
+    long manager=actor("names"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    String name="2026 Original "+UUID.randomUUID();
+    UUID paper=(UUID)service.paper(manager,name+" Ⅰ").get("id");
+    assertEquals(paper,service.paper(manager,name+" I").get("id"));
+    assertNotEquals(paper,service.paper(manager,name+" I",true).get("id"));
+    growthProblem(981002);
+    UUID item=UUID.randomUUID();
+    db.update("INSERT INTO editorial_items(id,paper_id,original_number,status,problem_number,payload,created_by) VALUES (?,?,'1','PUBLISHED','GC981002','{}'::jsonb,?)",item,paper,manager);
+    var a=json.createObjectNode();a.put("expectedCount",2);a.put("targetScore",5);a.putObject("items").putObject(item.toString()).put("score",5);
+    originals.save(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Edit(1,a));
+    var current=originals.detail(paper);
+    assertThrows(BusinessException.class,()->originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(2,current.get("token").toString(),"Checked")));
+    assertThrows(BusinessException.class,()->originals.save(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Edit(1,a)));
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM shared_papers WHERE original_paper_id=?",Integer.class,paper));
+    a.put("expectedCount",1);a.put("year","");((com.fasterxml.jackson.databind.node.ObjectNode)a.path("items").path(item.toString())).put("reuse","");
+    originals.save(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Edit(2,a));
+    var complete=originals.detail(paper);
+    originals.publish(paper,manager,new cn.mathsea.backend.paper.OriginalPaperService.Publish(3,complete.get("token").toString(),"All verified"));
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM shared_papers WHERE original_paper_id=?",Integer.class,paper));
+  }
+
+  @Test void paperReviewCountsExcludeTrashPurgedAndEmptyPapers() {
+    long manager=actor("counts"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    UUID paper=(UUID)service.paper(manager,"Counts "+UUID.randomUUID()).get("id");
+    var empty=service.papers().stream().filter(p->paper.equals(p.get("id"))).findFirst().orElseThrow();
+    assertEquals(0L,empty.get("question_count"));
+    var states=List.of("DRAFT","REVIEW","CHANGES","PUBLISHED","TRASH","PUBLISHED");
+    for(int n=0;n<states.size();n++) db.update("INSERT INTO editorial_items(id,paper_id,original_number,status,payload,purged_at) VALUES (?,?,?,?, '{}'::jsonb,CASE WHEN ? THEN now() ELSE NULL END)",UUID.randomUUID(),paper,Integer.toString(n+1),states.get(n),n==5);
+    var mixed=service.papers().stream().filter(p->paper.equals(p.get("id"))).findFirst().orElseThrow();
+    assertEquals(4L,mixed.get("question_count"));assertEquals(2L,mixed.get("pending_count"));assertEquals(1L,mixed.get("changes_count"));assertEquals(1L,mixed.get("published_count"));
+    db.update("UPDATE editorial_items SET status='PUBLISHED' WHERE paper_id=? AND status<>'TRASH' AND purged_at IS NULL",paper);
+    var ready=service.papers().stream().filter(p->paper.equals(p.get("id"))).findFirst().orElseThrow();
+    assertEquals(0L,ready.get("pending_count"));assertEquals(0L,ready.get("changes_count"));assertEquals(4L,ready.get("published_count"));
+    var catalog=(List<?>)originals.list();
+    var original=(Map<?,?>)catalog.stream().filter(p->paper.equals(((Map<?,?>)p).get("id"))).findFirst().orElseThrow();
+    assertEquals(original.get("question_count"),original.get("published_count"));
+  }
+  @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
+  @org.springframework.test.context.bean.override.mockito.MockitoBean cn.mathsea.backend.paper.PaperObjectStorage paperStorage;
+
+  cn.mathsea.backend.paper.SharedPaperService.Publication publication() throws Exception {
+    return new cn.mathsea.backend.paper.SharedPaperService.Publication("Shared test", "Notes", "Original", 2026, "Other", false,
+      json.readTree("""
+        {"version":1,"title":"Private","size":"a4","items":[{"problem":{"id":"GC123456","content":"Compute $1+1$","type":"single-choice","typeLabel":"single","answer":"secret","assets":[{"url":"https://example.test/private.png"},{"url":"/uploads/../../private"},{"url":"/uploads/public.png"}]},"score":5,"space":20}]}
+        """));
+  }
+  UUID share(long owner) throws Exception {
+    return (UUID)((Map<?,?>)sharedPapers.share(owner,publication())).get("id");
+  }
+  @Autowired cn.mathsea.backend.growth.GrowthService growth;
+  @Autowired cn.mathsea.backend.problem.service.ProblemStateService problemStates;
+  long growthProblem(int n){return db.queryForObject("INSERT INTO problems(problem_number,title,question_type,difficulty,content) VALUES(?,'Growth fixture','single-choice','red','Compute') RETURNING id",Long.class,"GC"+String.format("%06d",n));}
+  @Test void growthLearningIsCappedIdempotentAndPrivate() throws Exception {
+    long owner=actor("growth"+UUID.randomUUID().toString().substring(0,8),"EDITOR"),other=actor("viewer"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    for(int i=0;i<12;i++)growthProblem(960000+i);
+    problemStates.patch(owner,"GC960000",new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(true,null));assertEquals(0,growth.summary(owner).experience());
+    for(int i=0;i<12;i++)problemStates.patch(owner,"GC"+(960000+i),new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(null,true));
+    assertEquals(12,growth.summary(owner).experience());
+    problemStates.patch(owner,"GC960000",new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(null,false));
+    problemStates.patch(owner,"GC960000",new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(null,true));assertEquals(12,growth.summary(owner).experience());
+    mvc.perform(get("/api/v1/users/me/growth")).andExpect(status().isUnauthorized());
+    mvc.perform(get("/api/v1/users/me/growth").with(user(new CustomUserPrincipal(users.selectById(other))))).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get("/api/v1/users/"+owner)).andExpect(jsonPath("$.level").value(0)).andExpect(jsonPath("$.experience").doesNotExist());
+    mvc.perform(get("/api/v1/users/me/growth").with(user(new CustomUserPrincipal(users.selectById(owner))))).andExpect(jsonPath("$.summary.experience").value(12)).andExpect(jsonPath("$.total").value(13));
+    long baseline=growthProblem(960099);db.update("INSERT INTO user_growth_events(user_id,event_key,kind,points,description,rule_version) VALUES (?,?,'BASELINE',0,'Before launch','beta-1')",owner,"problem:"+baseline);
+    growth.completed(owner,baseline);assertEquals(12,growth.summary(owner).experience());
+  }
+  @Test void growthParallelMarksAwardOnceAndRevokeIsAudited() throws Exception {
+    long owner=actor("parallel"+UUID.randomUUID().toString().substring(0,8),"EDITOR"),manager=actor("manager"+UUID.randomUUID().toString().substring(0,8),"MANAGER");growthProblem(960100);
+    try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)){
+      var tasks=new ArrayList<java.util.concurrent.Future<?>>();for(int i=0;i<2;i++)tasks.add(executor.submit(()->problemStates.patch(owner,"GC960100",new cn.mathsea.backend.problem.dto.ProblemStatePatchRequest(null,true))));
+      for(var task:tasks)task.get(20,java.util.concurrent.TimeUnit.SECONDS);
+    }
+    assertEquals(3,growth.summary(owner).experience());
+    growth.uploadAccepted(owner,manager,"content-fingerprint");growth.uploadAccepted(owner,manager,"content-fingerprint");assertEquals(23,growth.summary(owner).experience());assertEquals(1,growth.summary(owner).level());
+    growth.uploadAccepted(owner,owner,"self-review");assertEquals(23,growth.summary(owner).experience());
+    long event=db.queryForObject("SELECT id FROM user_growth_events WHERE user_id=? AND kind='UPLOAD'",Long.class,owner);
+    assertThrows(BusinessException.class,()->growth.revoke(owner,event,"Invalid"));
+    growth.revoke(manager,event,"Duplicate contribution");growth.revoke(manager,event,"Retry");assertEquals(3,growth.summary(owner).experience());assertEquals(0,growth.summary(owner).level());
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM user_growth_events WHERE reverses_id=?",Integer.class,event));
+    mvc.perform(get("/api/v1/admin/growth/users/"+owner).with(user(new CustomUserPrincipal(users.selectById(owner))))).andExpect(status().isForbidden());
+    mvc.perform(get("/api/v1/admin/growth/users/"+owner).with(user(new CustomUserPrincipal(users.selectById(manager))))).andExpect(status().isOk()).andExpect(jsonPath("$.history.summary.experience").value(3));
+    mvc.perform(post("/api/v1/admin/growth/events/"+event+"/revoke").with(user(new CustomUserPrincipal(users.selectById(manager)))).contentType("application/json").content("{\"reason\":\"test\"}")).andExpect(status().isForbidden());
+    db.update("DELETE FROM users WHERE id=?",owner);
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM user_growth_events WHERE user_id=?",Integer.class,owner));
+
+  }
+
+  @Test void profileProblemStatisticsGroupsOnlyLiveCompletedProblems() throws Exception {
+    long owner=actor("stats"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    for(int i=0;i<103;i++) {
+      Long id=db.queryForObject("INSERT INTO problems(problem_number,title,question_type,difficulty,content,deleted) VALUES(?,?,'single-choice',?,'Content',?) RETURNING id",Long.class,"GC"+String.format("%06d",970000+i),"Statistics fixture "+i,i==101?"blue":"red",i==102);
+      db.update("INSERT INTO user_problem_states(user_id,problem_id,completed,favorite) VALUES(?,?,?,?)",owner,id,i!=100,i==100);
+    }
+    String url="/api/v1/users/"+owner+"/problem-statistics";
+    mvc.perform(get(url)).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(101)).andExpect(jsonPath("$.items.length()").value(100)).andExpect(jsonPath("$.items[0].id").value("GC970000"));
+    mvc.perform(get(url+"?page=2")).andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.items[0].level").value("blue"));
+    mvc.perform(get(url+"?level=blue")).andExpect(jsonPath("$.total").value(1));
+    mvc.perform(get(url+"?q=GC970100")).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get(url+"?q=GC970102")).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get(url+"?q=GC970001")).andExpect(jsonPath("$.total").value(1));
+    mvc.perform(get(url+"?level=invalid")).andExpect(status().isBadRequest());
+    mvc.perform(get("/api/v1/users/999999999/problem-statistics")).andExpect(status().isNotFound());
+  }
+
+  @Test void mistakeBookIsPrivateIdempotentAndSupportsRemoval() throws Exception {
+    long owner=actor("mistake"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), other=actor("other"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    db.update("INSERT INTO problems(problem_number,title,question_type,difficulty,content) VALUES('GC987654','Mistake fixture','single-choice','red','Compute 1+1')");
+    var principal=new CustomUserPrincipal(users.selectById(owner));
+    var outsider=new CustomUserPrincipal(users.selectById(other));
+    String base="/api/v1/users/me/mistakes", url=base+"/GC987654";
+    mvc.perform(get(base)).andExpect(status().isUnauthorized());
+    mvc.perform(put(url).with(user(principal))).andExpect(status().isForbidden());
+    for(int i=0;i<2;i++)mvc.perform(put(url).with(user(principal)).with(csrf())).andExpect(status().isOk());
+    mvc.perform(get(url).with(user(principal))).andExpect(jsonPath("$.included").value(true));
+    mvc.perform(get(base).with(user(principal))).andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.items[0].problem.id").value("GC987654"));
+    mvc.perform(get(base+"?q=missing").with(user(principal))).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get(base).with(user(outsider))).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(delete(url).with(user(outsider)).with(csrf())).andExpect(status().isOk());
+    mvc.perform(get(url).with(user(principal))).andExpect(jsonPath("$.included").value(true));
+    db.update("UPDATE problems SET deleted=true WHERE problem_number='GC987654'");
+    mvc.perform(get(base).with(user(principal))).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(put(url).with(user(principal)).with(csrf())).andExpect(status().isNotFound());
+    mvc.perform(delete(url).with(user(principal)).with(csrf())).andExpect(status().isOk());
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM user_mistakes WHERE user_id=?",Integer.class,owner));
+  }
+
+  @Test void sharedSnapshotIsPublicImmutableAndStripsPrivateFields() throws Exception {
+    long owner=actor("papers"+UUID.randomUUID().toString().substring(0,8),"EDITOR"); UUID id=share(owner);
+    var detail=sharedPapers.detail(id,null);
+    var snapshot=(com.fasterxml.jackson.databind.JsonNode)detail.get("snapshot");
+    assertEquals("Shared test",snapshot.path("title").asText());
+    assertFalse(snapshot.path("items").get(0).path("problem").has("answer"));
+    assertEquals(1,snapshot.path("items").get(0).path("problem").path("assets").size());
+    assertFalse((Boolean)detail.get("canEdit")); assertFalse(detail.containsKey("object_key"));
+    mvc.perform(get("/api/v1/papers/"+id)).andExpect(status().isOk()).andExpect(jsonPath("$.question_count").value(1));
+    mvc.perform(post("/api/v1/papers/share").with(user(new CustomUserPrincipal(users.selectById(owner)))).contentType("application/json").content(json.writeValueAsString(publication()))).andExpect(status().isForbidden());
+    assertThrows(BusinessException.class,()->sharedPapers.list(null,"","","mine","newest",null,"",false,1));
+    sharedPapers.remove(id,owner);
+    assertThrows(BusinessException.class,()->sharedPapers.detail(id,owner));
+  }
+  @Test void paperRatingsFavoritesAndCheckingRespectIdentity() throws Exception {
+    long owner=actor("owner"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), reader=actor("reader"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), reviewer=actor("reviewer"+UUID.randomUUID().toString().substring(0,8),"REVIEWER");UUID id=share(owner);
+    assertThrows(BusinessException.class,()->sharedPapers.rate(id,owner,new cn.mathsea.backend.paper.SharedPaperService.Rating(3,4)));
+    assertThrows(BusinessException.class,()->sharedPapers.rate(id,reader,new cn.mathsea.backend.paper.SharedPaperService.Rating(0,4)));
+    sharedPapers.rate(id,reader,new cn.mathsea.backend.paper.SharedPaperService.Rating(3,4));
+    sharedPapers.rate(id,reader,new cn.mathsea.backend.paper.SharedPaperService.Rating(5,2));
+    sharedPapers.favorite(id,reader,true);sharedPapers.favorite(id,reader,true);
+    var detail=sharedPapers.detail(id,reader);assertEquals(1L,detail.get("rating_count"));assertEquals(1L,detail.get("favorite_count"));assertEquals("5.0",detail.get("difficulty").toString());
+    assertThrows(BusinessException.class,()->sharedPapers.check(id,reader,new cn.mathsea.backend.paper.SharedPaperService.Check(true,"Checked")));
+    sharedPapers.check(id,reviewer,new cn.mathsea.backend.paper.SharedPaperService.Check(true,"Questions checked"));
+    assertNotNull(sharedPapers.detail(id,reader).get("checked_at"));
+    sharedPapers.check(id,reviewer,new cn.mathsea.backend.paper.SharedPaperService.Check(false,""));
+    assertNull(sharedPapers.detail(id,reader).get("checked_at"));
+    assertThrows(BusinessException.class,()->sharedPapers.remove(id,reader));
+  }
+  @Test void paperHotRequiresDistinctReaders() throws Exception {
+    long owner=actor("hot"+UUID.randomUUID().toString().substring(0,8),"EDITOR");UUID id=share(owner);
+    for(int i=0;i<12;i++)sharedPapers.access(id,owner,false);
+    assertEquals(false,sharedPapers.detail(id,null).get("hot"));
+    for(int i=0;i<10;i++)sharedPapers.access(id,actor("visitor"+UUID.randomUUID().toString().substring(0,8),"EDITOR"),false);
+    assertEquals(true,sharedPapers.detail(id,null).get("hot"));
+  }
+  @Test void pdfPublicationNeedsStorageAndOwnerAndCanRetryCompletion() throws Exception {
+    long owner=actor("pdf"+UUID.randomUUID().toString().substring(0,8),"EDITOR"), other=actor("other"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    assertThrows(BusinessException.class,()->sharedPapers.beginUpload(owner,publication()));
+    org.mockito.Mockito.when(paperStorage.available()).thenReturn(true);
+    org.mockito.Mockito.when(paperStorage.upload(org.mockito.ArgumentMatchers.any())).thenReturn(Map.of("url","https://files.example.test"));
+    UUID id=(UUID)((Map<?,?>)sharedPapers.beginUpload(owner,publication())).get("id");
+    assertThrows(BusinessException.class,()->sharedPapers.detail(id,owner));
+    assertThrows(BusinessException.class,()->sharedPapers.finishUpload(other,id));
+    org.mockito.Mockito.when(paperStorage.complete(id)).thenReturn(new cn.mathsea.backend.paper.PaperObjectStorage.Stored("paper-files/hash.pdf",128));
+    sharedPapers.finishUpload(owner,id);sharedPapers.finishUpload(owner,id);
+    org.mockito.Mockito.verify(paperStorage,org.mockito.Mockito.times(1)).complete(id);
+    assertEquals(128L,sharedPapers.detail(id,null).get("file_bytes"));
+  }
+
+  cn.mathsea.backend.admin.service.ProblemTrashService.PurgeTarget purgeTarget(String kind,String id) {
+    String generation=db.queryForObject(kind.equals("draft") ? "SELECT version::text FROM editorial_items WHERE id=?::uuid" : "SELECT deleted_at::text FROM problems WHERE problem_number=?",String.class,id);
+    return new cn.mathsea.backend.admin.service.ProblemTrashService.PurgeTarget(kind,id,generation);
+  }
+  cn.mathsea.backend.admin.service.ProblemTrashService.PurgeRequest purgeRequest(List<cn.mathsea.backend.admin.service.ProblemTrashService.PurgeTarget> items,String account,String password) {
+    return new cn.mathsea.backend.admin.service.ProblemTrashService.PurgeRequest(items,account,password,"彻底删除");
+  }
+  String approver() {
+    String account="approve"+UUID.randomUUID().toString().substring(0,8);
+    long id=actor(account,"REVIEWER");
+    db.update("UPDATE users SET password_hash=? WHERE id=?",passwordEncoder.encode("test-approval-password"),id);
+    return account;
+  }
+
+  long actor(String name, String permission) {
+    Long id =
+        db.queryForObject(
+            "INSERT INTO users(public_id,uid,username,email,password_hash,role) VALUES"
+                + " (?,?,?,?,?,'ADMIN') RETURNING id",
+            Long.class,
+            UUID.randomUUID(),
+            "UID" + UUID.randomUUID().toString().substring(0, 12),
+            name,
+            name + "@example.test",
+            "unused");
+    db.update("INSERT INTO editorial_permissions VALUES (?,?)", id, permission);
+    return id;
+  }
+
+  MockMultipartFile markdown(String content) {
+    return new MockMultipartFile(
+        "file",
+        "2024全国甲卷T1.md",
+        "text/markdown",
+        ("---\n"
+                + "id:2024全国甲卷T1\n"
+                + "year:2024\n"
+                + "source:全国甲卷\n"
+                + "number：T1\n"
+                + "question_type:单选题\n"
+                + "difficulty:D1\n"
+                + "tags:集合\n"
+                + "---\n"
+                + "content:\n"
+                + content
+                + "\nimg：0")
+            .getBytes(StandardCharsets.UTF_8));
+  }
+
+  long version(Map<String, Object> item) {
+    return ((Number) item.get("version")).longValue();
+  }
+
+  @Autowired cn.mathsea.backend.user.service.ContributionService contributions;
+
+  @Test
+  void communitySubmissionsArePrivateUntilPublishedAndAttributedToAuthor() throws Exception {
+    long author = actor("author" + UUID.randomUUID().toString().substring(0, 8), "EDITOR");
+    long reviewer = actor("review" + UUID.randomUUID().toString().substring(0, 8), "MANAGER");
+    db.update("UPDATE users SET role='USER' WHERE id=?", author);
+    var request = new EditorialService.Contribution("社区测试题", 2025, "原创", "single-choice", "求 $1+1$", "2", "加法");
+    var principal = new CustomUserPrincipal(users.selectById(author));
+    String body = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(request);
+    mvc.perform(post("/api/v1/users/me/contributions").with(user(principal)).contentType("application/json").content(body)).andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/users/me/contributions").with(user(principal)).with(csrf()).contentType("application/json").content(body)).andExpect(status().isOk());
+    UUID id = db.queryForObject("SELECT id FROM editorial_items WHERE created_by=?", UUID.class, author);
+    assertEquals("DRAFT", service.detail(id).get("status"));
+    mvc.perform(get("/api/v1/users/" + author + "/contributions")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+    mvc.perform(get("/api/v1/users/" + author + "/contributions").with(user(principal))).andExpect(status().isOk()).andExpect(jsonPath("$.summary.pending").value(1));
+    mvc.perform(get("/api/v1/users/me/contributions/upload/" + id).with(user(new CustomUserPrincipal(users.selectById(reviewer))))).andExpect(status().isNotFound());
+    mvc.perform(get("/api/v1/users/me/contributions/upload/" + id).with(user(principal))).andExpect(status().isOk()).andExpect(jsonPath("$.document.answer").value("2"));
+    service.contribute(author, request);
+    assertEquals(1, db.queryForObject("SELECT count(*) FROM editorial_items WHERE created_by=?", Integer.class, author));
+    service.action(reviewer, id, new EditorialService.Action(1, "PUBLISH", "", null));
+    mvc.perform(get("/api/v1/users/" + author + "/contributions")).andExpect(status().isOk()).andExpect(jsonPath("$.summary.accepted").value(1)).andExpect(jsonPath("$.items[0].status").value("ACCEPTED")).andExpect(jsonPath("$.items[0].document").doesNotExist());
+    assertEquals(20,growth.summary(author).experience());
+    String number = service.detail(id).get("problem_number").toString();
+    feedback.submit(author, number, "答案", "私人反馈描述", "私人建议", null);
+    mvc.perform(get("/api/v1/users/" + author + "/contributions?kind=feedback")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0));
+    db.update("UPDATE problem_feedback SET status='RESOLVED',response='内部处理说明' WHERE user_id=?", author);
+    mvc.perform(get("/api/v1/users/" + author + "/contributions?kind=feedback")).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.items[0].description").doesNotExist()).andExpect(jsonPath("$.items[0].response").doesNotExist());
+  }
+
+  @Test
+  void reimportAfterPermanentDeletionCreatesFreshDraftInSameOrNewBatch() {
+    for (boolean published : List.of(false, true)) {
+      long manager = actor("reimport" + UUID.randomUUID().toString().substring(0, 8), "MANAGER");
+      UUID paper = (UUID) service.paper(manager, "重新导入" + UUID.randomUUID()).get("id");
+      UUID batch = (UUID) service.batch(manager, "原批次").get("id");
+      var file = markdown("重新上传的原文件");
+      UUID old = (UUID) service.importFile(manager, batch, paper, "T1.md", file, List.of()).get("itemId");
+      String number = null;
+      if (published) {
+        number = service.action(manager, old, new EditorialService.Action(1, "PUBLISH", "", null)).get("problem_number").toString();
+        trash.delete(manager, List.of(number));
+      } else {
+        trash.deleteDrafts(manager, List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(old, 1)));
+      }
+      assertEquals("CONFLICT", service.importFile(manager, batch, paper, "T1.md", file, List.of()).get("result"));
+      trash.purgeBatch(manager, purgeRequest(List.of(purgeTarget(published ? "published" : "draft", published ? number : old.toString())), approver(), "test-approval-password"));
+      // Even an original successful import entry must not suppress re-uploading a purged item.
+      db.update("UPDATE editorial_import_entries SET result='IMPORTED' WHERE batch_id=?", batch);
+      UUID targetBatch = published ? (UUID) service.batch(manager, "新批次").get("id") : batch;
+      var imported = service.importFile(manager, targetBatch, paper, "T1.md", file, List.of());
+      assertEquals("IMPORTED", imported.get("result"));
+      UUID fresh = (UUID) imported.get("itemId");
+      assertNotEquals(old, fresh);
+      assertEquals("DRAFT", service.detail(fresh).get("status"));
+      assertNotNull(db.queryForObject("SELECT purged_at FROM editorial_items WHERE id=?", Object.class, old));
+      assertEquals("SKIPPED", service.importFile(manager, batch, paper, "T1.md", file, List.of()).get("result"));
+      assertEquals(1, db.queryForObject("SELECT count(*) FROM editorial_items WHERE paper_id=? AND purged_at IS NULL", Integer.class, paper));
+      var result = service.action(manager, fresh, new EditorialService.Action(1, "PUBLISH", "", null));
+      assertEquals("PUBLISHED", result.get("status"));
+      if (published) assertNotEquals(number, result.get("problem_number"));
+    }
+  }
+
+  @Test
+  void purgeRequiresDifferentActiveAdminAndIsAtomic() throws Exception {
+    String account=approver();
+    long approverId=users.findByAccount(account).getId();
+    long manager=actor("purge"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    String own=users.selectById(manager).getUsername();
+    db.update("UPDATE users SET password_hash=? WHERE id=?",passwordEncoder.encode("own-password"),manager);
+    var a=service.manual(manager); var b=service.manual(manager);
+    UUID aid=(UUID)a.get("id"),bid=(UUID)b.get("id");
+    trash.deleteDrafts(manager,List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(aid,version(a)),new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(bid,version(b))));
+    var targets=List.of(purgeTarget("draft",aid.toString()),purgeTarget("draft",bid.toString()));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,own,"own-password")));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"wrong")));
+    db.update("UPDATE users SET role='USER' WHERE id=?",approverId);
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password")));
+    db.update("UPDATE users SET role='ADMIN',status='BANNED' WHERE id=?",approverId);
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password")));
+    db.update("UPDATE users SET status='ACTIVE' WHERE id=?",approverId);
+    trash.restoreDraft(manager,bid);
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password")));
+    assertNull(db.queryForObject("SELECT purged_at FROM editorial_items WHERE id=?",Object.class,aid));
+    trash.deleteDrafts(manager,List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(bid,version(service.detail(bid)))));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password")));
+    var current=List.of(purgeTarget("draft",aid.toString()),purgeTarget("draft",bid.toString()));
+    var principal=new CustomUserPrincipal(users.selectById(manager));
+    mvc.perform(delete("/api/v1/admin/problem-trash/GC000001").with(user(principal)).with(csrf()).contentType("application/json").content("{\"number\":\"GC000001\"}")).andExpect(status().isForbidden());
+    var requestBody=new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(purgeRequest(current,account,"test-approval-password"));
+    mvc.perform(post("/api/v1/admin/problem-trash/purge").with(user(principal)).contentType("application/json").content(requestBody)).andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/admin/problem-trash/purge").with(user(principal)).with(csrf()).contentType("application/json").content(requestBody)).andExpect(status().isOk()).andExpect(org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated().withUsername(own));
+    assertEquals(2,db.queryForObject("SELECT count(*) FROM editorial_items WHERE id IN (?,?) AND purged_at IS NOT NULL AND payload='{}'::jsonb",Integer.class,aid,bid));
+    assertEquals(2,db.queryForObject("SELECT count(*) FROM audit_logs WHERE actor_user_id=? AND action='DRAFT_PURGE' AND details LIKE ?",Integer.class,manager,"%认证管理员="+approverId+"；%"));
+    assertThrows(BusinessException.class,()->trash.restoreDraft(manager,aid));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(current,account,"test-approval-password")));
+    org.mockito.Mockito.verify(purgeRateLimit,org.mockito.Mockito.atLeastOnce()).check(org.mockito.ArgumentMatchers.eq("purge-approval"),org.mockito.ArgumentMatchers.eq(Long.toString(manager)),org.mockito.ArgumentMatchers.eq(10),org.mockito.ArgumentMatchers.eq(java.time.Duration.ofMinutes(10)));
+  }
+
+  @Test
+  void purgedRevisionCanStartFreshFromPublicVersion() {
+    long manager=actor("renew"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    UUID paper=(UUID)service.paper(manager,"重新修订"+UUID.randomUUID()).get("id");
+    UUID batch=(UUID)service.batch(manager,"renew").get("id");
+    UUID id=(UUID)service.importFile(manager,batch,paper,"T1.md",markdown("公开内容"),List.of()).get("itemId");
+    var published=service.action(manager,id,new EditorialService.Action(1,"PUBLISH","",null));
+    String number=published.get("problem_number").toString();
+    // Model an initial-review revision of an already published question.
+    long pid=problemMapper.findByProblemNumber(number).getId();
+    db.update("INSERT INTO problem_assets(problem_id,url,mime_type,alt_text,sort_order) VALUES (?,'/uploads/shared-purge-test.png','image/png','test',0)",pid);
+    db.update("INSERT INTO editorial_assets(id,item_id,filename,checksum,url,mime_type) VALUES (?,?,'shared.png','shared','/uploads/shared-purge-test.png','image/png')",UUID.randomUUID(),id);
+    db.update("UPDATE editorial_items SET status='DRAFT' WHERE id=?",id);
+    trash.deleteDrafts(manager,List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(id,version(service.detail(id)))));
+    trash.purgeBatch(manager,purgeRequest(List.of(purgeTarget("draft",id.toString())),approver(),"test-approval-password"));
+    assertEquals("公开内容",publicProblems.detail(number,null).content());
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM problem_assets WHERE problem_id=?",Integer.class,pid));
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM editorial_assets WHERE item_id=?",Integer.class,id));
+    var fresh=service.fromPublished(manager,number);
+    assertEquals(id,fresh.get("id"));
+    assertEquals("PUBLISHED",fresh.get("status"));
+    assertNull(db.queryForObject("SELECT purged_at FROM editorial_items WHERE id=?",Object.class,id));
+  }
+
+  @Test
+  void draftBatchTrashIsAtomicPermissionCheckedAndRestorable() {
+    long manager=actor("delete-manager"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    long other=actor("delete-other"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    var a=service.manual(manager); var b=service.manual(manager);
+    var ids=List.of((UUID)a.get("id"),(UUID)b.get("id")).stream().sorted().toList();
+    var targets=ids.stream().map(id -> new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(id,version(service.detail(id)))).toList();
+    assertThrows(BusinessException.class,()->trash.deleteDrafts(other,targets));
+    assertThrows(BusinessException.class,()->trash.deleteDrafts(manager,List.of(targets.get(0),new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(ids.get(1),999))));
+    assertEquals("DRAFT",service.detail(ids.getFirst()).get("status"));
+    assertThrows(BusinessException.class,()->trash.deleteDrafts(manager,List.of(targets.get(0),targets.get(0))));
+    service.releaseLease(manager,ids.get(1)); service.acquire(other,ids.get(1));
+    assertThrows(BusinessException.class,()->trash.deleteDrafts(manager,targets));
+    assertEquals("DRAFT",service.detail(ids.getFirst()).get("status"));
+    service.releaseLease(other,ids.get(1));
+    long count=db.queryForObject("SELECT count(*) FROM problems",Long.class);
+    trash.deleteDrafts(manager,targets);
+    assertEquals(count,db.queryForObject("SELECT count(*) FROM problems",Long.class));
+    assertThrows(BusinessException.class,()->service.detail(ids.getFirst()));
+    var listed=(Map<?,?>)trash.list(manager,"",1);
+    assertTrue(((List<Map<String,Object>>)listed.get("items")).stream().anyMatch(r->"draft".equals(r.get("kind")) && ids.getFirst().toString().equals(r.get("id"))));
+    trash.restoreDraft(manager,ids.getFirst());
+    assertEquals("DRAFT",service.detail(ids.getFirst()).get("status"));
+    assertTrue(version(service.detail(ids.getFirst()))>targets.getFirst().version());
+  }
+
+  @Test
+  void discardingRevisionDoesNotDeletePublicQuestionOrRestoreItAccidentally() {
+    long manager=actor("revision-delete"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    UUID paper=(UUID)service.paper(manager,"删除测试卷"+UUID.randomUUID()).get("id");
+    UUID batch=(UUID)service.batch(manager,"delete-test").get("id");
+    UUID id=(UUID)service.importFile(manager,batch,paper,"T1.md",markdown("公开题干"),List.of()).get("itemId");
+    var published=service.action(manager,id,new EditorialService.Action(version(service.detail(id)),"PUBLISH","",null));
+    String number=(String)published.get("problem_number");
+    var draft=service.save(manager,id,new EditorialService.Save(version(published),(EditorialDocument)published.get("document"),"修订"));
+    trash.deleteDrafts(manager,List.of(new cn.mathsea.backend.admin.service.ProblemTrashService.DraftTarget(id,version(draft))));
+    assertFalse(db.queryForObject("SELECT deleted FROM problems WHERE problem_number=?",Boolean.class,number));
+    assertThrows(BusinessException.class,()->trash.delete(manager,List.of(number,"GS999999")));
+    assertFalse(db.queryForObject("SELECT deleted FROM problems WHERE problem_number=?",Boolean.class,number));
+    trash.delete(manager,List.of(number));
+    assertThrows(BusinessException.class,()->trash.restoreDraft(manager,id));
+    trash.restore(manager,number);
+    assertEquals("TRASH",db.queryForObject("SELECT status FROM editorial_items WHERE id=?",String.class,id));
+    trash.restoreDraft(manager,id);
+    assertEquals("DRAFT",service.detail(id).get("status"));
+  }
+
+  @Test
+  void draftsArePrivateDuplicateSafeAndPublishingRetainsThePreviousVersion() {
+    long editor = actor("editor" + UUID.randomUUID().toString().substring(0, 8), "EDITOR"),
+        reviewer = actor("reviewer" + UUID.randomUUID().toString().substring(0, 8), "REVIEWER");
+    UUID paper = (UUID) service.paper(editor, "2024全国甲卷理科 " + UUID.randomUUID()).get("id");
+    UUID batch = (UUID) service.batch(editor, "test").get("id");
+    Long before = db.queryForObject("SELECT count(*) FROM problems", Long.class);
+    var imported =
+        service.importFile(editor, batch, paper, "卷/T1.md", markdown("原始内容 $x=1$"), List.of());
+    UUID id = (UUID) imported.get("itemId");
+    assertEquals(before, db.queryForObject("SELECT count(*) FROM problems", Long.class));
+    assertEquals(
+        "SKIPPED",
+        service
+            .importFile(editor, batch, paper, "卷/T1.md", markdown("原始内容 $x=1$"), List.of())
+            .get("result"));
+    assertEquals(
+        "CONFLICT",
+        service
+            .importFile(editor, batch, paper, "卷/T1.md", markdown("改变"), List.of())
+            .get("result"));
+    var item = service.detail(id);
+    var review =
+        service.action(
+            editor, id, new EditorialService.Action(version(item), "SUBMIT", "初校完成", null));
+    assertThrows(
+        BusinessException.class,
+        () ->
+            service.action(
+                editor, id, new EditorialService.Action(version(review), "PUBLISH", "", null)));
+    var published =
+        service.action(
+            reviewer, id, new EditorialService.Action(version(review), "PUBLISH", "复核完成", null));
+    String number = published.get("problem_number").toString();
+    assertTrue(number.matches("GC[0-9]{6}"));
+    var doc = (EditorialDocument) published.get("document");
+    var edited =
+        new EditorialDocument(
+            doc.title(),
+            doc.year(),
+            doc.source(),
+            doc.type(),
+            doc.level(),
+            doc.tags(),
+            "修正内容",
+            doc.answer(),
+            doc.solution(),
+            doc.assets(),
+            doc.imageReferences(),
+            doc.originalMetadata(),
+            doc.warnings());
+    var saved =
+        service.save(editor, id, new EditorialService.Save(version(published), edited, "修正"));
+    assertEquals(
+        "原始内容 $x=1$",
+        db.queryForObject(
+            "SELECT content FROM problems WHERE problem_number=?", String.class, number));
+    assertThrows(
+        BusinessException.class,
+        () ->
+            service.save(
+                reviewer, id, new EditorialService.Save(version(published), doc, "旧版本保存")));
+    var claim =
+        service.action(editor, id, new EditorialService.Action(version(saved), "CLAIM", "", null));
+    assertThrows(
+        BusinessException.class,
+        () -> service.save(reviewer, id, new EditorialService.Save(version(claim), doc, "冲突")));
+    var submitted =
+        service.action(editor, id, new EditorialService.Action(version(claim), "SUBMIT", "", null));
+    service.action(
+        reviewer, id, new EditorialService.Action(version(submitted), "PUBLISH", "再次复核", null));
+    assertEquals(
+        "修正内容",
+        db.queryForObject(
+            "SELECT content FROM problems WHERE problem_number=?", String.class, number));
+    assertEquals(before + 1, db.queryForObject("SELECT count(*) FROM problems", Long.class));
+    UUID anotherPaper = (UUID) service.paper(editor, "同名题的另一张卷 " + UUID.randomUUID()).get("id");
+    assertEquals(
+        "IMPORTED",
+        service
+            .importFile(editor, batch, anotherPaper, "另一卷/T1.md", markdown("不同题目"), List.of())
+            .get("result"));
+    assertFalse(((List<?>) service.queue("", null, "", 1).get("items")).isEmpty());
+    var current = service.detail(id);
+    var corrected =
+        new EditorialDocument(
+            doc.title(),
+            doc.year(),
+            doc.source(),
+            "multiple-choice",
+            doc.level(),
+            doc.tags(),
+            doc.content(),
+            doc.answer(),
+            doc.solution(),
+            doc.assets(),
+            doc.imageReferences(),
+            Map.of("source_category", "E"),
+            doc.warnings());
+    var correction =
+        service.save(editor, id, new EditorialService.Save(version(current), corrected, "更正分类"));
+    var correctionReview =
+        service.action(
+            editor, id, new EditorialService.Action(version(correction), "SUBMIT", "", null));
+    var republished =
+        service.action(
+            reviewer,
+            id,
+            new EditorialService.Action(version(correctionReview), "PUBLISH", "", null));
+    String correctedNumber = "EM" + number.substring(2);
+    assertEquals(correctedNumber, republished.get("problem_number"));
+    assertEquals(correctedNumber, problemMapper.findByProblemNumber(number).getProblemNumber());
+    assertEquals(
+        problemMapper.findIdByProblemNumber(correctedNumber),
+        problemMapper.findIdByProblemNumber(number));
+    assertEquals(id, service.fromPublished(editor, number).get("id"));
+  }
+
+  @Test
+  void imagesRestoreAndBulkConflictsAreAtomic() {
+    long manager = actor("manager" + UUID.randomUUID().toString().substring(0, 8), "MANAGER");
+    var first = service.manual(manager);
+    UUID id = (UUID) first.get("id");
+    byte[] png =
+        Base64.getDecoder()
+            .decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0l8AAAAASUVORK5CYII=");
+    var withImage =
+        service.upload(
+            manager,
+            id,
+            version(first),
+            new MockMultipartFile("file", "截图.png", "image/png", png),
+            "solution");
+    var imageDoc = (EditorialDocument) withImage.get("document");
+    assertEquals(1, imageDoc.assets().size());
+    var filled =
+        new EditorialDocument(
+            "配图题",
+            2024,
+            "全国甲卷",
+            "single-choice",
+            "purple",
+            List.of("集合"),
+            "题干",
+            "A",
+            "解析",
+            imageDoc.assets(),
+            List.of(),
+            Map.of(),
+            List.of());
+    var saved =
+        service.save(manager, id, new EditorialService.Save(version(withImage), filled, "补齐内容"));
+    var review =
+        service.action(
+            manager, id, new EditorialService.Action(version(saved), "SUBMIT", "", null));
+    var published =
+        service.action(
+            manager, id, new EditorialService.Action(version(review), "PUBLISH", "", null));
+    String publicSolution =
+        db.queryForObject(
+            "SELECT solution FROM problems WHERE problem_number=?",
+            String.class,
+            published.get("problem_number"));
+    assertTrue(publicSolution.contains(imageDoc.assets().getFirst().url()));
+    var second = service.manual(manager);
+    UUID secondId = (UUID) second.get("id");
+    var forged =
+        new EditorialDocument(
+            "盗用图片",
+            2024,
+            "",
+            "single-choice",
+            "red",
+            List.of(),
+            "题干",
+            "",
+            "",
+            imageDoc.assets(),
+            List.of(),
+            Map.of(),
+            List.of());
+    assertThrows(
+        BusinessException.class,
+        () ->
+            service.save(
+                manager, secondId, new EditorialService.Save(version(second), forged, "")));
+    var oldVersion = version(published);
+    assertThrows(
+        BusinessException.class,
+        () ->
+            service.bulk(
+                manager,
+                new EditorialService.Bulk(
+                    List.of(
+                        new EditorialService.Target(id, oldVersion),
+                        new EditorialService.Target(secondId, 999)),
+                    "source",
+                    "新来源",
+                    "")));
+    assertEquals(oldVersion, version(service.detail(id)));
+    var history = (List<Map<String, Object>>) published.get("history");
+    long oldest = ((Number) history.getLast().get("id")).longValue();
+    var restored =
+        service.action(
+            manager, id, new EditorialService.Action(oldVersion, "RESTORE", "回到初始草稿", oldest));
+    assertTrue(((EditorialDocument) restored.get("document")).assets().isEmpty());
+    assertEquals(
+        publicSolution,
+        db.queryForObject(
+            "SELECT solution FROM problems WHERE problem_number=?",
+            String.class,
+            published.get("problem_number")));
+    assertEquals(
+        1L,
+        db.queryForObject("SELECT count(*) FROM editorial_assets WHERE item_id=?", Long.class, id));
+  }
+
+  @Test
+  void httpRoutesEnforceAuthenticationCsrfAndReviewerPermissions() throws Exception {
+    mvc.perform(get("/api/v1/curriculum"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.chapters.length()").value(18));
+    mvc.perform(get("/api/v1/admin/editorial/items")).andExpect(status().isUnauthorized());
+    long editor = actor("http" + UUID.randomUUID().toString().substring(0, 8), "EDITOR");
+    var principal = new CustomUserPrincipal(users.selectById(editor));
+    mvc.perform(
+            put("/api/v1/admin/curriculum/presets/semester-1")
+                .with(user(principal))
+                .with(csrf())
+                .contentType("application/json")
+                .content("{\"version\":1,\"chapters\":[\"A11\"]}"))
+        .andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/admin/editorial/items").with(user(principal)))
+        .andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/admin/editorial/items").with(user(principal)).with(csrf()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("DRAFT"));
+    mvc.perform(get("/api/v1/admin/editorial/me").with(user(principal)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.permission").value("EDITOR"));
+    mvc.perform(get("/api/v1/admin/editorial/members").with(user(principal)))
+        .andExpect(status().isForbidden());
+    mvc.perform(delete("/api/v1/admin/problems/P10001").with(user(principal)).with(csrf()))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.error.code").value("USE_WORKBENCH"));
+  }
+
+  @Test
+  void curriculumRequiresAllPrerequisitesAndOnlyPublishedConfirmationCounts() throws Exception {
+    long actor = actor("chap" + UUID.randomUUID().toString().substring(0, 8), "MANAGER");
+    UUID paper = (UUID) service.paper(actor, "章节测试" + UUID.randomUUID()).get("id");
+    UUID batch = (UUID) service.batch(actor, "章节测试").get("id");
+    var raw =
+        new String(markdown("集合与导数").getBytes(), StandardCharsets.UTF_8)
+            .replace(
+                "tags:集合",
+                "tags:集合\ncurriculum:PEP-A-2019\nchapters:A11,A42\nchapters_confirmed:true");
+    var file =
+        new MockMultipartFile(
+            "file", "chapters.md", "text/markdown", raw.getBytes(StandardCharsets.UTF_8));
+    UUID id =
+        (UUID)
+            service.importFile(actor, batch, paper, "chapters.md", file, List.of()).get("itemId");
+    var imported = service.detail(id);
+    var doc = (EditorialDocument) imported.get("document");
+    assertEquals(List.of("A11", "A42"), doc.curriculum().chapters());
+    assertEquals(1L,service.queue("",paper,"",1,"pending").get("total"));
+    assertEquals(0L,service.queue("",paper,"",1,"missing").get("total"));
+    assertEquals(0L,service.queue("",paper,"",1,"confirmed").get("total"));
+    assertFalse(doc.curriculum().confirmed(), "MD cannot grant confirmation");
+    var initial = publishItem(actor, id, imported);
+    String number = initial.get("problem_number").toString();
+    assertEquals(1, queryCurriculum(number, false, List.of(), List.of()));
+    assertEquals(1, queryCurriculum(number, true, List.of("A11", "A42"), List.of()));
+    var confirmed = withCurriculum(doc, List.of("A11", "A42"), true);
+    var saved =
+        service.save(actor, id, new EditorialService.Save(version(initial), confirmed, "确认章节"));
+    assertEquals(1, queryCurriculum(number, true, List.of("A11", "A42"), List.of()));
+    var published = publishItem(actor, id, saved);
+    assertEquals(0, queryCurriculum(number, true, List.of("A11"), List.of()));
+    assertEquals(0, queryCurriculum(number, true, List.of("A42"), List.of()));
+    assertEquals(0, queryCurriculum(number, true, List.of(), List.of()));
+    assertEquals(1, queryCurriculum(number, true, List.of("A11", "A42", "A22"), List.of()));
+    assertEquals(1, queryCurriculum(number, false, List.of(), List.of("A42")));
+    assertEquals(0, queryCurriculum(number, true, List.of("A11"), List.of("A42")));
+    assertEquals(0, queryCurriculum(number, false, List.of(), List.of("A22")));
+    assertTrue(publicProblems.detail(number, null).curriculum().confirmed());
+    assertThrows(
+        BusinessException.class, () -> queryCurriculum(number, true, List.of("A99"), List.of()));
+    service.bulk(
+        actor,
+        new EditorialService.Bulk(
+            List.of(new EditorialService.Target(id, version(published))), "chapters", "A22", "补标"));
+    var bulk = service.detail(id);
+    assertFalse(((EditorialDocument) bulk.get("document")).curriculum().confirmed());
+    assertEquals(
+        1,
+        queryCurriculum(number, true, List.of("A11", "A42"), List.of()),
+        "draft must not alter public prerequisites");
+    assertThrows(
+        BusinessException.class,
+        () ->
+            service.save(
+                actor,
+                id,
+                new EditorialService.Save(
+                    version(bulk), withCurriculum(doc, List.of(), true), "")));
+    var unconfirmed = publishItem(actor, id, bulk);
+    assertEquals(1, queryCurriculum(number, true, List.of("A11", "A42", "A22"), List.of()));
+    assertEquals(1, queryCurriculum(number, false, List.of(), List.of()));
+    assertEquals(List.of("A22"), publicProblems.detail(number, null).curriculum().chapters());
+    var history = (List<Map<String, Object>>) unconfirmed.get("history");
+    var old =
+        history.stream().filter(h -> "IMPORT".equals(h.get("action"))).findFirst().orElseThrow();
+    service.action(
+        actor,
+        id,
+        new EditorialService.Action(
+            version(unconfirmed), "RESTORE", "恢复旧章节", ((Number) old.get("id")).longValue()));
+    assertEquals(List.of("A22"), publicProblems.detail(number, null).curriculum().chapters());
+    var preset =
+        new cn.mathsea.backend.curriculum.CurriculumService.PresetUpdate(1, List.of("A11", "A12"));
+    curriculum.updatePreset(actor, "semester-1", preset);
+    assertThrows(
+        BusinessException.class, () -> curriculum.updatePreset(actor, "semester-1", preset));
+  }
+
+  private EditorialDocument withCurriculum(
+      EditorialDocument d, List<String> codes, boolean confirmed) {
+    return new EditorialDocument(
+        d.title(),
+        d.year(),
+        d.source(),
+        d.type(),
+        d.level(),
+        d.tags(),
+        d.content(),
+        d.answer(),
+        d.solution(),
+        d.assets(),
+        d.imageReferences(),
+        d.originalMetadata(),
+        d.warnings(),
+        new cn.mathsea.backend.curriculum.CurriculumAnnotation("PEP-A-2019", codes, confirmed));
+  }
+
+  private Map<String, Object> publishItem(long actor, UUID id, Map<String, Object> item) {
+    var review =
+        service.action(actor, id, new EditorialService.Action(version(item), "SUBMIT", "", null));
+    return service.action(
+        actor, id, new EditorialService.Action(version(review), "PUBLISH", "", null));
+  }
+
+  @Test
+  void reviewQueuesLeasesAndHierarchicalTags() throws Exception {
+    long reviewer = actor("rev" + UUID.randomUUID().toString().substring(0, 8), "REVIEWER");
+    long other = actor("other" + UUID.randomUUID().toString().substring(0, 8), "REVIEWER");
+    UUID paper = (UUID) service.paper(reviewer, "连续审核 " + UUID.randomUUID()).get("id");
+    UUID batch = (UUID) service.batch(reviewer, "review").get("id");
+    UUID id = (UUID) service.importFile(reviewer, batch, paper, "T1.md", markdown("双曲线测试"), List.of()).get("itemId");
+    assertEquals(1L, ((Number) service.queue("PENDING", paper, "", 1).get("total")).longValue());
+    var acquired = service.acquire(reviewer, id);
+    assertThrows(BusinessException.class, () -> service.acquire(other, id));
+    service.releaseLease(other, id);
+    assertThrows(BusinessException.class, () -> service.acquire(other, id));
+    var returned = service.action(reviewer, id, new EditorialService.Action(version(acquired), "RETURN", "图片：补图", null));
+    assertEquals("CHANGES", returned.get("status"));
+    assertEquals(0L, ((Number) service.queue("PENDING", paper, "", 1).get("total")).longValue());
+    assertEquals(1L, ((Number) service.queue("CHANGES", paper, "", 1, "", "图片").get("total")).longValue());
+    var d = (EditorialDocument) returned.get("document");
+    var updated = new EditorialDocument(d.title(), d.year(), d.source(), d.type(), d.level(), List.of("双曲线"), d.content(), d.answer(), d.solution(), d.assets(), d.imageReferences(), d.originalMetadata(), d.warnings(), d.curriculum());
+    var saved = service.save(other, id, new EditorialService.Save(version(returned), updated, "已修正"));
+    assertEquals("CHANGES", saved.get("status"));
+    assertThrows(BusinessException.class, () -> service.action(other, id, new EditorialService.Action(version(saved), "PUBLISH", "", null)));
+    var submitted = service.action(other, id, new EditorialService.Action(version(saved), "SUBMIT", "", null));
+    var pub = service.action(reviewer, id, new EditorialService.Action(version(submitted), "PUBLISH", "", null));
+    String number = pub.get("problem_number").toString();
+    for (String tag : List.of("解析几何", "解几", "圆锥曲线", "双曲线")) {
+      var result = publicProblems.query(new cn.mathsea.backend.problem.dto.ProblemQuery(number, List.of(), List.of(), List.of(), List.of(), List.of(tag, "不存在标签"), "newest", 1, 20), null);
+      assertEquals(1, result.pagination().total(), tag);
+    }
+    assertEquals(1, publicProblems.query(new cn.mathsea.backend.problem.dto.ProblemQuery(number, List.of(), List.of(), List.of(), List.of(), List.of("抛物线"), "newest", 1, 20), null).pagination().total());
+    UUID freshPaper = (UUID) service.paper(reviewer, "直接审核 " + UUID.randomUUID()).get("id");
+    UUID fresh = (UUID) service.importFile(reviewer, batch, freshPaper, "new.md", markdown("直接通过"), List.of()).get("itemId");
+    assertEquals("PUBLISHED", service.action(reviewer, fresh, new EditorialService.Action(1, "PUBLISH", "", null)).get("status"));
+    mvc.perform(get("/api/v1/problems/tag-taxonomy")).andExpect(status().isOk()).andExpect(jsonPath("$[6].name").value("解析几何"));
+  }
+
+  @Test
+  void recycleBinPreservesLinksAndPreventsStalePublishing() {
+    long manager = actor("trash" + UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    long editor = actor("noDel" + UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    UUID paper=(UUID) service.paper(manager,"回收测试 " + UUID.randomUUID()).get("id");
+    UUID batch=(UUID) service.batch(manager,"trash").get("id");
+    UUID id=(UUID) service.importFile(manager,batch,paper,"T1.md",markdown("保留原文"),List.of()).get("itemId");
+    var published=service.action(manager,id,new EditorialService.Action(1,"PUBLISH","",null));
+    String number=published.get("problem_number").toString();
+    long pid=problemMapper.findByProblemNumber(number).getId();
+    db.update("INSERT INTO problem_assets(problem_id,url,mime_type,alt_text,sort_order) VALUES (?,'/uploads/trash-test.png','image/png','test',0)",pid);
+    db.update("INSERT INTO user_problem_states(user_id,problem_id,favorite,completed) VALUES (?,?,true,true)",editor,pid);
+    assertThrows(BusinessException.class,()->trash.delete(editor,List.of(number)));
+    assertThrows(BusinessException.class,()->trash.delete(manager,List.of(number,"not-a-number")));
+    assertFalse(problemMapper.findByProblemNumber(number).getDeleted());
+    trash.delete(manager,List.of(number));
+    assertTrue(problemMapper.findByProblemNumber(number).getDeleted());
+    assertThrows(BusinessException.class,()->publicProblems.detail(number,null));
+    assertEquals(0,queryCurriculum(number,false,List.of(),List.of()));
+    var summary=publicProblems.summariesByInternalIds(List.of(pid),editor).get(pid);
+    assertEquals("题目已删除",summary.title()); assertTrue(summary.assets().isEmpty());
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM problem_assets WHERE problem_id=?",Integer.class,pid));
+    assertThrows(BusinessException.class,()->service.action(manager,id,new EditorialService.Action(version(published),"PUBLISH","",null)));
+    assertThrows(BusinessException.class,()->service.acquire(manager,id));
+    trash.restore(manager,number);
+    assertEquals("保留原文",publicProblems.detail(number,null).content());
+    assertEquals("PUBLISHED",service.detail(id).get("status"));
+    assertEquals(1,db.queryForObject("SELECT count(*) FROM user_problem_states WHERE problem_id=? AND favorite",Integer.class,pid));
+    trash.delete(manager,List.of(number));
+    String account=approver();
+    var targets=List.of(purgeTarget("published",number));
+    assertThrows(BusinessException.class,()->trash.purgeBatch(manager,purgeRequest(targets,account,"wrong")));
+    trash.purgeBatch(manager,purgeRequest(targets,account,"test-approval-password"));
+    assertThrows(BusinessException.class,()->trash.restore(manager,number));
+    assertEquals("",db.queryForObject("SELECT content FROM problems WHERE id=?",String.class,pid));
+    assertEquals(number,problemMapper.findByProblemNumber(number).getProblemNumber());
+    assertEquals(0,db.queryForObject("SELECT count(*) FROM problem_assets WHERE problem_id=?",Integer.class,pid));
+  }
+
+
+  @Test
+  void simpleTagsMappingAndFeedbackWorkflow() throws Exception {
+    long manager=actor("fb"+UUID.randomUUID().toString().substring(0,8),"MANAGER");
+    long user=actor("fu"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    long other=actor("fo"+UUID.randomUUID().toString().substring(0,8),"EDITOR");
+    UUID paper=(UUID)service.paper(manager,"反馈测试 "+UUID.randomUUID()).get("id");
+    UUID batch=(UUID)service.batch(manager,"feedback").get("id");
+    var raw=new String(markdown("反馈原题").getBytes(),StandardCharsets.UTF_8).replace("tags:集合","tags:集合,集合的运算,导数");
+    UUID id=(UUID)service.importFile(manager,batch,paper,"T1.md",new MockMultipartFile("file","T1.md","text/markdown",raw.getBytes(StandardCharsets.UTF_8)),List.of()).get("itemId");
+    var doc=(EditorialDocument)service.detail(id).get("document");
+    assertEquals(List.of("集合与逻辑","函数与导数"),doc.tags());
+    var published=service.action(manager,id,new EditorialService.Action(1,"PUBLISH","",null));
+    String number=published.get("problem_number").toString();
+    assertEquals(0,queryCurriculum(number,true,List.of("A11","A13","A14"),List.of()));
+    assertEquals(1,queryCurriculum(number,true,List.of("A11","A13","A14","A42"),List.of()));
+    assertFalse(publicProblems.detail(number,null).curriculum().confirmed());
+    assertEquals(List.of("A32","A33"),curriculum.suggest(List.of("双曲线")));
+    long fid=((Number)((Map<?,?>)feedback.submit(user,number,"答案","答案有错误","建议核对计算",null)).get("id")).longValue();
+    assertEquals(fid,((Number)((Map<?,?>)feedback.submit(user,number,"答案","答案有错误","",null)).get("id")).longValue());
+    assertEquals(0L,((Map<?,?>)feedback.mine(other,1)).get("total"));
+    assertThrows(BusinessException.class,()->feedback.queue(user,"OPEN",1));
+    var snapshot=db.queryForObject("SELECT problem_snapshot->>'content' FROM problem_feedback WHERE id=?",String.class,fid);
+    assertEquals("反馈原题",snapshot);
+    var target=new cn.mathsea.backend.feedback.FeedbackService.Target(fid,1);
+    var change=new cn.mathsea.backend.feedback.FeedbackService.Resolution(List.of(target),"CHANGES","已安排核对");
+    assertThrows(BusinessException.class,()->feedback.resolve(user,change));
+    feedback.resolve(manager,change);
+    assertThrows(BusinessException.class,()->feedback.resolve(manager,change));
+    long second=((Number)((Map<?,?>)feedback.submit(other,number,"解析","解析结论有误","",null)).get("id")).longValue();
+    feedback.resolve(manager,new cn.mathsea.backend.feedback.FeedbackService.Resolution(List.of(new cn.mathsea.backend.feedback.FeedbackService.Target(fid,2)),"RESOLVED","已修正答案"));
+    assertEquals(10,growth.summary(user).experience());
+    growth.feedbackAccepted(fid,manager);
+    assertEquals(10,growth.summary(user).experience());
+    assertEquals("OPEN",db.queryForObject("SELECT status FROM problem_feedback WHERE id=?",String.class,second));
+    assertEquals("RESOLVED",db.queryForObject("SELECT status FROM problem_feedback WHERE id=?",String.class,fid));
+    var secondTarget=List.of(new cn.mathsea.backend.feedback.FeedbackService.Target(second,1));
+    assertThrows(BusinessException.class,()->feedback.publish(manager,new cn.mathsea.backend.feedback.FeedbackService.Publication(id,9999,secondTarget)));
+    assertEquals("OPEN",db.queryForObject("SELECT status FROM problem_feedback WHERE id=?",String.class,second));
+    var revision=service.save(manager,id,new EditorialService.Save(version(published),doc,"反馈修订"));
+    feedback.publish(manager,new cn.mathsea.backend.feedback.FeedbackService.Publication(id,version(revision),secondTarget));
+    assertEquals("RESOLVED",db.queryForObject("SELECT status FROM problem_feedback WHERE id=?",String.class,second));
+    trash.delete(manager,List.of(number));
+    assertThrows(BusinessException.class,()->feedback.submit(user,number,"答案","再次提交错误","",null));
+    assertEquals(snapshot,db.queryForObject("SELECT problem_snapshot->>'content' FROM problem_feedback WHERE id=?",String.class,fid));
+    mvc.perform(get("/api/v1/feedback/mine")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void paperRandomOrderingIsStableAcrossPagesAndRespectsFilters() throws Exception {
+    String marker = "paper-seed-" + UUID.randomUUID();
+    for (int i = 0; i < 30; i++) {
+      db.update("INSERT INTO problems(problem_number,title,question_type,difficulty,content,created_at,deleted) VALUES(?,?,?,?,?,NOW() + (? * INTERVAL '1 second'),?)",
+          "TC" + String.format("%06d", 800000 + i), marker, i < 25 ? "single-choice" : "solution", "red", "测试题干", i, i == 24);
+    }
+    var first = paperQuery(marker, "random", "seed-one", 1, 12);
+    var second = paperQuery(marker, "random", "seed-one", 2, 12);
+    var all = paperQuery(marker, "random", "seed-one", 1, 100);
+    assertEquals(24, all.size());
+    assertEquals(first, paperQuery(marker, "random", "seed-one", 1, 12));
+    var combined = new ArrayList<>(first); combined.addAll(second);
+    assertEquals(all, combined);
+    assertEquals(24, new HashSet<>(combined).size());
+    assertNotEquals(all, paperQuery(marker, "random", "seed-two", 1, 100));
+    var newest = paperQuery(marker, "newest", "seed-one", 1, 12);
+    assertEquals("TC800023", newest.getFirst());
+    mvc.perform(get("/api/v1/problems").param("keyword", marker).param("type", "single-choice")
+        .param("sort", "random").param("seed", "seed-one").param("pageSize", "12"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(first.getFirst()));
+  }
+
+  @Test
+  void importerSourceIsBoundToTheImportedDraftAndReturnedInDetail() {
+    long editor = actor("source" + UUID.randomUUID().toString().substring(0, 8), "EDITOR");
+    UUID paper = (UUID) service.paper(editor, "原卷关联 " + UUID.randomUUID()).get("id");
+    UUID batch = (UUID) service.batch(editor, "source-batch").get("id");
+    UUID item =
+        (UUID)
+            service
+                .importFile(editor, batch, paper, "卷/T1.md", markdown("核对原卷"), List.of())
+                .get("itemId");
+    var sourceItem =
+        new EditorialService.ImportSourceItem(
+            item,
+            List.of(1, 2),
+            List.of(Map.of("page", 1, "bbox", List.of(10, 20, 30, 40), "type", "text")));
+    var registered =
+        service.registerImportSource(
+            editor,
+            new EditorialService.ImportSource(
+                batch,
+                paper,
+                "mathsea-importer",
+                "job-123",
+                "test.pdf",
+                "a".repeat(64),
+                List.of(sourceItem)));
+    assertEquals(1, registered.get("itemCount"));
+    assertEquals("job-123", service.sourceExternalJobId(item));
+    var reference = (Map<?, ?>) service.detail(item).get("sourceReference");
+    assertEquals("test.pdf", reference.get("sourceFilename"));
+    assertEquals(List.of(1, 2), reference.get("pages"));
+    assertEquals(1, ((List<?>) reference.get("spans")).size());
+
+    UUID retryBatch = (UUID) service.batch(editor, "source-retry").get("id");
+    service.importFile(editor, retryBatch, paper, "卷/T1.md", markdown("核对原卷"), List.of());
+    var retried =
+        service.registerImportSource(
+            editor,
+            new EditorialService.ImportSource(
+                retryBatch,
+                paper,
+                "mathsea-importer",
+                "job-123",
+                "test.pdf",
+                "a".repeat(64),
+                List.of(sourceItem)));
+    assertEquals(registered.get("sourceId"), retried.get("sourceId"));
+
+    UUID unrelated = (UUID) service.manual(editor).get("id");
+    assertThrows(
+        BusinessException.class,
+        () ->
+            service.registerImportSource(
+                editor,
+                new EditorialService.ImportSource(
+                    batch,
+                    paper,
+                    "mathsea-importer",
+                    "job-123",
+                    "test.pdf",
+                    "a".repeat(64),
+                    List.of(
+                        new EditorialService.ImportSourceItem(
+                            unrelated, List.of(1), List.of())))));
+  }
+
+  private List<String> paperQuery(String keyword, String sort, String seed, int page, int pageSize) {
+    return publicProblems.query(new cn.mathsea.backend.problem.dto.ProblemQuery(keyword, List.of(), List.of(),
+        List.of("single-choice"), List.of(), List.of(), sort, page, pageSize, false, List.of(), List.of(), seed), null)
+        .items().stream().map(cn.mathsea.backend.problem.vo.ProblemListVO::id).toList();
+  }
+
+  private long queryCurriculum(
+      String number, boolean learning, List<String> learned, List<String> chapters) {
+    return publicProblems
+        .query(
+            new cn.mathsea.backend.problem.dto.ProblemQuery(
+                number, List.of(), List.of(), List.of(), List.of(), List.of(), "newest", 1, 20,
+                learning, learned, chapters),
+            null)
+        .pagination()
+        .total();
+  }
+}

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#010205">
+  <meta name="description" content="Mathverse 动态黑洞与引力透镜视觉原型">
+  <title>Mathverse · Singularity Observatory</title>
+  <link rel="stylesheet" href="black-hole.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../../vendor/three/three.module.min.js",
+        "three/addons/": "../../vendor/three/addons/"
+      }
+    }
+  </script>
+</head>
+<body data-visual-mode="cinematic">
+  <main class="cosmic-lab black-hole-lab" id="black-hole-lab">
+    <canvas id="black-hole-stage" aria-label="可以三百六十度拖拽观察的动态黑洞"></canvas>
+    <div class="screen-grade" aria-hidden="true"></div>
+    <div class="copy-quiet-zone" aria-hidden="true"></div>
+
+    <header class="lab-header">
+      <a class="lab-brand" href="../cosmic-background-lab/index.html" aria-label="返回宇宙背景实验室">
+        <span class="brand-mark" aria-hidden="true"><i></i></span>
+        <span><strong>math<span>verse</span></strong><small>GRAVITATIONAL CARTOGRAPHY</small></span>
+      </a>
+      <div class="specimen-id">
+        <small>SINGULARITY / MV-BH01</small>
+        <strong>动态黑洞观测原型</strong>
+      </div>
+      <div class="render-status"><i></i><span><small>RELATIVISTIC FIELD ONLINE</small><strong id="render-state">静默观测</strong></span></div>
+    </header>
+
+    <section class="cosmic-copy" aria-labelledby="black-hole-title">
+      <p>BEYOND THE EVENT HORIZON · PROTOTYPE 01</p>
+      <h1 id="black-hole-title">光在这里改变方向。<br>未知，从边界之外开始。</h1>
+      <div class="cosmic-metrics" aria-label="黑洞观测参数">
+        <span><small>HORIZON</small><b>4.1</b><em>视界直径</em></span>
+        <span><small>LENSING</small><b>3×</b><em>光学层级</em></span>
+        <span><small>FIELD</small><b>360°</b><em>全向观测</em></span>
+      </div>
+    </section>
+
+    <aside class="interaction-hint" aria-label="操作提示">
+      <span class="mouse-symbol" aria-hidden="true"><i></i></span>
+      <p><strong>拖拽改变观测平面</strong><small>DRAG TO ORBIT · WHEEL TO APPROACH</small></p>
+    </aside>
+
+    <div class="horizon-reticle" aria-hidden="true"><span></span><i></i><i></i></div>
+
+    <aside class="depth-legend relativity-legend" aria-label="相对论视觉层级">
+      <small>RELATIVISTIC LAYERS</small>
+      <span><i style="--depth-color:#f9fbff"></i><b>PHOTON RING</b><em>1.02</em></span>
+      <span><i style="--depth-color:#71cfff"></i><b>BLUE SHIFT</b><em>APPROACH</em></span>
+      <span><i style="--depth-color:#f7b169"></i><b>RED SHIFT</b><em>RECEDE</em></span>
+      <span><i style="--depth-color:#050609"></i><b>HORIZON</b><em>0</em></span>
+    </aside>
+
+    <section class="lab-controls" aria-label="黑洞观测控制">
+      <div class="control-group mode-controls" aria-label="显示模式">
+        <small>OBSERVATION MODE</small>
+        <div>
+          <button type="button" class="is-active" data-mode="cinematic">电影</button>
+          <button type="button" data-mode="physical">物理</button>
+          <button type="button" data-mode="quiet">静默</button>
+        </div>
+      </div>
+
+      <label class="range-control">
+        <span><small>ACCRETION ENERGY</small><b id="energy-value">72%</b></span>
+        <input id="accretion-energy" type="range" min="20" max="100" value="72" aria-label="吸积盘能量强度">
+      </label>
+
+      <label class="range-control">
+        <span><small>LENSING STRENGTH</small><b id="lensing-value">64%</b></span>
+        <input id="lensing-strength" type="range" min="15" max="100" value="64" aria-label="引力透镜强度">
+      </label>
+
+      <div class="action-controls">
+        <button type="button" id="reset-view"><span aria-hidden="true">◎</span>复位视角</button>
+        <button type="button" class="tour-control" id="auto-tour"><span aria-hidden="true">⌁</span><b>开始巡视</b></button>
+      </div>
+    </section>
+
+    <div class="bearing" aria-hidden="true"><span id="bearing-value">AZ 000° · EL +08°</span><i></i></div>
+    <p class="lab-note">独立动态黑洞原型 · 当前未覆盖星球版宇宙背景</p>
+    <div class="webgl-fallback" id="webgl-fallback" hidden>
+      <strong>当前设备无法启动引力观测</strong>
+      <p>请使用支持 WebGL 的现代浏览器。</p>
+    </div>
+  </main>
+  <script type="module" src="black-hole.js"></script>
+</body>
+</html>

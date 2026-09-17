@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: mathsea-postgres
+    environment:
+      POSTGRES_DB: mathsea
+      POSTGRES_USER: mathsea
+      POSTGRES_PASSWORD: mathsea_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - mathsea_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mathsea -d mathsea"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: mathsea-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - mathsea_redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mathsea_postgres_data:
+  mathsea_redis_data:

@@ -1,0 +1,22 @@
+@import url("../turbulent-starship/turbulent-starship.css");
+
+body[data-backdrop="deep"] {
+  background:
+    radial-gradient(ellipse at 64% 44%, rgba(22, 61, 88, .24), transparent 26%),
+    radial-gradient(ellipse at 54% 57%, #071323 0%, #030812 42%, #010207 82%);
+}
+
+.starship-copy { width: 360px; }
+.starship-copy > p { color: rgba(112, 205, 227, .56); }
+.render-status i { background: #74e7d4; box-shadow: 0 0 14px #74e7d4; }
+.lab-controls { border-color: rgba(133, 208, 230, .14); }
+.range-control input { background: linear-gradient(90deg,#3877d9,#54d6ee 38%,#a968f4 72%,#f0a85e); }
+.boost-control.is-active { border-color: rgba(89, 221, 227, .46); background: linear-gradient(90deg,rgba(47,125,225,.26),rgba(72,203,217,.22),rgba(176,73,214,.23)); }
+
+@media (max-width: 900px) {
+  .starship-copy { width: 275px; }
+}
+
+@media (max-width: 560px) {
+  .starship-copy { width: 225px; }
+}

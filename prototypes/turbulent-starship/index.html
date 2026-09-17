@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#02040a">
+  <meta name="description" content="Mathverse 常规星舰高密度湍流场三维实验室">
+  <title>Mathverse · Turbulent Starship Lab</title>
+  <link rel="stylesheet" href="turbulent-starship.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../../vendor/three/three.module.min.js",
+        "three/addons/": "../../vendor/three/addons/"
+      }
+    }
+  </script>
+</head>
+<body data-backdrop="deep">
+  <main class="starship-lab" id="starship-lab">
+    <canvas id="starship-stage" aria-label="可拖拽并以三百六十度观察的常规宇宙飞船"></canvas>
+
+    <div class="background-field" aria-hidden="true">
+      <span class="calibration-axis axis-x"></span>
+      <span class="calibration-axis axis-y"></span>
+      <span class="calibration-ring ring-a"></span>
+      <span class="calibration-ring ring-b"></span>
+      <span class="calibration-ring ring-c"></span>
+    </div>
+
+    <header class="lab-header">
+      <a class="lab-brand" href="../starship-home/index.html" aria-label="返回星舰主页原型">
+        <span class="brand-mark" aria-hidden="true"><i></i></span>
+        <span><strong>math<span>verse</span></strong><small>STARSHIP FLOW PROGRAM</small></span>
+      </a>
+      <div class="specimen-id">
+        <small>SPECIMEN / MV-S1</small>
+        <strong>高密度湍流星舰</strong>
+      </div>
+      <div class="render-status"><i></i><span><small>LIVE VECTOR FIELD</small><strong id="render-state">稳定巡航</strong></span></div>
+    </header>
+
+    <section class="starship-copy" aria-labelledby="starship-title">
+      <p>CONVENTIONAL STARSHIP · PROTOTYPE 02</p>
+      <h1 id="starship-title">一艘星舰，<br>切开一片可见的流场。</h1>
+      <div class="starship-metrics" aria-label="飞船参数">
+        <span><small>SHELL</small><b id="metric-transmission">76%</b><em>透射</em></span>
+        <span><small>FIELD</small><b id="metric-particles">240K</b><em>粒子 / 轨迹</em></span>
+        <span><small>DRIVE</small><b>3:1</b><em>推进阵列</em></span>
+      </div>
+    </section>
+
+    <aside class="interaction-hint" aria-label="操作提示">
+      <span class="mouse-symbol" aria-hidden="true"><i></i></span>
+      <p><strong>拖拽观察星舰完整结构</strong><small>DRAG TO ORBIT · WHEEL TO INSPECT</small></p>
+    </aside>
+
+    <section class="lab-controls" aria-label="星舰实验控制">
+      <div class="control-group backdrop-controls" aria-label="背景测试">
+        <small>CALIBRATION FIELD</small>
+        <div>
+          <button type="button" class="is-active" data-backdrop="deep">暗场</button>
+          <button type="button" data-backdrop="grid">网格</button>
+          <button type="button" data-backdrop="contrast">高对比</button>
+        </div>
+      </div>
+
+      <label class="range-control">
+        <span><small>SHELL TRANSMISSION</small><b id="transmission-value">76%</b></span>
+        <input id="transmission" type="range" min="62" max="90" value="76" aria-label="外壳透射率">
+      </label>
+
+      <label class="range-control">
+        <span><small>FLOW DENSITY</small><b id="flow-value">86%</b></span>
+        <input id="flow-density" type="range" min="32" max="100" value="86" aria-label="湍流场显示强度">
+      </label>
+
+      <div class="action-controls">
+        <button type="button" id="reset-view"><span aria-hidden="true">◎</span>复位视角</button>
+        <button type="button" class="boost-control" id="boost-field"><span aria-hidden="true">⌁</span><b>进入高涡量</b></button>
+      </div>
+    </section>
+
+    <div class="energy-scale" aria-hidden="true">
+      <span>VELOCITY / VORTICITY</span>
+      <i></i>
+      <small>0</small><small>1</small>
+    </div>
+
+    <p class="lab-note">独立飞船实验室 · 水滴方案已归档，不会替换主页</p>
+    <div class="webgl-fallback" id="webgl-fallback" hidden>
+      <strong>当前设备无法启动三维实验室</strong>
+      <p>请使用支持 WebGL 的现代浏览器。</p>
+    </div>
+  </main>
+
+  <script type="module" src="turbulent-starship.js"></script>
+</body>
+</html>

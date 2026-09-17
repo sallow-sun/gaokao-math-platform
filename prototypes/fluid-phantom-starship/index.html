@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#02040a">
+  <meta name="description" content="Mathverse 由连续流体曲面构成的抽象星舰实验室">
+  <title>Mathverse · Fluid Phantom Starship</title>
+  <link rel="stylesheet" href="fluid-phantom.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../../vendor/three/three.module.min.js",
+        "three/addons/": "../../vendor/three/addons/"
+      }
+    }
+  </script>
+</head>
+<body data-backdrop="deep">
+  <main class="starship-lab" id="fluid-lab">
+    <canvas id="starship-stage" aria-label="可拖拽并以三百六十度观察的抽象流体星舰"></canvas>
+    <div class="background-field" aria-hidden="true">
+      <span class="calibration-axis axis-x"></span>
+      <span class="calibration-axis axis-y"></span>
+      <span class="calibration-ring ring-a"></span>
+      <span class="calibration-ring ring-b"></span>
+      <span class="calibration-ring ring-c"></span>
+    </div>
+
+    <header class="lab-header">
+      <a class="lab-brand" href="../starship-home/index.html" aria-label="返回星舰主页原型">
+        <span class="brand-mark" aria-hidden="true"><i></i></span>
+        <span><strong>math<span>verse</span></strong><small>FLUID VESSEL PROGRAM</small></span>
+      </a>
+      <div class="specimen-id">
+        <small>SPECIMEN / MV-F1</small>
+        <strong>幽灵流体星舰</strong>
+      </div>
+      <div class="render-status"><i></i><span><small>CONTINUOUS FLOW SURFACE</small><strong id="render-state">低涡量巡航</strong></span></div>
+    </header>
+
+    <section class="starship-copy" aria-labelledby="starship-title">
+      <p>FLUID-DEFINED VESSEL · PROTOTYPE 03</p>
+      <h1 id="starship-title">没有机身。<br>流场本身，就是星舰。</h1>
+      <div class="starship-metrics" aria-label="流体星舰参数">
+        <span><small>FLUID</small><b id="metric-opacity">56%</b><em>不透明度</em></span>
+        <span><small>SURFACE</small><b id="metric-surface">46K</b><em>曲面顶点</em></span>
+        <span><small>TRACER</small><b id="metric-tracer">12K</b><em>示踪粒子</em></span>
+      </div>
+    </section>
+
+    <aside class="interaction-hint" aria-label="操作提示">
+      <span class="mouse-symbol" aria-hidden="true"><i></i></span>
+      <p><strong>拖拽观察流体拓扑</strong><small>DRAG TO ORBIT · WHEEL TO INSPECT</small></p>
+    </aside>
+
+    <section class="lab-controls" aria-label="流体星舰实验控制">
+      <div class="control-group backdrop-controls" aria-label="背景测试">
+        <small>CALIBRATION FIELD</small>
+        <div>
+          <button type="button" class="is-active" data-backdrop="deep">暗场</button>
+          <button type="button" data-backdrop="grid">网格</button>
+          <button type="button" data-backdrop="contrast">高对比</button>
+        </div>
+      </div>
+
+      <label class="range-control">
+        <span><small>FLUID OPACITY</small><b id="opacity-value">56%</b></span>
+        <input id="fluid-opacity" type="range" min="22" max="72" value="56" aria-label="流体不透明度">
+      </label>
+
+      <label class="range-control">
+        <span><small>FLOW CURVATURE</small><b id="curvature-value">76%</b></span>
+        <input id="flow-curvature" type="range" min="25" max="100" value="76" aria-label="流体卷曲强度">
+      </label>
+
+      <div class="action-controls">
+        <button type="button" id="reset-view"><span aria-hidden="true">◎</span>复位视角</button>
+        <button type="button" class="boost-control" id="wake-core"><span aria-hidden="true">⌁</span><b>唤醒涡核</b></button>
+      </div>
+    </section>
+
+    <div class="energy-scale" aria-hidden="true">
+      <span>DENSITY / CURVATURE</span>
+      <i></i>
+      <small>0</small><small>1</small>
+    </div>
+
+    <p class="lab-note">独立流体星舰实验 · 水滴与常规星舰原型均被保留</p>
+    <div class="webgl-fallback" id="webgl-fallback" hidden>
+      <strong>当前设备无法启动三维实验室</strong>
+      <p>请使用支持 WebGL 的现代浏览器。</p>
+    </div>
+  </main>
+  <script type="module" src="fluid-phantom.js"></script>
+</body>
+</html>

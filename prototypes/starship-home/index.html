@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#04050b">
+  <meta name="description" content="Mathverse 中央探索舰主页概念原型">
+  <title>Mathverse 航行中枢 · 主页概念</title>
+  <link rel="stylesheet" href="starship-home.css">
+</head>
+<body>
+  <main class="cosmic-hub" id="cosmic-hub">
+    <div class="deep-space" aria-hidden="true"></div>
+    <canvas class="nebula-field" id="nebula-field" aria-hidden="true"></canvas>
+    <canvas class="starfield" id="starfield" aria-hidden="true"></canvas>
+    <div class="cosmic-veil" aria-hidden="true"></div>
+    <div class="space-grid" aria-hidden="true"></div>
+    <div class="signal-layer" id="signal-layer" aria-label="正在经过的数学信号"></div>
+
+    <header class="topbar">
+      <a class="brand" href="../../pages/home.html" aria-label="返回当前 Mathverse 主页">
+        <span class="brand-orbit" aria-hidden="true"><i></i></span>
+        <span>
+          <strong>math<span>verse</span></strong>
+          <small>DEEP KNOWLEDGE EXPEDITION</small>
+        </span>
+      </a>
+
+      <div class="coordinate-readout" aria-label="当前航行坐标">
+        <span class="signal-dot" aria-hidden="true"></span>
+        <p><small>CURRENT COORDINATES</small><strong>高中数学宇宙 · 基础星域</strong></p>
+      </div>
+
+      <div class="top-actions">
+        <button class="hud-button" type="button" data-open-system="signals">
+          <span aria-hidden="true">◉</span><b>信号</b><i>3</i>
+        </button>
+        <button class="captain-button" type="button" data-open-system="log">
+          <span aria-hidden="true">YZ</span>
+          <b>舰长档案</b>
+        </button>
+      </div>
+    </header>
+
+    <section class="navigation-console" aria-labelledby="navigation-title">
+      <p class="eyebrow"><span></span>NAVIGATION CONSOLE · ONLINE<span></span></p>
+      <h1 id="navigation-title">输入问题，确定下一次航行坐标</h1>
+
+      <form class="coordinate-search" id="coordinate-search" role="search">
+        <label class="sr-only" for="coordinate-input">搜索题目、知识点、试卷或解法</label>
+        <span class="search-radar" aria-hidden="true">◎</span>
+        <input id="coordinate-input" type="search" placeholder="搜索题目、知识点、试卷或解法" autocomplete="off">
+        <kbd aria-label="键盘快捷键">/</kbd>
+        <button type="submit">锁定坐标 <span aria-hidden="true">⌁</span></button>
+      </form>
+
+      <div class="quick-coordinates" aria-label="推荐航行坐标">
+        <span>推荐坐标</span>
+        <button type="button" data-query="圆锥曲线定点问题">圆锥曲线</button>
+        <button type="button" data-query="导数中的隐零点">隐零点</button>
+        <button type="button" data-query="2025 新高考真题">2025 真题</button>
+      </div>
+    </section>
+
+    <div class="ship-stage" id="ship-stage" aria-label="MV-01 数学深空观测舰">
+      <div class="ship-reticle" aria-hidden="true">
+        <span class="reticle-axis axis-horizontal"></span>
+        <span class="reticle-axis axis-vertical"></span>
+        <span class="reticle-label label-a">MV-01</span>
+        <span class="reticle-label label-b">OBSERVATION VESSEL</span>
+        <i class="reticle-point point-a"></i>
+        <i class="reticle-point point-b"></i>
+      </div>
+      <canvas class="flowcraft" id="flowcraft" aria-hidden="true"></canvas>
+    </div>
+
+    <button class="mission-card continue-card" type="button" data-demo-search="导数中的隐零点">
+      <span class="card-index">01</span>
+      <span class="card-copy">
+        <small>CONTINUE EXPEDITION</small>
+        <strong>继续上次探索</strong>
+        <b>导数 · 隐零点构造</b>
+      </span>
+      <span class="card-arrow" aria-hidden="true">→</span>
+    </button>
+
+    <button class="mission-card today-card" type="button" data-open-system="log">
+      <span class="mission-ring" aria-hidden="true"><b>2/4</b></span>
+      <span class="card-copy">
+        <small>TODAY'S MISSION</small>
+        <strong>今日航行任务</strong>
+        <b>已完成 2 项计划</b>
+      </span>
+      <span class="card-arrow" aria-hidden="true">→</span>
+    </button>
+
+    <section class="route-results" id="route-results" aria-labelledby="route-results-title" hidden>
+      <header>
+        <div>
+          <p>COORDINATES RESOLVED</p>
+          <h2 id="route-results-title">可抵达目的地</h2>
+        </div>
+        <button type="button" class="panel-close" data-close-layer aria-label="关闭搜索结果">×</button>
+      </header>
+      <p class="route-query">正在解析：<strong id="resolved-query"></strong></p>
+      <div class="destination-list">
+        <button type="button" class="destination active" data-destination="题目 P-2025-0718">
+          <span class="destination-orbit" aria-hidden="true"></span>
+          <span><small>PLANET · PROBLEM</small><strong id="primary-destination">相关高考题目</strong><b>5 种解法 · 46 条讨论信号</b></span>
+          <i aria-hidden="true">01</i>
+        </button>
+        <button type="button" class="destination" data-destination="知识区域">
+          <span class="destination-orbit cyan" aria-hidden="true"></span>
+          <span><small>NEBULA · KNOWLEDGE</small><strong>相关知识区域</strong><b>查看标签、结论与学习深度</b></span>
+          <i aria-hidden="true">02</i>
+        </button>
+        <button type="button" class="destination" data-destination="讨论信号">
+          <span class="destination-orbit violet" aria-hidden="true"></span>
+          <span><small>SIGNAL · COMMUNITY</small><strong>正在发生的讨论</strong><b>来自 18 位探索者的信号</b></span>
+          <i aria-hidden="true">03</i>
+        </button>
+      </div>
+    </section>
+
+    <section class="system-panel" id="system-panel" aria-labelledby="system-title" hidden>
+      <header>
+        <div>
+          <p id="system-kicker">SYSTEM</p>
+          <h2 id="system-title">航行系统</h2>
+        </div>
+        <button type="button" class="panel-close" data-close-layer aria-label="关闭系统面板">×</button>
+      </header>
+      <p class="system-description" id="system-description"></p>
+      <div class="system-items" id="system-items"></div>
+      <button class="system-primary" id="system-primary" type="button">打开完整系统 <span>→</span></button>
+    </section>
+
+    <nav class="command-dock" aria-label="飞船主操作系统">
+      <div class="dock-status" aria-hidden="true">
+        <span></span><b>ALL SYSTEMS NOMINAL</b>
+      </div>
+      <div class="dock-apps">
+        <button type="button" class="dock-app" data-open-system="problems">
+          <span class="dock-icon gold" aria-hidden="true">∑</span><b>题库</b><small>PLANETS</small>
+        </button>
+        <button type="button" class="dock-app" data-open-system="routes">
+          <span class="dock-icon blue" aria-hidden="true">⌁</span><b>题单</b><small>ROUTES</small>
+        </button>
+        <button type="button" class="dock-app" data-open-system="papers">
+          <span class="dock-icon copper" aria-hidden="true">▤</span><b>整卷</b><small>MISSIONS</small>
+        </button>
+        <button type="button" class="dock-app dock-primary" data-jump="../../pages/galaxy.html" data-jump-label="正在展开知识星图">
+          <span class="dock-icon galaxy" aria-hidden="true">◎</span><b>星图</b><small>GALAXY</small>
+        </button>
+        <button type="button" class="dock-app" data-open-system="signals">
+          <span class="dock-icon green" aria-hidden="true">∴</span><b>讨论</b><small>SIGNALS</small>
+        </button>
+        <button type="button" class="dock-app" data-open-system="columns">
+          <span class="dock-icon violet" aria-hidden="true">¶</span><b>专栏</b><small>LOGBOOK</small>
+        </button>
+        <button type="button" class="dock-app" data-open-system="log">
+          <span class="dock-icon silver" aria-hidden="true">◫</span><b>航行日志</b><small>CAPTAIN</small>
+        </button>
+      </div>
+      <p class="dock-time" id="dock-time">--:--</p>
+    </nav>
+
+    <div class="jump-overlay" id="jump-overlay" aria-hidden="true">
+      <span class="jump-ring"></span>
+      <p>COURSE LOCKED</p>
+      <h2 id="jump-label">正在前往目标区域</h2>
+    </div>
+
+    <p class="prototype-note">STARSHIP HOME · CURVED SPACEFLIGHT PROTOTYPE 03</p>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script src="starship-home.js"></script>
+</body>
+</html>

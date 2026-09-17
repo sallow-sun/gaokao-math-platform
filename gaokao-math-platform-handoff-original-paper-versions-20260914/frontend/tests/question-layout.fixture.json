@@ -1,0 +1,54 @@
+[
+  {
+    "id": "GF000019",
+    "title": "2026新高考Ⅱ卷T14",
+    "year": 2026,
+    "source": "national-new-2",
+    "sourceLabel": "新高考Ⅱ卷",
+    "type": "fill-blank",
+    "typeLabel": "填空题",
+    "level": "blue",
+    "tags": [
+      "立体几何"
+    ],
+    "sourceText": "2026 · 新高考Ⅱ卷",
+    "content": "已知球 $O$ 的体积为 $4\\sqrt{3}\\pi$，$A$，$B$，$C$，$D$ 均在球 $O$ 的球面上，$\\triangle ABC$ 为等边三角形，$DA=DB=DC=\\sqrt{2}$，则 $\\triangle ABC$ 的面积为 ______．",
+    "contentFormat": "markdown-latex-v1",
+    "assets": [],
+    "stats": {
+      "views": 0,
+      "favorites": 0
+    },
+    "curriculum": {
+      "version": "PEP-A-2019",
+      "chapters": [],
+      "confirmed": false
+    }
+  },
+  {
+    "id": "GS000010",
+    "title": "2026新高考Ⅱ卷T18",
+    "year": 2026,
+    "source": "national-new-2",
+    "sourceLabel": "新高考Ⅱ卷",
+    "type": "solution",
+    "typeLabel": "解答题",
+    "level": "blue",
+    "tags": [
+      "解析几何"
+    ],
+    "sourceText": "2026 · 新高考Ⅱ卷",
+    "content": "已知椭圆 $E:\\dfrac{x^2}{a^2}+y^2=1$（$a>1$），过 $E$ 的右焦点且与 $x$ 轴垂直的直线被 $E$ 所截的线段长为 $\\sqrt{2}$．\n\n（1）求 $E$ 的离心率．\n\n（2）设 $O$ 为坐标原点，给定 $G(t,0)$（$t\\ne0$）．$A(x_0,y_0)$（$y_0\\ne0$）为 $E$ 上的点，过 $A$ 作 $y$ 轴的垂线，垂足为 $B$．直线 $AO$ 与直线 $GB$ 的交点为 $P$，当 $A$ 在 $E$ 上运动时，点 $P$ 的轨迹为 $M$．\n\n（i）求 $M$ 的方程；\n\n（ii）当 $t$ 为何值时，$M$ 有对称中心？当 $M$ 有对称中心时，将 $M$ 平移后得到曲线 $M'$，使得 $O$ 为 $M'$ 的对称中心，说明 $M'$ 是什么曲线．",
+    "contentFormat": "markdown-latex-v1",
+    "assets": [],
+    "stats": {
+      "views": 7,
+      "favorites": 0
+    },
+    "curriculum": {
+      "version": "PEP-A-2019",
+      "chapters": [],
+      "confirmed": false
+    }
+  }
+]

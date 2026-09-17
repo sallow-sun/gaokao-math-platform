@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#02040a">
+  <meta name="description" content="Mathverse 高透明流形水滴探测器三维实验室">
+  <title>Mathverse · Manifold Probe Lab</title>
+  <link rel="stylesheet" href="manifold-droplet.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../../vendor/three/three.module.min.js",
+        "three/addons/": "../../vendor/three/addons/"
+      }
+    }
+  </script>
+</head>
+<body data-backdrop="deep">
+  <main class="probe-lab" id="probe-lab">
+    <canvas id="probe-stage" aria-label="可360度旋转查看的流形水滴探测器"></canvas>
+    <div class="background-field" aria-hidden="true">
+      <span class="calibration-axis axis-x"></span>
+      <span class="calibration-axis axis-y"></span>
+      <span class="calibration-ring ring-a"></span>
+      <span class="calibration-ring ring-b"></span>
+    </div>
+
+    <header class="lab-header">
+      <a class="lab-brand" href="../starship-home/index.html" aria-label="返回星舰主页原型">
+        <span class="brand-mark" aria-hidden="true"><i></i></span>
+        <span><strong>math<span>verse</span></strong><small>MANIFOLD VESSEL PROGRAM</small></span>
+      </a>
+      <div class="specimen-id">
+        <small>SPECIMEN / MV-D0</small>
+        <strong>流形水滴探测器</strong>
+      </div>
+      <div class="render-status"><i></i><span><small>LIVE SURFACE FIELD</small><strong id="render-state">稳定层流</strong></span></div>
+    </header>
+
+    <section class="probe-copy" aria-labelledby="probe-title">
+      <p>TRANSMISSIVE MANIFOLD · PROTOTYPE 01</p>
+      <h1 id="probe-title">不是机械外壳，<br>而是一片被约束的流场。</h1>
+      <div class="probe-metrics" aria-label="飞船参数">
+        <span><small>SHELL</small><b>84%</b><em>透射</em></span>
+        <span><small>FIELD</small><b>28K</b><em>粒子</em></span>
+        <span><small>TOPOLOGY</small><b>2:3</b><em>流形结</em></span>
+      </div>
+    </section>
+
+    <aside class="interaction-hint" aria-label="操作提示">
+      <span class="mouse-symbol" aria-hidden="true"><i></i></span>
+      <p><strong>拖拽观察完整曲面</strong><small>DRAG TO ORBIT · WHEEL TO INSPECT</small></p>
+    </aside>
+
+    <section class="lab-controls" aria-label="飞船实验控制">
+      <div class="control-group backdrop-controls" aria-label="背景测试">
+        <small>CALIBRATION FIELD</small>
+        <div>
+          <button type="button" class="is-active" data-backdrop="deep">暗场</button>
+          <button type="button" data-backdrop="grid">网格</button>
+          <button type="button" data-backdrop="contrast">高对比</button>
+        </div>
+      </div>
+
+      <label class="range-control">
+        <span><small>SHELL TRANSMISSION</small><b id="transmission-value">84%</b></span>
+        <input id="transmission" type="range" min="68" max="94" value="84" aria-label="外壳透射率">
+      </label>
+
+      <label class="range-control">
+        <span><small>FLOW INTENSITY</small><b id="flow-value">78%</b></span>
+        <input id="flow-intensity" type="range" min="25" max="100" value="78" aria-label="表面流场强度">
+      </label>
+
+      <div class="action-controls">
+        <button type="button" id="reset-view"><span aria-hidden="true">◎</span>复位视角</button>
+        <button type="button" class="boost-control" id="boost-field"><span aria-hidden="true">⌁</span><b>激活湍流</b></button>
+      </div>
+    </section>
+
+    <div class="energy-scale" aria-hidden="true">
+      <span>VELOCITY / VORTICITY</span>
+      <i></i>
+      <small>0</small><small>1</small>
+    </div>
+
+    <p class="lab-note">独立飞船实验室 · 当前不会替换主页</p>
+    <div class="webgl-fallback" id="webgl-fallback" hidden>
+      <strong>当前设备无法启动三维实验室</strong>
+      <p>请使用支持 WebGL 的现代浏览器。</p>
+    </div>
+  </main>
+
+  <script type="module" src="manifold-droplet.js"></script>
+</body>
+</html>
